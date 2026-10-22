@@ -24,7 +24,7 @@ export function namespaces(M) {
   for (const r of M.RISKS) risks[r.id] = r.p;
   const cost = {};
   M.COST.forEach(([, v], i) => (cost[i] = v));
-  return { B: M.BASE, R: M.ROOM, P: M.PHYS, X: M.EXP, F: M.FAN, Y: M.BODY, G: M.GEL, K: risks, C: cost, A: M.FABRIC, S: M.SCEN, D: M.DAY, Q: M.CAND };
+  return { B: M.BASE, R: M.ROOM, P: M.PHYS, X: M.EXP, F: M.FAN, Y: M.BODY, G: M.GEL, K: risks, C: cost, A: M.FABRIC, S: M.SCEN, D: M.DAY, Q: M.CAND, DS: M.DESIGN, PD: M.PADS.spacer, PX: M.PADS.capX, O: M.OLD };
 }
 
 export function resolve(M, q, key, scale, placeholder) {

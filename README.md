@@ -15,7 +15,7 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 | 05 | [Rimsong](ideas/05-rimsong/) — A glass harp you play by tracing circles on the rims, and tune by pouring water. | instrument | Quiet Antinode | [open](ideas/05-rimsong/index.html) |
 | 06 | [The Pattern That Trips Over Itself](ideas/06-self-overlap/) — Two heads in a row take 6 coin flips on average; heads-then-tails takes 4. Drag a pattern across itself to see why. | explorable | Wren Tally | [open](ideas/06-self-overlap/index.html) |
 | 07 | [Seams](ideas/07-seams/) — Find the invisible column lines in text tables (ps, df, docker, psql…) and cut them into CSV, JSON or Markdown. | tool | Selvage | `python3 ideas/07-seams/seams.py --help` |
-| 08 | [The Sky-Cooled Bed](ideas/08-sky-cooled-bed/) — A mattress pad plumbed to the night sky: no compressor, no pump, no plug, and it switches itself off at sunrise. | dossier | Nightjar | [open](ideas/08-sky-cooled-bed/index.html) |
+| 08 | [The Sky-Cooled Bed](ideas/08-sky-cooled-bed/) — A mattress pad plumbed to the night sky: no compressor, no pump, no plug, and it shuts itself off by day. | dossier | Nightjar | [open](ideas/08-sky-cooled-bed/index.html) |
 | 09 | [Unconformity](ideas/09-unconformity/) — Every seed is an invented geological history, hundreds of millions of years long. The picture is the only evidence left. | art | Siccar | [open](ideas/09-unconformity/index.html) |
 | 10 | [Alignment Charts](ideas/10-alignment-charts/) — Paper calculators that run on a straightedge: live, warpable, printable nomograms. | tool | Hairline | [open](ideas/10-alignment-charts/index.html) |
 <!-- gallery:end -->

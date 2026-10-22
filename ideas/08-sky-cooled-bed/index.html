@@ -205,7 +205,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
 <header class="wrap mast">
   <div class="eyebrow">Idea Bank · Dossier 08 · Invention</div>
   <h1>The Sky-Cooled Bed</h1>
-  <p class="tagline">A mattress pad plumbed to the night sky: no compressor, no pump, no plug, and it switches itself off at sunrise.</p>
+  <p class="tagline">A mattress pad plumbed to the night sky: no compressor, no pump, no plug, and it shuts itself off by day.</p>
   <div class="byline">by Nightjar · October 2026 · status: unbuilt and untested; every number below is computed, not measured</div>
 
   <div class="lede">
@@ -213,15 +213,15 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
   </div>
 
   <div class="tiles" aria-label="Key numbers">
-    <div class="tile"><div class="big cold"><span data-v="Qbody">36</span> W</div><div class="what">heat drawn from the sleeper: <span data-v="fracOfM">48</span>% of a sleeping body's output</div></div>
+    <div class="tile"><div class="big cold"><span data-v="Qbody">35</span> W</div><div class="what">heat drawn from the sleeper: <span data-v="fracOfM">48</span>% of a sleeping body's output</div></div>
     <div class="tile"><div class="big"><span data-v="tSky">16</span> °C</div><div class="what">effective temperature of the clear sky over a <span data-v="B.tAir">31</span> °C night (dew point <span data-v="B.tDew">16</span> °C)</div></div>
-    <div class="tile"><div class="big warm"><span data-v="uaBody">4.00</span> W/K</div><div class="what">body-to-water conductance: the real bottleneck, and the least certain number</div></div>
-    <div class="tile"><div class="big"><span data-v="dTloop">2.5</span> K</div><div class="what">loop temperature difference, enough to push <span data-v="mdot">6.0</span> g/s with no pump</div></div>
+    <div class="tile"><div class="big warm"><span data-v="uaBody">4.00</span> W/K</div><div class="what">body-to-water conductance: sets how many watts each degree buys, and is the least certain number</div></div>
+    <div class="tile"><div class="big"><span data-v="dTloop">3.6</span> K</div><div class="what">loop temperature difference, enough to push <span data-v="mdot">4.3</span> g/s with no pump</div></div>
     <div class="tile"><div class="big"><span data-v="roomRatio">32</span>×</div><div class="what">more cooling needed to chill the whole room instead (≈<span data-v="roomTotal">1126</span>&nbsp;W)</div></div>
   </div>
 
   <div class="lede verdict">
-    <p><strong>Verdict.</strong> Physically plausible, and modest. On the base-case night it removes about half of a sleeper's heat and cuts the sweat they need to produce by about <span data-v="sweatCut">63</span>%. <strong>The sky is not the bottleneck; your back is.</strong> How much heat a sleeping back will actually give up to a cool pad is the number I trust least. I put <span data-v="survTech">44</span>% on a well-built prototype doing what this page says, and <span data-v="survAll">21</span>% on it becoming something people actually use. The cheapest decisive test costs about $<span data-v="X.cost1">120</span> and three nights (§7).</p>
+    <p><strong>Verdict.</strong> Physically plausible, and modest. On the base-case night it removes about half of a sleeper's heat and cuts the sweat they need to produce by about <span data-v="sweatCut">57</span>%. <strong>The biggest unknown isn't the sky; it's your back.</strong> How much heat a sleeping back will actually give up to a cool pad is the number I trust least, and it swings the result more than the weather does. I put <span data-v="survTech">44</span>% on a well-built prototype doing what this page says, and <span data-v="survAll">21</span>% on it becoming something people actually use. The cheapest decisive test costs about $<span data-v="X.cost1">120</span> and three nights (§7).</p>
   </div>
 
   <nav class="toc" aria-label="Contents">
@@ -236,6 +236,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
       <li><a href="#experiment">The first experiment</a></li>
       <li><a href="#choosing">How I chose this</a></li>
       <li><a href="#assumptions">Assumptions register</a></li>
+      <li><a href="#revisions">What an independent review changed</a></li>
     </ol>
   </nav>
 </header>
@@ -254,7 +255,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
   <ul>
     <li><strong>Open the window.</strong> This works when the night air is several degrees cooler than the room. On the nights that matter, dense cities often don't cool down that far. In the base case the outside air is only <span class="n"><span data-v="B.tAir">31</span> °C</span> against a <span class="n"><span data-v="B.tRoom">33</span> °C</span> room.</li>
     <li><strong>A fan.</strong> Moving air helps only while it is cooler than skin (about 35 °C). At <span data-v="B.tRoom">33</span> °C a fan adds roughly <span data-v="fanGain">17</span> W of dry heat loss. At <span data-v="S.hotRoom">36</span> °C it pushes about <span data-v="fanGainHot">17</span> W of heat <em>into</em> the body. Fans still help by speeding up sweat evaporation, and they pair well with this idea.</li>
-    <li><strong>Gel or PCM cooling mats.</strong> These saturate. <span data-v="G.mass">2</span> kg of water gel allowed to warm by <span data-v="G.rise">8</span> K absorbs <span data-v="gelKJ">67</span> kJ, which lasts about <span data-v="gelMin">31</span> minutes at the pad's base-case rate.</li>
+    <li><strong>Gel or PCM cooling mats.</strong> These saturate. <span data-v="G.mass">2</span> kg of water gel allowed to warm by <span data-v="G.rise">8</span> K absorbs <span data-v="gelKJ">67</span> kJ, which lasts about <span data-v="gelMin">32</span> minutes at the pad's base-case rate.</li>
     <li><strong>Sleeping on the roof.</strong> This is the original sky-cooled bed and it works, but it brings mosquitoes, safety risks, rain and no privacy, and it needs stairs that frail people can't climb.</li>
   </ul>
   <p><strong>The insight.</strong> For a sleeping body, the mattress is normally the worst thermal boundary there is. About a sixth of the skin is pressed into foam that soon warms to skin temperature and then sheds almost nothing. This idea turns that worst boundary into the best one.</p>
@@ -340,9 +341,9 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
       <circle cx="536" cy="367" r="11" class="f-warm-soft s-warm" stroke-width="1.3"/>
 
       <!-- temperature labels -->
-      <text class="t lbl" x="284" y="329"><tspan data-v="padInlet">26.8</tspan> °C</text>
-      <text class="t lbl" x="572" y="300" text-anchor="end"><tspan data-v="padOutlet">29.4</tspan> °C</text>
-      <text class="t-sm lbl" x="340" y="350">pad ≈ <tspan data-v="tW">28.1</tspan> °C under ≈<tspan data-v="Qbody">36</tspan> W of body heat</text>
+      <text class="t lbl" x="284" y="329"><tspan data-v="padInlet">26.4</tspan> °C</text>
+      <text class="t lbl" x="572" y="300" text-anchor="end"><tspan data-v="padOutlet">30.0</tspan> °C</text>
+      <text class="t-sm lbl" x="340" y="350">pad ≈ <tspan data-v="tW">28.2</tspan> °C under ≈<tspan data-v="Qbody">35</tspan> W of body heat</text>
 
       <!-- callouts -->
       <g class="co">
@@ -364,9 +365,9 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
       <li><strong>Radiator panel</strong>, <span data-v="B.panelArea">2.0</span> m², tilted. Any high-emissivity surface works at night: white paint has thermal-IR emissivity around <span data-v="B.epsPanel">0.95</span>. An unglazed polypropylene pool-heater mat is a cheap ready-made one, since it is already a sheet of tubes.</li>
       <li><strong>Foil-faced foam and legs</strong> keep the hot roof slab from heating the panel from behind.</li>
       <li><strong>Header cup</strong> at the loop's highest point: fill, vent air, absorb thermal expansion. The loop is open here, so the pad sees only the water column, about <span data-v="padPressure">29</span> kPa.</li>
-      <li><strong>Cold leg</strong>, <span data-v="B.pipeD" data-scale="1000">20</span> mm insulated pipe, enters the pad at about <span data-v="padInlet">26.8</span> °C.</li>
-      <li><strong>Torso pad</strong>, 0.6 × 1.2 m, under the bottom sheet, on 10 mm closed-cell foam so it cools the sleeper rather than the mattress. Its channels must not collapse under body weight (§3.6): a capillary-tube mat of the kind used in chilled ceilings, or spacer fabric sealed in TPU.</li>
-      <li><strong>Warm leg</strong> returns at about <span data-v="padOutlet">29.4</span> °C to the panel's high end.</li>
+      <li><strong>Cold leg</strong>, <span data-v="B.pipeD" data-scale="1000">20</span> mm insulated pipe, enters the pad at about <span data-v="padInlet">26.4</span> °C.</li>
+      <li><strong>Torso pad</strong>, 0.6 × 1.2 m, under the bottom sheet, on 10 mm closed-cell foam so it cools the sleeper rather than the mattress. It is drop-stitch spacer fabric sealed in TPU with a 3 mm water gap. Sitting under the open water column, it can't be squeezed shut by body weight, and the spacer threads stop it ballooning into tubes (§3.6).</li>
+      <li><strong>Warm leg</strong> returns at about <span data-v="padOutlet">30.0</span> °C to the panel's high end.</li>
     </ol>
   </figure>
 
@@ -421,19 +422,21 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
 
 <section class="wrap" id="numbers">
   <h2><span class="sec">§3</span>Feasibility, from first principles</h2>
-  <p>Base case: a clear night, outdoor air <span class="n"><span data-v="B.tAir">31</span> °C</span>, dew point <span class="n"><span data-v="B.tDew">16</span> °C</span>, bedroom <span class="n"><span data-v="B.tRoom">33</span> °C</span>, a <span class="n"><span data-v="B.panelArea">2.0</span> m²</span> bare panel <span class="n"><span data-v="B.loopHeight">3</span> m</span> above the pad. All inputs are listed with their basis in §9. Every number on this page is computed by the same code that runs the calculator in §4.</p>
+  <p>Base case: a clear night, outdoor air <span class="n"><span data-v="B.tAir">31</span> °C</span>, dew point <span class="n"><span data-v="B.tDew">16</span> °C</span>, bedroom air <span class="n"><span data-v="B.tRoom">33</span> °C</span> under a ceiling still at <span class="n"><span data-v="tCeil">35</span> °C</span>, a <span class="n"><span data-v="B.panelArea">2.0</span> m²</span> bare panel <span class="n"><span data-v="B.loopHeight">3</span> m</span> above the pad. All inputs are listed with their basis in §9. Every number on this page is computed by the same code that runs the calculator in §4.</p>
 
   <h3>3.1 How much heat does a sleeper need to lose?</h3>
   <div class="eq">
     <span class="l"><var>M</var> = <span data-v="B.metSleep">0.7</span> met × <span data-v="P.MET">58.2</span> W/m² × <span data-v="B.bsa">1.8</span> m² = <b><span data-v="M">73</span> W</b></span>
     <span class="c">ASHRAE lists sleeping at <span data-v="B.metSleep">0.7</span> met; <span data-v="B.bsa">1.8</span> m² is a typical adult body surface area.</span>
-    <span class="l"><var>Q</var><sub>dry</sub> = <var>h</var><sub>dry</sub> (<var>A</var><sub>body</sub> − <var>A</var><sub>contact</sub>)(<var>T</var><sub>skin</sub> − <var>T</var><sub>room</sub>)</span>
-    <span class="l">= <span data-v="B.hDry">7.5</span> × (<span data-v="B.bsa">1.8</span> − <span data-v="B.contactArea">0.30</span>) × (<span data-v="B.tSkin">34.5</span> − <span data-v="B.tRoom">33</span>) = <b><span data-v="Qdry">17</span> W</b></span>
-    <span class="c">Convection plus radiation from exposed skin. An ordinary mattress under the contact area is treated as adiabatic: the foam warms to skin temperature and stops conducting.</span>
-    <span class="l"><var>E</var><sub>needed</sub> = <var>M</var> − <var>Q</var><sub>dry</sub> = <b><span data-v="eNoPad">56</span> W</b> → <span data-v="eNoPad">56</span> W ÷ <span data-v="P.H_FG" data-scale="0.000001">2.42</span> MJ/kg = <b><span data-v="sweatNoPad">84</span> g of water per hour</b></span>
+    <span class="l"><var>T</var><sub>mr</sub> = <var>T</var><sub>room</sub> + <var>F</var><sub>ceil</sub>(<var>T</var><sub>ceil</sub> − <var>T</var><sub>room</sub>) = <span data-v="B.tRoom">33</span> + <span data-v="B.fCeil">0.4</span> × (<span data-v="tCeil">35</span> − <span data-v="B.tRoom">33</span>) = <b><span data-v="mrt">33.8</span> °C</b></span>
+    <span class="c">Mean radiant temperature: walls at room-air temperature, and the ceiling, still warm from the roof, filling about 40% of a supine sleeper's view (my estimate).</span>
+    <span class="l"><var>Q</var><sub>dry</sub> = (<var>A</var><sub>body</sub> − <var>A</var><sub>contact</sub>)[<var>h</var><sub>c</sub>(<var>T</var><sub>skin</sub> − <var>T</var><sub>room</sub>) + <var>h</var><sub>r</sub>(<var>T</var><sub>skin</sub> − <var>T</var><sub>mr</sub>)]</span>
+    <span class="l">= (<span data-v="B.bsa">1.8</span> − <span data-v="B.contactArea">0.30</span>) × [<span data-v="B.hConvSkin">3.0</span> × (<span data-v="B.tSkin">34.5</span> − <span data-v="B.tRoom">33</span>) + <span data-v="B.hRadSkin">4.5</span> × (<span data-v="B.tSkin">34.5</span> − <span data-v="mrt">33.8</span>)] = <span data-v="qDryConv">6.8</span> + <span data-v="qDryRad">4.7</span> = <b><span data-v="Qdry">11</span> W</b></span>
+    <span class="c">Convection to still air plus radiation to the room's surfaces from exposed skin. An ordinary mattress under the contact area is treated as adiabatic: the foam warms to skin temperature and stops conducting.</span>
+    <span class="l"><var>E</var><sub>needed</sub> = <var>M</var> − <var>Q</var><sub>dry</sub> = <b><span data-v="eNoPad">62</span> W</b> → <span data-v="eNoPad">62</span> W ÷ <span data-v="P.H_FG" data-scale="0.000001">2.42</span> MJ/kg = <b><span data-v="sweatNoPad">92</span> g of water per hour</b></span>
     <span class="c">About <span data-v="sweatNoPadNight">0.7</span> L over an <span data-v="Y.hours">8</span>-hour night, all of which has to evaporate. Respiratory heat loss (a few watts) is ignored here and in every other case.</span>
   </div>
-  <p>The pad doesn't need to perform miracles. It needs to take over part of that evaporative load. For scale, <span data-v="Qbody">36</span> W sustained for <span data-v="Y.hours">8</span> hours is <span data-v="nightMJ">1.0</span> MJ. If a <span data-v="Y.mass">70</span> kg body had no other way to get rid of that heat, it would raise core temperature by <span data-v="coreRise">4.2</span> K.</p>
+  <p>The pad doesn't need to perform miracles. It needs to take over part of that evaporative load. For scale, <span data-v="Qbody">35</span> W sustained for <span data-v="Y.hours">8</span> hours is <span data-v="nightMJ">1.0</span> MJ. If a <span data-v="Y.mass">70</span> kg body had no other way to get rid of that heat, it would raise core temperature by <span data-v="coreRise">4.2</span> K.</p>
   <figure>
     <div class="fig-frame"><div id="balance-static" class="chart" aria-live="off"></div></div>
     <figcaption>Where a sleeper's <span data-v="M">73</span> W goes in a <span data-v="B.tRoom">33</span> °C room, with an ordinary mattress and with the sky-cooled pad (base case). Evaporation is what's left over: it is the part a body in humid heat struggles to deliver.</figcaption>
@@ -455,46 +458,57 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
   <div class="eq">
     <span class="l"><var>q</var><sub>net</sub> = <var>ε σ</var> (<var>T</var><sub>s</sub>⁴ − <var>ε</var><sub>sky</sub> <var>T</var><sub>a</sub>⁴) − (<var>h</var><sub>c</sub> + <var>U</var><sub>back</sub>)(<var>T</var><sub>a</sub> − <var>T</var><sub>s</sub>)</span>
     <span class="l">at the solved panel temperature <var>T</var><sub>s</sub> = <span data-v="tS">27.8</span> °C:</span>
-    <span class="l">= <span data-v="qRadOp">64</span> − (<span data-v="B.hConvBare">9</span> + <span data-v="B.uBack">1.0</span>) × (<span data-v="B.tAir">31</span> − <span data-v="tS">27.8</span>) = <span data-v="qRadOp">64</span> − <span data-v="qGainOp">32</span> = <b><span data-v="qNet">32</span> W/m²</b></span>
-    <span class="l"><var>Q</var><sub>panel</sub> = <span data-v="B.panelArea">2.0</span> m² × <span data-v="qNet">32</span> W/m² = <b><span data-v="Qpanel">64</span> W</b></span>
-    <span class="l">water runs <var>q</var><sub>net</sub> / <var>h</var><sub>plate</sub> = <span data-v="qNet">32</span> / <span data-v="B.hPlate">100</span> ≈ <span data-v="plateDT">0.3</span> K warmer than the plate: <var>T</var><sub>w</sub> = <b><span data-v="tW">28.1</span> °C</b></span>
-    <span class="c">Half of what the panel radiates is handed straight back by the warm air. A thin polyethylene windscreen above the panel (classic night-radiator practice) would cut that, but it costs some infrared transmission. In this model it lifts body cooling only from <span data-v="Qbody">36</span> to <span data-v="QbodyScreen">38</span> W, so version 1 does without one.</span>
+    <span class="l">= <span data-v="qRadOp">64</span> − (<span data-v="B.hConvBare">9</span> + <span data-v="B.uBack">1.0</span>) × (<span data-v="B.tAir">31</span> − <span data-v="tS">27.8</span>) = <span data-v="qRadOp">64</span> − <span data-v="qGainOp">32</span> = <b><span data-v="qNet">33</span> W/m²</b></span>
+    <span class="l"><var>Q</var><sub>panel</sub> = <span data-v="B.panelArea">2.0</span> m² × <span data-v="qNet">33</span> W/m² = <b><span data-v="Qpanel">66</span> W</b></span>
+    <span class="l">water runs <var>q</var><sub>net</sub> / <var>h</var><sub>plate</sub> = <span data-v="qNet">33</span> / <span data-v="B.hPlate">100</span> ≈ <span data-v="plateDT">0.3</span> K warmer than the plate: <var>T</var><sub>w</sub> = <b><span data-v="tW">28.2</span> °C</b></span>
+    <span class="c">Half of what the panel radiates is handed straight back by the warm air. A thin polyethylene windscreen above the panel (classic night-radiator practice) would cut that, but it costs some infrared transmission. In this model it lifts body cooling only from <span data-v="Qbody">35</span> to <span data-v="QbodyScreen">38</span> W, so version 1 does without one.</span>
   </div>
 
-  <h3>3.4 How much heat will a sleeping back give up? (the bottleneck)</h3>
+  <h3>3.4 How much heat will a sleeping back give up? (the biggest unknown)</h3>
   <p>Heat has to get from the body core, through tissue, skin, a sheet and the pad wall, into the water. These resistances act in series:</p>
   <div class="eq">
     <span class="l"><var>U</var> = 1 / (1/<var>k</var><sub>tissue</sub> + 1/<var>U</var><sub>fabric</sub>) = 1 / (1/<span data-v="B.kTissue">20</span> + 1/<span data-v="B.uFabric">40</span>) = <b><span data-v="uBody">13.3</span> W/m²K</b></span>
     <span class="c"><var>U</var><sub>fabric</sub> = 1 / (sheet <span data-v="A.sheet">0.010</span> + pad film <span data-v="A.film">0.0015</span> + water film <span data-v="A.water">0.003</span> + contact gaps <span data-v="A.gaps">0.0105</span>) = 1 / <span data-v="fabricR">0.025</span> m²K/W. These are my estimates; the gap term is the softest.</span>
     <span class="l"><var>UA</var><sub>body</sub> = <span data-v="uBody">13.3</span> × <span data-v="B.contactArea">0.30</span> m² = <b><span data-v="uaBody">4.00</span> W/K</b></span>
-    <span class="l"><var>Q</var><sub>body</sub> = <var>UA</var><sub>body</sub> (<var>T</var><sub>core</sub> − <var>T</var><sub>w</sub>) = <span data-v="uaBody">4.00</span> × (<span data-v="B.tCore">37.0</span> − <span data-v="tW">28.1</span>) = <b><span data-v="Qbody">36</span> W</b></span>
-    <span class="l">skin under the pad: <span data-v="B.tCore">37.0</span> − <span data-v="Qbody">36</span> / (<span data-v="B.kTissue">20</span> × <span data-v="B.contactArea">0.30</span>) = <b><span data-v="skinUnderPad">31.1</span> °C</b>, which feels cool but not cold</span>
+    <span class="l"><var>Q</var><sub>body</sub> = <var>UA</var><sub>body</sub> (<var>T</var><sub>core</sub> − <var>T</var><sub>w</sub>) = <span data-v="uaBody">4.00</span> × (<span data-v="B.tCore">37.0</span> − <span data-v="tW">28.2</span>) = <b><span data-v="Qbody">35</span> W</b></span>
+    <span class="l">skin under the pad: <span data-v="B.tCore">37.0</span> − <span data-v="Qbody">35</span> / (<span data-v="B.kTissue">20</span> × <span data-v="B.contactArea">0.30</span>) = <b><span data-v="skinUnderPad">31.1</span> °C</b>, which feels cool but not cold</span>
   </div>
-  <p><strong>Why <var>k</var><sub>tissue</sub> is the number to distrust.</strong> How easily heat leaves the core depends on how much blood flows through the skin. In Gagge's two-node thermoregulation model, the core-to-skin conductance with no skin blood flow is about 5.3 W/m²K, and it rises steeply as heat stress opens up skin vessels. That argues for a high value. But cooling a patch of skin causes <em>local</em> vasoconstriction, which argues for a lower value right where the pad is. I picked <span data-v="B.kTissue">20</span> and treat it as unknown somewhere between <span data-v="S.lowK">8</span> and <span data-v="S.highK">40</span>. At <span data-v="S.lowK">8</span> the body gives up only <span data-v="QbodyLowK">19</span> W; at <span data-v="S.highK">40</span>, <span data-v="QbodyHighK">51</span> W. Contact area is the other soft number. A back-sleeper presses roughly <span data-v="B.contactArea">0.30</span> m² onto the bed (my estimate). A side-sleeper might manage <span data-v="S.sideContact">0.15</span> m², which gives <span data-v="QbodySide">18</span> W. <span class="tag s">Speculative</span></p>
-  <p>This is also why bigger panels give diminishing returns: the sleeper gets <span data-v="QbodyA1">30</span> W from a <span data-v="S.smallPanel">1</span> m² panel, <span data-v="Qbody">36</span> W from <span data-v="B.panelArea">2.0</span> m² and <span data-v="QbodyA4">40</span> W from <span data-v="S.bigPanel">4</span> m². Doubling the panel from <span data-v="B.panelArea">2</span> to <span data-v="S.bigPanel">4</span> m² buys about <span data-v="gainA4">4</span> W. Past a couple of square metres you are fighting the body, not the sky.</p>
+  <p><strong>Why <var>k</var><sub>tissue</sub> is the number to distrust.</strong> How easily heat leaves the core depends on how much blood flows through the skin. In Gagge's two-node thermoregulation model, the core-to-skin conductance with no skin blood flow is about 5.3 W/m²K, and it rises steeply as heat stress opens up skin vessels. That argues for a high value. But cooling a patch of skin causes <em>local</em> vasoconstriction, which argues for a lower value right where the pad is. I picked <span data-v="B.kTissue">20</span> and treat it as unknown somewhere between <span data-v="S.lowK">8</span> and <span data-v="S.highK">40</span>. At <span data-v="S.lowK">8</span> the body gives up only <span data-v="QbodyLowK">19</span> W; at <span data-v="S.highK">40</span>, <span data-v="QbodyHighK">50</span> W. Contact area is the other soft number. A back-sleeper presses roughly <span data-v="B.contactArea">0.30</span> m² onto the bed (my estimate). A side-sleeper might manage <span data-v="S.sideContact">0.15</span> m², which gives <span data-v="QbodySide">18</span> W. <span class="tag s">Speculative</span></p>
+  <p><strong>Bigger panels give diminishing returns.</strong> The sleeper gets <span data-v="QbodyA1">30</span> W from a <span data-v="S.smallPanel">1</span> m² panel, <span data-v="Qbody">35</span> W from <span data-v="B.panelArea">2.0</span> m² and <span data-v="QbodyA4">39</span> W from <span data-v="S.bigPanel">4</span> m². There are two reasons, and neither is the body:</p>
+  <ul>
+    <li><strong>The panel has a floor temperature.</strong> In a light breeze it can never get colder than about <span data-v="tStag">25.8</span> °C, where sky radiation exactly balances the heat leaking in from the air. Even an infinite panel would leave the water there, capping the sleeper at <span data-v="uaBody">4.00</span> × (<span data-v="B.tCore">37.0</span> − <span data-v="tStag">25.8</span>) ≈ <span data-v="QbodyCap">45</span> W. A windscreen lowers that floor and lifts the cap to about <span data-v="QbodyCapScreen">56</span> W.</li>
+    <li><strong>The mattress and room claim most of each extra watt</strong>, because <var>UA</var><sub>par</sub> (<span data-v="uaPar">5.86</span> W/K, §3.5) is larger than <var>UA</var><sub>body</sub> (<span data-v="uaBody">4.00</span> W/K). Going from <span data-v="B.panelArea">2</span> to <span data-v="S.bigPanel">4</span> m² adds <span data-v="gainPanelA4">10</span> W at the panel: <span data-v="gainA4">4</span> W of it reaches the sleeper and <span data-v="gainParA4">6</span> W goes to parasitic gains.</li>
+  </ul>
 
   <h3>3.5 Parasitic gains, and closing the balance</h3>
   <div class="eq">
-    <span class="l"><var>UA</var><sub>par</sub> = <var>h</var><sub>top</sub>(<var>A</var><sub>pad</sub> − <var>A</var><sub>contact</sub>) + <var>U</var><sub>under</sub><var>A</var><sub>pad</sub> + <var>UA</var><sub>pipe</sub></span>
-    <span class="l">= <span data-v="B.hPadTop">7.0</span> × <span data-v="exposed">0.42</span> + <span data-v="B.uUnder">3.5</span> × <span data-v="B.padArea">0.72</span> + <span data-v="B.uaPipe">0.4</span> = <b><span data-v="uaPar">5.86</span> W/K</b></span>
-    <span class="l"><var>Q</var><sub>par</sub> = <span data-v="uaPar">5.86</span> × (<span data-v="B.tRoom">33</span> − <span data-v="tW">28.1</span>) = <b><span data-v="Qpar">29</span> W</b></span>
+    <span class="l"><var>UA</var><sub>par</sub> = (<var>h</var><sub>c</sub> + <var>h</var><sub>r</sub>)(<var>A</var><sub>pad</sub> − <var>A</var><sub>contact</sub>) + <var>U</var><sub>under</sub><var>A</var><sub>pad</sub> + <var>UA</var><sub>pipe</sub></span>
+    <span class="l">= (<span data-v="B.hPadConv">1.5</span> + <span data-v="B.hPadRad">5.5</span>) × <span data-v="exposed">0.42</span> + <span data-v="B.uUnder">3.5</span> × <span data-v="B.padArea">0.72</span> + <span data-v="B.uaPipe">0.4</span> = <b><span data-v="uaPar">5.86</span> W/K</b></span>
+    <span class="l"><var>Q</var><sub>par</sub> = <span data-v="uaPar">5.86</span> × (<span data-v="tParEff">33.3</span> − <span data-v="tW">28.2</span>) = <b><span data-v="Qpar">30</span> W</b></span>
+    <span class="c"><span data-v="tParEff">33.3</span> °C is room air plus the radiant share of the warm ceiling, which the exposed part of the pad also sees.</span>
     <span class="l">balance: <var>A</var><sub>panel</sub> <var>q</var><sub>net</sub>(<var>T</var><sub>s</sub>) = <var>Q</var><sub>body</sub>(<var>T</var><sub>w</sub>) + <var>Q</var><sub>par</sub>(<var>T</var><sub>w</sub>), with <var>T</var><sub>w</sub> = <var>T</var><sub>s</sub> + <var>q</var><sub>net</sub>/<var>h</var><sub>plate</sub></span>
-    <span class="l">solved by bisection on <var>T</var><sub>s</sub>: <b><span data-v="Qpanel">64</span> W = <span data-v="Qbody">36</span> W + <span data-v="Qpar">29</span> W</b></span>
+    <span class="l">solved by bisection on <var>T</var><sub>s</sub>: <b><span data-v="Qpanel">66</span> W = <span data-v="Qbody">35</span> W + <span data-v="Qpar">30</span> W</b></span>
     <span class="c">The displayed parts don't add exactly because of rounding; the solver's residual is below 0.001 W.</span>
   </div>
-  <p><span data-v="parFrac">45</span>% of the panel's cooling goes into the mattress, the room air and the pipes instead of the sleeper. Some of it isn't wasted, since the exposed pad cools the air under the sheet, but I count all of it as loss. A pad cut tightly to the torso (<span data-v="S.tunedPad">0.45</span> m²) on <span data-v="S.tunedFoamMM">20</span> mm of foam would cut the loss to <span data-v="QparTuned">12</span> W and raise body cooling to <span data-v="QbodyTuned">38</span> W. It isn't the base case because people move in their sleep.</p>
+  <p><span data-v="parFrac">46</span>% of the panel's cooling goes into the mattress, the room air and the pipes instead of the sleeper. Some of it isn't wasted, since the exposed pad cools the air under the sheet, but I count all of it as loss. A pad cut tightly to the torso (<span data-v="S.tunedPad">0.45</span> m²) on <span data-v="S.tunedFoamMM">20</span> mm of foam would cut the loss to <span data-v="QparTuned">13</span> W and raise body cooling to <span data-v="QbodyTuned">38</span> W. It isn't the base case because people move in their sleep.</p>
 
   <h3>3.6 Will it flow without a pump?</h3>
-  <p>Buoyancy from the density difference between the two legs has to overcome laminar friction:</p>
+  <p>Buoyancy from the density difference between the two legs has to overcome friction around the whole loop. Every element is laminar, so each one's pressure drop is a resistance <var>R</var> times the volume flow, and the resistances add:</p>
   <div class="eq">
-    <span class="l">drive: Δ<var>p</var> = <var>ρ β</var> Δ<var>T g H</var> &nbsp;·&nbsp; friction: Δ<var>p</var> = 128 <var>μ L ṁ</var> / (<var>π D</var>⁴ <var>ρ</var>), with <var>ṁ</var> = <var>Q</var> / (<var>c</var><sub>p</sub> Δ<var>T</var>)</span>
-    <span class="l">⇒ Δ<var>T</var> = √[ 128 <var>μ L Q</var> / (<var>π D</var>⁴ <var>ρ</var>² <var>β g H c</var><sub>p</sub>) ]</span>
-    <span class="l">= √[ 128 × <span data-v="P.MU_W">0.00089</span> × <span data-v="B.loopLength">14</span> × <span data-v="Qpanel">64</span> / (π × <span data-v="B.pipeD">0.02</span>⁴ × <span data-v="P.RHO_W">997</span>² × <span data-v="P.BETA_W" data-scale="10000">2.57</span>×10⁻⁴ × <span data-v="P.G">9.81</span> × <span data-v="B.loopHeight">3</span> × <span data-v="P.CP_W">4180</span>) ] = <b><span data-v="dTloop">2.5</span> K</b></span>
-    <span class="l"><var>ṁ</var> = <span data-v="Qpanel">64</span> / (<span data-v="P.CP_W">4180</span> × <span data-v="dTloop">2.5</span>) = <b><span data-v="mdot">6.0</span> g/s</b> (<span data-v="litresPerHour">22</span> L/h) &nbsp;·&nbsp; Δ<var>p</var> = <b><span data-v="dp">19</span> Pa</b> &nbsp;·&nbsp; <var>v</var> = <span data-v="vel">1.9</span> cm/s &nbsp;·&nbsp; Re = <b><span data-v="Re">431</span></b>, laminar as assumed</span>
-    <span class="c"><var>L</var> = <span data-v="B.loopLength">14</span> m is an equivalent length covering both legs, the panel and the pad manifolds. Using one mean water temperature everywhere is an approximation: in fact the pad sees <span data-v="padInlet">26.8</span> °C in and <span data-v="padOutlet">29.4</span> °C out.</span>
+    <span class="l">pipe and fittings: <var>R</var> = 128 <var>μ</var> (<var>L</var><sub>pipe</sub> + <var>L</var><sub>fit</sub>) / (<var>π D</var>⁴), with <span data-v="B.pipeLength">20</span> m of <span data-v="B.pipeD" data-scale="1000">20</span> mm pipe plus <span data-v="B.fittingsLe">4</span> m for elbows and valves</span>
+    <span class="l">pad, a spacer-fabric gap: <var>R</var> = 12 <var>μ L f</var> / (<var>W h</var>³), flow across the pad (<var>L</var> = <span data-v="PD.flowLen">0.6</span> m, <var>W</var> = <span data-v="PD.width">1.2</span> m), <var>h</var> = <span data-v="PD.gap" data-scale="1000">3</span> mm, spacer penalty <var>f</var> = <span data-v="PD.factor">3</span></span>
+    <span class="l">panel: <var>R</var> = 128 <var>μ l</var> / (<var>π d</var>⁴ <var>N</var>), <span data-v="B.panelChanN">250</span> channels of <span data-v="B.panelChanD" data-scale="1000">5</span> mm, <span data-v="B.panelChanLen">1.0</span> m down the slope</span>
+    <span class="l"><var>R</var><sub>loop</sub> = <b><span data-v="rLoop">6.26</span> × 10⁶ Pa·s/m³</b></span>
+    <span class="l">drive = friction: <var>ρ β</var> Δ<var>T g H</var> = <var>R</var><sub>loop</sub> <var>ṁ</var>/<var>ρ</var>, with <var>ṁ</var> = <var>Q</var> / (<var>c</var><sub>p</sub> Δ<var>T</var>)</span>
+    <span class="l">⇒ Δ<var>T</var> = √[ <var>R</var><sub>loop</sub> <var>Q</var> / (<var>ρ</var>² <var>β g H c</var><sub>p</sub>) ]</span>
+    <span class="l">= √[ <span data-v="rLoop">6.26</span>×10⁶ × <span data-v="Qpanel">66</span> / (<span data-v="P.RHO_W">997</span>² × <span data-v="P.BETA_W" data-scale="10000">2.57</span>×10⁻⁴ × <span data-v="P.G">9.81</span> × <span data-v="B.loopHeight">3</span> × <span data-v="P.CP_W">4180</span>) ] = <b><span data-v="dTloop">3.6</span> K</b></span>
+    <span class="l"><var>ṁ</var> = <span data-v="Qpanel">66</span> / (<span data-v="P.CP_W">4180</span> × <span data-v="dTloop">3.6</span>) = <b><span data-v="mdot">4.3</span> g/s</b> (<span data-v="litresPerHour">16</span> L/h) &nbsp;·&nbsp; Re = <b><span data-v="Re">310</span></b> in the pipe, laminar as assumed</span>
+    <span class="l">Δ<var>p</var> = <b><span data-v="dp">27</span> Pa</b>: pipe <span data-v="dpPipe">23.7</span>, pad <span data-v="dpPad">2.6</span>, panel <span data-v="dpPanel">1.0</span></span>
+    <span class="c">Using one mean water temperature everywhere is an approximation: in fact the pad sees <span data-v="padInlet">26.4</span> °C in and <span data-v="padOutlet">30.0</span> °C out. The spacer penalty <var>f</var> (how much the fabric's threads slow the flow compared with an open gap) and the panel's channel geometry are my assumptions; the bench check in §7 measures the pad's resistance directly.</span>
   </div>
-  <p><span data-v="dp">19</span> Pa is tiny, but so is the friction at <span data-v="vel">1.9</span> cm/s. The loop is forgiving: with <span data-v="S.smallPipe" data-scale="1000">15</span> mm pipe the temperature difference rises to <span data-v="dTloop15">4.5</span> K, and with only <span data-v="S.lowHeight">1</span> m of height it is <span data-v="dTloop1m">4.4</span> K. Both still work; the pad's outlet just runs a little warmer. If the loop height is under about <span data-v="S.pumpBelowH">0.5</span> m (say, a panel on a balcony at bed level), add a 1–3 W pump.</p>
-  <p><strong>The catch is that the drive is tiny.</strong> <span data-v="dp">19</span> Pa is <span data-v="dpMM">2.0</span> mm of water head, so two plumbing details become make-or-break. First, a single trapped air bubble can stall the loop. Every pipe must slope continuously up to the header cup, and the pad must be filled bubble-free. Second, a sleeping body presses on the mattress at about <span data-v="Y.mass">70</span> kg × g ÷ <span data-v="B.contactArea">0.30</span> m² ≈ <span data-v="bodyPressure">2.3</span> kPa, which is <span data-v="pinchRatio">119</span> times the loop drive. A pad made of two welded sheets would pinch shut exactly where the body lies. The channels have to hold their own shape: small polypropylene capillary tubes, or a 3D spacer fabric between the sheets. Commercial pumped pads can ignore this because their pumps supply far more pressure; a thermosyphon pad cannot.</p>
+  <p><strong>The pad choice decides whether the loop needs a pump.</strong> I first recommended a capillary-tube mat, the kind used in chilled ceilings (<span data-v="PX.d" data-scale="1000">2.7</span> mm tubes at 15 mm pitch). A reviewer pointed out that I'd left its friction out of the budget. It adds <span data-v="dpPadCapX">17</span> Pa with the tubes running across the pad and <span data-v="dpPadCapL">44</span> Pa with them running lengthwise. A thermosyphon still circulates, because it simply finds the temperature difference it needs. But that difference grows to <span data-v="dTcapX">4.7</span> K and <span data-v="dTcapL">7.4</span> K, and with 1 m of height to <span data-v="dTcapX1m">8.2</span> K and <span data-v="dTcapL1m">12.8</span> K. Both exceed the <span data-v="DS.dTmax">8</span> K I'd accept, past which one end of the pad is uncomfortably colder than the other. With tubes lengthwise, the condensation margin on a humid night also falls to <span data-v="dewMarginHumidCapL">1.4</span> K. The spacer-fabric pad costs only <span data-v="dpPad">2.6</span> Pa, so the pipe dominates.</p>
+  <p><strong>How low can the panel go?</strong> The loop temperature difference scales as 1/√<var>H</var>. With the spacer pad it stays within <span data-v="DS.dTmax">8</span> K down to <span data-v="hMin">0.6</span> m of height; with the capillary mats it needs <span data-v="hMinCapX">1.1</span> m and <span data-v="hMinCapL">2.6</span> m. Below that (say, a panel on a balcony at bed level), add a 1–3 W pump. With <span data-v="S.smallPipe" data-scale="1000">15</span> mm pipe the base case runs at <span data-v="dTloop15">6.1</span> K, and at <span data-v="S.lowHeight">1</span> m of height at <span data-v="dTloop1m">6.3</span> K. Both are fine.</p>
+  <p><strong>Body weight can't pinch the pad shut.</strong> An earlier draft of this page got this backwards. What matters for collapse is the pressure inside the pad, not the loop's driving pressure. The pad sits under an open <span data-v="B.loopHeight">3</span> m water column at about <span data-v="padPressure">29</span> kPa, roughly <span data-v="pressRatio">13</span> times the <span data-v="bodyPressure">2.3</span> kPa mean contact pressure of a sleeping body (<span data-v="Y.mass">70</span> kg × g ÷ <span data-v="B.contactArea">0.30</span> m²). The real risk is the opposite. Two welded sheets at 29 kPa balloon into round tubes that are firm, lumpy and touch the skin only along lines. Drop-stitch spacer fabric (the construction inside inflatable paddleboards) holds the sheets flat. What stays delicate is the drive: <span data-v="dp">27</span> Pa is <span data-v="dpMM">2.8</span> mm of water head, so a trapped air bubble can still stall the loop. Every pipe must slope up to the header cup, and the pad must be filled bubble-free.</p>
   <p><strong>By day</strong>, take the panel stagnating at <span data-v="D.tPanel">70</span> °C in sun. Conduction down the two stratified water columns is 2 × <var>k</var><sub>w</sub> × (pipe cross-section) × Δ<var>T</var> / <var>H</var> ≈ <span data-v="dayLeakMW">5</span> mW, plus a similar trickle through the pipe walls. That is negligible. <strong>In winter</strong>, clear nights will freeze the panel even when the air is above 0 °C, so either drain the loop or fill it with propylene glycol, which is more viscous and needs a larger pipe.</p>
 
   <h3>3.7 How sensitive is the answer?</h3>
@@ -502,20 +516,20 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
     <table>
       <thead><tr><th>Change from the base case</th><th class="r">Heat from sleeper</th></tr></thead>
       <tbody>
-        <tr><td>Base case</td><td class="r"><span data-v="Qbody">36</span> W</td></tr>
-        <tr><td>Dry night, dew point <span data-v="S.dryDew">8</span> °C</td><td class="r"><span data-v="QbodyDry">41</span> W</td></tr>
-        <tr><td>Humid night, dew point <span data-v="S.humidDew">24</span> °C (pad inlet only <span data-v="dewMarginHumid">3.4</span> K above the room's dew point)</td><td class="r"><span data-v="QbodyHumid">30</span> W</td></tr>
+        <tr><td>Base case</td><td class="r"><span data-v="Qbody">35</span> W</td></tr>
+        <tr><td>Dry night, dew point <span data-v="S.dryDew">8</span> °C</td><td class="r"><span data-v="QbodyDry">40</span> W</td></tr>
+        <tr><td>Humid night, dew point <span data-v="S.humidDew">24</span> °C (pad inlet only <span data-v="dewMarginHumid">3.0</span> K above the room's dew point)</td><td class="r"><span data-v="QbodyHumid">30</span> W</td></tr>
         <tr><td>Half low cloud</td><td class="r"><span data-v="QbodyHalf">28</span> W</td></tr>
         <tr><td>Fully overcast</td><td class="r"><span data-v="QbodyOvercast">20</span> W</td></tr>
-        <tr><td>Panel <span data-v="S.smallPanel">1</span> m² / <span data-v="S.bigPanel">4</span> m²</td><td class="r"><span data-v="QbodyA1">30</span> / <span data-v="QbodyA4">40</span> W</td></tr>
-        <tr><td>Tissue conductance <span data-v="S.lowK">8</span> / <span data-v="S.highK">40</span> W/m²K</td><td class="r"><span data-v="QbodyLowK">19</span> / <span data-v="QbodyHighK">51</span> W</td></tr>
+        <tr><td>Panel <span data-v="S.smallPanel">1</span> m² / <span data-v="S.bigPanel">4</span> m²</td><td class="r"><span data-v="QbodyA1">30</span> / <span data-v="QbodyA4">39</span> W</td></tr>
+        <tr><td>Tissue conductance <span data-v="S.lowK">8</span> / <span data-v="S.highK">40</span> W/m²K</td><td class="r"><span data-v="QbodyLowK">19</span> / <span data-v="QbodyHighK">50</span> W</td></tr>
         <tr><td>Side-sleeper, contact <span data-v="S.sideContact">0.15</span> m²</td><td class="r"><span data-v="QbodySide">18</span> W</td></tr>
         <tr><td>Polyethylene windscreen added</td><td class="r"><span data-v="QbodyScreen">38</span> W</td></tr>
         <tr><td>Milder night: air <span data-v="S.mildAir">26</span> °C, room <span data-v="S.mildRoom">30</span> °C</td><td class="r"><span data-v="QbodyMild">51</span> W</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Two results surprised me. First, the system degrades gently under cloud. Even fully overcast, <span data-v="QbodyOvercast">20</span> W still flows, because the <span data-v="B.tAir">31</span> °C night air is cooler than the pad water and the panel works as a passive air cooler. The clear sky contributes the difference between that and <span data-v="Qbody">36</span> W. Second, humidity matters less than I expected, because the body side limits the system, not the sky. The physiology numbers swing the result more than the weather does.</p>
+  <p>Two results surprised me. First, the system degrades gently under cloud. Even fully overcast, <span data-v="QbodyOvercast">20</span> W still flows, because the <span data-v="B.tAir">31</span> °C night air is cooler than the pad water and the panel works as a passive air cooler. The clear sky contributes the difference between that and <span data-v="Qbody">35</span> W. Second, humidity matters less than I expected. Warm air hands back half of what the panel radiates, so the panel runs only a few degrees below air whatever the sky does, and the body-side conductance decides how many watts each degree is worth. The physiology numbers swing the result more than the weather does.</p>
 
   <h3>3.8 Compared with cooling the room</h3>
   <p>An order-of-magnitude cooling load to hold the same 3 × 4 m top-floor room at <span data-v="R.tSet">26</span> °C at the start of the night:</p>
@@ -523,7 +537,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
     <table>
       <thead><tr><th>Heat path</th><th>Estimate</th><th class="r">W</th></tr></thead>
       <tbody>
-        <tr><td>Ceiling, still hot from the roof</td><td><span data-v="R.ceilArea">12</span> m² × <span data-v="R.hIn">8</span> W/m²K × (<span data-v="R.tCeil">35</span> − <span data-v="R.tSet">26</span>) K</td><td class="r"><span data-v="roomCeiling">864</span></td></tr>
+        <tr><td>Ceiling, still hot from the roof</td><td><span data-v="R.ceilArea">12</span> m² × <span data-v="R.hIn">8</span> W/m²K × (<span data-v="tCeil">35</span> − <span data-v="R.tSet">26</span>) K</td><td class="r"><span data-v="roomCeiling">864</span></td></tr>
         <tr><td>External walls</td><td><span data-v="R.wallArea">16.7</span> m² × <span data-v="R.uWall">1.5</span> × (<span data-v="B.tAir">31</span> − <span data-v="R.tSet">26</span>)</td><td class="r"><span data-v="roomWalls">125</span></td></tr>
         <tr><td>Window</td><td><span data-v="R.winArea">1.5</span> m² × <span data-v="R.uWin">5.0</span> × (<span data-v="B.tAir">31</span> − <span data-v="R.tSet">26</span>)</td><td class="r"><span data-v="roomWindows">38</span></td></tr>
         <tr><td>Infiltration</td><td><span data-v="R.ach">0.5</span> air changes/h of <span data-v="R.volume">31.2</span> m³, × <var>ρc</var><sub>p</sub> × <span data-v="roomDT">5</span> K</td><td class="r"><span data-v="roomInfil">26</span></td></tr>
@@ -532,7 +546,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
       <tfoot><tr><td colspan="2">Total thermal load</td><td class="r"><span data-v="roomTotal">1126</span></td></tr></tfoot>
     </table>
   </div>
-  <p>That is about <span data-v="roomRatio">32</span> times the heat the pad pulls from the sleeper. An air conditioner with COP <span data-v="R.cop">3.0</span> would draw about <span data-v="roomElec">375</span> W, or <span data-v="roomKWh">3.0</span> kWh per night if that start-of-night load held for <span data-v="R.nightHours">8</span> hours (it falls as the ceiling cools). Doing the same job with sky panels would take roughly <span data-v="roomPanelArea">35</span> m² of them at the base-case flux. That is why this design cools one person's contact surface instead of the room: it's the only target small enough for a panel one person can carry up a ladder.</p>
+  <p>That is about <span data-v="roomRatio">32</span> times the heat the pad pulls from the sleeper. An air conditioner with COP <span data-v="R.cop">3.0</span> would draw about <span data-v="roomElec">375</span> W, or <span data-v="roomKWh">3.0</span> kWh per night if that start-of-night load held for <span data-v="R.nightHours">8</span> hours (it falls as the ceiling cools). Doing the same job with sky panels would take roughly <span data-v="roomPanelArea">34</span> m² of them at the base-case flux. That is why this design cools one person's contact surface instead of the room: it's the only target small enough for a panel one person can carry up a ladder.</p>
 
   <h3>3.9 What it costs</h3>
   <div class="tbl">
@@ -542,7 +556,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
         <tr><td>Roof radiator: unglazed polypropylene pool-heater mat, about 2 m²</td><td class="r"><span data-v="C.0">80</span></td></tr>
         <tr><td>Foil-faced foam under the panel, plus legs to lift it off the roof</td><td class="r"><span data-v="C.1">30</span></td></tr>
         <tr><td>20 m of 20 mm PE/PEX pipe with foam sleeve</td><td class="r"><span data-v="C.2">60</span></td></tr>
-        <tr><td>Torso pad, 0.6 × 1.2 m, with non-collapsible channels (capillary-tube mat or spacer fabric in TPU)</td><td class="r"><span data-v="C.3">60</span></td></tr>
+        <tr><td>Torso pad, 0.6 × 1.2 m: drop-stitch spacer fabric sealed in TPU, 3 mm water gap</td><td class="r"><span data-v="C.3">60</span></td></tr>
         <tr><td>Header cup, fill/drain valves, fittings</td><td class="r"><span data-v="C.4">35</span></td></tr>
         <tr><td>10 mm closed-cell foam under the pad</td><td class="r"><span data-v="C.5">10</span></td></tr>
       </tbody>
@@ -565,6 +579,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
         <div class="btns" id="presets" role="group" aria-label="Presets"></div>
         <div id="controls"></div>
         <div class="btns"><button type="button" id="ws" aria-pressed="false">PE windscreen: off</button></div>
+        <div class="btns" id="pads" role="group" aria-label="Pad type"></div>
       </div>
       <div>
         <div class="readout" id="readout" aria-live="polite"></div>
@@ -583,7 +598,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
     <div class="card"><h4>Water-perfused mattress pads with active chillers <span class="tag c">Certain</span></h4>
       <p>Sleepme (ChiliPad, OOLER, Dock Pro) and the Eight Sleep Pod circulate water through a mattress cover and chill it with a thermoelectric or compressor unit plugged into the wall. They prove that people will sleep on a water-cooled pad. <strong>Difference:</strong> the chiller is replaced by the roof, so it uses no electricity and the loop switches itself off by day.</p></div>
     <div class="card"><h4>Roof ponds: Harold Hay's Skytherm (1970s) <span class="tag c">Certain</span></h4>
-      <p>Water bags on a flat roof radiate to the night sky and cool the ceiling below. Movable insulation panels cover them by day. This is the closest ancestor. <strong>Difference:</strong> Skytherm cools a whole building at the kilowatt scale and needs a structural roof and moving insulation. This design moves about <span data-v="Qpanel">64</span> W, can be retrofitted, has no moving parts, and targets the body directly.</p></div>
+      <p>Water bags on a flat roof radiate to the night sky and cool the ceiling below. Movable insulation panels cover them by day. This is the closest ancestor. <strong>Difference:</strong> Skytherm cools a whole building at the kilowatt scale and needs a structural roof and moving insulation. This design moves about <span data-v="Qpanel">66</span> W, can be retrofitted, has no moving parts, and targets the body directly.</p></div>
     <div class="card"><h4>Radiative-cooling materials <span class="tag c">Certain</span></h4>
       <p>Daytime sub-ambient radiative cooling (Raman et al., <i>Nature</i>, 2014), commercial panels from SkyCool Systems, and radiative-cooling textiles (Hsu et al., <i>Science</i>, 2016). <strong>Difference:</strong> none of it is needed here. At night, ordinary high-emissivity paint is enough. A spectrally selective film would only add value for evening or dawn operation.</p></div>
     <div class="card"><h4>Thermosyphon solar water heaters <span class="tag c">Certain</span></h4>
@@ -599,38 +614,42 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
 
 <section class="wrap" id="premortem">
   <h2><span class="sec">§6</span>Pre-mortem</h2>
-  <p>Suppose it's 2028 and this idea is dead. Here are the most likely causes, with my estimate of the chance that each one, <em>on its own</em>, is what killed it.</p>
+  <p>Suppose it's 2028 and this idea is dead. Here are the failure modes I think most likely. For each one, the number is my estimate of the chance that it <em>alone</em> would sink the idea. These are separate judgements, not shares of a single failure, so they don't add up to 100%.</p>
   <div class="cards">
     <div class="card risk"><div class="p"><span data-v="K.body" data-scale="100">25</span>%<small>technical</small></div><div><h4>Your back won't give it up</h4>
-      <p>Local vasoconstriction under the cool pad throttles the heat flow. Side-sleeping roughly halves the contact area, and a mattress protector or a folded sheet adds fabric resistance. A real <span data-v="S.lowK">8</span> W/m²K tissue conductance would leave about <span data-v="QbodyLowK">19</span> W, which isn't worth a roof panel. Some people may also simply dislike a cool back under a hot face. <strong>Experiment 1 tests exactly this.</strong></p></div></div>
+      <p>Local vasoconstriction under the cool pad throttles the heat flow. Side-sleeping roughly halves the contact area, and a mattress protector or a folded sheet adds fabric resistance. A real <span data-v="S.lowK">8</span> W/m²K tissue conductance would leave about <span data-v="QbodyLowK">19</span> W, which isn't worth a roof panel. <strong>Experiment 1 tests exactly this.</strong></p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.sky" data-scale="100">15</span>%<small>technical</small></div><div><h4>The sky is shut where it matters</h4>
-      <p>Humid tropical heat, urban haze and cloudy monsoon nights reduce the clear-sky benefit. The model degrades gently because the night air also helps, but on those nights a fan by an open window does nearly as well. I rate this lower than the body risk because sky radiation is well measured and the target climates are moderately dry on their worst nights.</p></div></div>
+      <p>Humid tropical heat, urban haze and cloudy monsoon nights reduce the clear-sky benefit. The model degrades gently because the night air also helps (<span data-v="QbodyOvercast">20</span> W even when fully overcast), but nobody would build this for that. I rate this lower than the body risk because sky radiation is well measured and the target climates are moderately dry on their worst nights.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.parasitic" data-scale="100">10</span>%<small>technical</small></div><div><h4>Parasitic losses eat the cooling</h4>
-      <p><span data-v="parFrac">45</span>% of the panel's output already goes into the mattress, the room and the pipes. A hotter room, thinner foam or a long uninsulated pipe run could leave little for the body.</p></div></div>
+      <p><span data-v="parFrac">46</span>% of the panel's output already goes into the mattress, the room and the pipes. A hotter room, thinner foam or a long uninsulated pipe run could leave little for the body.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.dew" data-scale="100">10</span>%<small>technical</small></div><div><h4>Condensation</h4>
-      <p>If the pad drops below the bedroom's dew point, the sheets get damp and mould follows. If the panel drops below the outdoor dew point, dew forms on it and its latent heat (not modelled) cuts the cooling. At dew point <span data-v="S.humidDew">24</span> °C the margin at the pad is only <span data-v="dewMarginHumid">3.4</span> K. Fix: a throttle valve, or a smaller panel in humid climates.</p></div></div>
-    <div class="card risk"><div class="p"><span data-v="K.leaks" data-scale="100">15</span>%<small>technical</small></div><div><h4>Plumbing at <span data-v="dp">19</span> Pa: air locks, pinched channels, leaks</h4>
-      <p>With only <span data-v="dpMM">2.0</span> mm of water head driving the flow, one trapped bubble or a channel squeezed by body weight (about <span data-v="bodyPressure">2.3</span> kPa) can stop the loop silently. This also puts water inside a frail person's bed, and one leak would get it thrown out. The pressure is low (about <span data-v="padPressure">29</span> kPa at the pad), but fittings fail. The water sits at 25–30 °C, so the loop needs a biocide, and in winter it has to be drained or filled with glycol.</p></div></div>
+      <p>If the pad drops below the bedroom's dew point, the sheets get damp and mould follows. If the panel drops below the outdoor dew point, dew forms on it and its latent heat (not modelled) cuts the cooling. At dew point <span data-v="S.humidDew">24</span> °C the margin at the pad inlet is only <span data-v="dewMarginHumid">3.0</span> K, and a high-friction pad shrinks it further (§3.6). Fix: a throttle valve, or a smaller panel in humid climates.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.leaks" data-scale="100">15</span>%<small>technical</small></div><div><h4>Plumbing at <span data-v="dp">27</span> Pa: pad friction, air locks, leaks</h4>
+      <p>Only <span data-v="dpMM">2.8</span> mm of water head drives the flow. A pad with more friction than the spacer-fabric design (whose penalty factor is my guess) pushes the loop past its temperature limit, and one trapped bubble can stop it silently. A spacer pad at <span data-v="padPressure">29</span> kPa must also stay flat and comfortable rather than firm. This puts water inside a frail person's bed, and one leak would get it thrown out. The water sits at 25–30 °C, so the loop needs a biocide, and in winter it has to be drained or filled with glycol.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.install" data-scale="100">35</span>%<small>adoption</small></div><div><h4>It never reaches the people it's for</h4>
-      <p>The users are renters and older people. Every install needs roof access, a landlord's permission and a hole or a window gap for two pipes. In practice each one is a small plumbing job, and the people most at risk are the least able to arrange one. This is the most likely cause of death for the idea, and it has nothing to do with physics.</p></div></div>
+      <p>The users are renters and older people. Every install needs roof access, a landlord's permission and a hole or a window gap for two pipes. In practice each one is a small plumbing job, and the people most at risk are the least able to arrange one. Some who do get it may simply dislike a cool back under a hot face. This is the most likely cause of death for the idea, and it has nothing to do with physics.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.alternatives" data-scale="100">25</span>%<small>adoption</small></div><div><h4>Something cheaper wins</h4>
-      <p>Small inverter ACs and rooftop PV keep getting cheaper. Cooling centres, fans and wet towels cost almost nothing. Where the grid is reliable and an AC plus a plumber costs less than this, the AC wins.</p></div></div>
+      <p>Small inverter ACs and rooftop PV keep getting cheaper. Cooling centres, fans and wet towels cost almost nothing, and on cloudy or milder nights a fan by an open window does nearly as well. Where the grid is reliable and an AC plus a plumber costs less than this, the AC wins.</p></div></div>
   </div>
-  <p>Treating these as independent (they're not quite), the five technical risks leave a <strong><span data-v="survTech">44</span>%</strong> chance that a well-built prototype works as §3 claims. Including adoption, there's a <strong><span data-v="survAll">21</span>%</strong> chance that it becomes something people actually use.</p>
+  <p>If I treat these as independent (they're not quite), the five technical risks leave a <strong><span data-v="survTech">44</span>%</strong> chance that a well-built prototype works as §3 claims, which is the product of one minus each technical risk. Adding the two adoption risks leaves <strong><span data-v="survAll">21</span>%</strong> that it becomes something people actually use.</p>
 </section>
 
 <section class="wrap" id="experiment">
   <h2><span class="sec">§7</span>The first experiment: the bucket bed</h2>
-  <p>The sky side is textbook physics; the body side is not. So test the body first, with no roof involved. Replace the sky with a cooler box of water held at the temperature the sky would deliver, and measure how much heat a sleeping person actually puts into it.</p>
+  <p>The sky side is textbook physics; the body side is not. So test the body first, with no roof involved. Replace the sky with a cooler box of water at the temperature the sky would deliver, and measure how much heat a sleeping person actually puts into it.</p>
   <div class="cards">
     <div class="card"><h4>Kit (about $<span data-v="X.cost1">120</span>)</h4>
-      <p>A <span data-v="X.bucketL">50</span> L cooler box of water; a small aquarium pump; a pad with non-collapsible channels (a capillary-tube mat, or spacer fabric sealed in TPU) on 10 mm foam; two temperature sensors on the pad inlet and outlet, cross-calibrated in the same bucket to about <span data-v="X.sensorDT">0.05</span> K; a cheap logger; a measuring jug to time the flow; a bag of ice.</p></div>
-    <div class="card"><h4>Procedure (three nights plus one control)</h4>
-      <p>Chill the bucket to about <span data-v="X.tStart">24</span> °C with ice at bedtime, then leave it alone. Run the flow at about <span data-v="X.mdot" data-scale="1000">5</span> g/s in a bedroom at 31 °C or warmer. The bucket picks up about <span data-v="expGain">74</span> W in total (body, parasitic gains, pump, box walls), so it warms by roughly <span data-v="expDrift">1.3</span> K per hour and sweeps through the whole 26–30 °C operating range in one night. Log inlet and outlet: heat into the pad is <var>ṁ c</var><sub>p</sub> Δ<var>T</var>. Plotting it against water temperature gives the body's conductance as the slope. Run one night with the bed <em>empty</em> to measure parasitic and pump heat, and subtract it. A sleeper shades part of the pad, so this subtraction slightly over-corrects, which makes the test conservative. Note how you slept. One caveat: the aquarium pump supplies far more pressure than a thermosyphon, so this test can't show whether the pad's channels stay open under body weight. Check that separately first: lie on the pad while it's fed from a cup only a few millimetres above the outlet, and watch whether water still moves.</p></div>
+      <p>A <span data-v="X.bucketL">50</span> L cooler box of water; a small aquarium pump; a drop-stitch spacer-fabric pad on 10 mm foam; two temperature sensors on the pad's inlet and outlet, cross-calibrated in the same bucket to about <span data-v="X.sensorDT">0.05</span> K; a cheap logger; a measuring jug; a bag of ice; a 50 × 60 cm piece (<span data-v="B.contactArea">0.30</span> m², a torso's footprint) of 50 mm foam board.</p></div>
+    <div class="card"><h4>Step 0: pad bench check (one afternoon)</h4>
+      <p>Put a water reservoir about <span data-v="B.loopHeight">3</span> m above the pad (a stairwell works) and raise the pad's outlet tube to <span data-v="X.benchHead" data-scale="100">1</span> cm below the reservoir's water level. The pad then sits at its real ~<span data-v="padPressure">29</span> kPa while only 1 cm of head pushes water through it. Lie on it and time one litre. The model's spacer pad passes it in about <span data-v="benchSpacer">6</span> s. A capillary mat would take about <span data-v="benchCapX">52</span> s with tubes across and <span data-v="benchCapL">209</span> s with tubes lengthwise. <strong>Fail:</strong> slower than <span data-v="benchMax">58</span> s, which means the pad alone more than doubles the loop's friction. Then redesign the pad or plan on a pump. Also note whether the pad stays flat or balloons into ridges.</p></div>
+    <div class="card"><h4>Step 1: control night, with the body's footprint covered</h4>
+      <p>Leave the bed empty, but lay the foam board on the pad under the sheet where the torso would lie, so the same <span data-v="exposed">0.42</span> m² of pad is exposed to the room as on an occupied night. Run the loop and log water, room and pad temperatures. Fitting the heat flow against (room − water) gives the parasitic gains and the pump's heat. <strong>Why the board matters:</strong> a plain empty bed also exposes the patch the body would cover, which gains about <span data-v="expPatch">12</span> W from the room at <span data-v="X.tWater">28</span> °C water. Subtracting it would make a sleeper who performs exactly as modelled read about <span data-v="expNaive">24</span> W instead of <span data-v="expPredicted">36</span>, and fail the test. The board itself leaks about <span data-v="expBoard">1</span> W; add that back.</p></div>
+    <div class="card"><h4>Step 2: three occupied nights</h4>
+      <p>Remove the board and sleep on the pad in a bedroom at 31 °C or warmer, with the flow at about <span data-v="X.mdot" data-scale="1000">5</span> g/s. Chill the bucket to about <span data-v="X.tStart">24</span> °C with ice at bedtime, then leave it alone. It picks up about <span data-v="expGain">76</span> W in total (body, parasitic gains, pump, box walls), so it warms by roughly <span data-v="expDrift">1.3</span> K per hour and sweeps through the whole 26–30 °C operating range in one night. Body heat = measured flow (<var>ṁ c</var><sub>p</sub> Δ<var>T</var>) − the control fit at the same room-to-water difference + the board's leak. Plotted against water temperature, its slope is the body's conductance. A plain empty-bed subtraction would have shown <span data-v="expNaiveSlope">1.9</span> W/K instead of <span data-v="uaBody">4.00</span>. Note how you slept.</p></div>
     <div class="card"><h4>What the model predicts</h4>
-      <p><span data-v="expPredicted">36</span> W from the sleeper at <span data-v="X.tWater">28</span> °C water, which is a <span data-v="expDT">1.7</span> K rise across the pad at <span data-v="X.mdot" data-scale="1000">5</span> g/s. Sensors matched to <span data-v="X.sensorDT">0.05</span> K resolve about ±<span data-v="expRes">1.0</span> W, so the measurement is easy.</p></div>
-    <div class="card" style="border-color:var(--bad)"><h4>Kill criterion</h4>
-      <p>If the body heat flow (occupied minus empty), read off at <span data-v="X.tWater">28</span> °C water, is <strong>under <span data-v="X.killW">20</span> W</strong>, stop. That corresponds to a tissue conductance of about <span data-v="expKillK">9</span> W/m²K. It leaves only <span data-v="expKillQbody">21</span> W in the base case, and even a <span data-v="X.killPanel">6</span> m² panel would reach just <span data-v="expKillBig">23</span> W, so no panel rescues it. At <span data-v="X.passW">30</span> W or more, go on to Experiment 2.</p></div>
+      <p><span data-v="expPredicted">36</span> W from the sleeper at <span data-v="X.tWater">28</span> °C water, which is a <span data-v="expDT">1.7</span> K rise across the pad at <span data-v="X.mdot" data-scale="1000">5</span> g/s, and a slope of <span data-v="uaBody">4.00</span> W/K. Sensors matched to <span data-v="X.sensorDT">0.05</span> K resolve about ±<span data-v="expRes">1.0</span> W.</p></div>
+    <div class="card" style="border-color:var(--bad)"><h4>Kill and pass lines</h4>
+      <p>Read the corrected body heat at <span data-v="X.tWater">28</span> °C water. <strong>Under <span data-v="X.killW">20</span> W: stop.</strong> That means a tissue conductance of about <span data-v="expKillK">9</span> W/m²K or less, which leaves only <span data-v="expKillQbody">21</span> W in the base case. Even a <span data-v="X.killPanel">6</span> m² panel would reach just <span data-v="expKillBig">23</span> W, so no panel rescues it. <strong><span data-v="X.passW">30</span> W or more (tissue conductance ≥ <span data-v="expPassK">15</span>): go on to Experiment 2.</strong> In between, repeat the test with a thinner sheet before deciding.</p></div>
   </div>
   <h3>Then: the sky bucket (about $<span data-v="X.cost2">150</span>, ten clear nights)</h3>
   <p>Put a <span data-v="B.panelArea">2</span> m² pool-heater mat on legs on a roof in a target city, with the same cooler as its thermal load, and log water, air and dew-point temperatures. The rate at which the water cools gives the panel's net flux. The model predicts <span data-v="skyTest">51</span> W/m² with the panel <span data-v="X.skyDT">2</span> K below air at dew point <span data-v="B.tDew">16</span> °C. <strong>Kill:</strong> under <span data-v="X.skyKill">25</span> W/m² on clear heat-wave nights. Only after both pass is it worth building the full loop in a real top-floor bedroom.</p>
@@ -661,7 +680,8 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
       <tbody>
         <tr><td>Outdoor night air</td><td class="r"><span data-v="B.tAir">31</span> °C</td><td>Hot heat-wave night in a dense city</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Dew point</td><td class="r"><span data-v="B.tDew">16</span> °C</td><td>Moderately dry pre-monsoon / desert / Mediterranean heat</td><td><span class="tag l">Likely</span></td></tr>
-        <tr><td>Bedroom</td><td class="r"><span data-v="B.tRoom">33</span> °C</td><td>Top floor under a hot roof slab</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Bedroom air</td><td class="r"><span data-v="B.tRoom">33</span> °C</td><td>Top floor under a hot roof slab; walls at air temperature</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Ceiling surface / its share of view</td><td class="r"><span data-v="tCeil">35</span> °C / <span data-v="B.fCeil">0.4</span></td><td>Slab still warm at night; a supine sleeper (and the pad) sees a lot of ceiling. Gives a mean radiant temperature of <span data-v="mrt">33.8</span> °C</td><td><span class="tag s">Speculative</span></td></tr>
         <tr><td>Bedroom dew point</td><td class="r">outdoor + <span data-v="B.dewIndoorRise">1</span> K</td><td>Windows partly open; sleeper adds moisture</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Panel sky view</td><td class="r">whole sky</td><td>Rooftop with no taller buildings close by; urban canyons see less sky</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Panel back gain</td><td class="r">vs. air</td><td>Panel on legs with foil facing the hot slab; back gain referenced to air temperature, which is optimistic over a very hot slab</td><td><span class="tag s">Speculative</span></td></tr>
@@ -677,17 +697,32 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2)
         <tr><td>Skin-to-water conductance</td><td class="r"><span data-v="B.uFabric">40</span> W/m²K</td><td>Sheet + film + water film + gaps (§3.4)</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Contact area (back-sleeper)</td><td class="r"><span data-v="B.contactArea">0.30</span> m²</td><td>About a sixth of body surface; depends on the mattress</td><td><span class="tag s">Speculative</span></td></tr>
         <tr><td>Pad area</td><td class="r"><span data-v="B.padArea">0.72</span> m²</td><td>0.6 × 1.2 m torso pad</td><td><span class="tag c">Certain</span></td></tr>
-        <tr><td>Exposed pad gain</td><td class="r"><span data-v="B.hPadTop">7.0</span> W/m²K</td><td>Radiation from <span data-v="B.tRoom">33</span> °C room plus weak (stable) convection</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Exposed pad gain</td><td class="r"><span data-v="B.hPadConv">1.5</span> + <span data-v="B.hPadRad">5.5</span> W/m²K</td><td>Weak (stable) convection from room air plus radiation from room surfaces at the mean radiant temperature</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Pad underside</td><td class="r"><span data-v="B.uUnder">3.5</span> W/m²K</td><td>10 mm closed-cell foam, k ≈ 0.035 W/mK</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Indoor pipe gain</td><td class="r"><span data-v="B.uaPipe">0.4</span> W/K</td><td>About 4 m of foam-sleeved pipe</td><td><span class="tag l">Likely</span></td></tr>
-        <tr><td>Loop height / equivalent length / diameter</td><td class="r"><span data-v="B.loopHeight">3</span> m / <span data-v="B.loopLength">14</span> m / <span data-v="B.pipeD" data-scale="1000">20</span> mm</td><td>Top-floor bed, panel on the roof above</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Loop height / pipe / fittings</td><td class="r"><span data-v="B.loopHeight">3</span> m / <span data-v="B.pipeLength">20</span> m × <span data-v="B.pipeD" data-scale="1000">20</span> mm / +<span data-v="B.fittingsLe">4</span> m</td><td>Top-floor bed, panel on the roof above. Fittings as extra length: about 30 velocity heads at Re ≈ 400</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Pad hydraulics</td><td class="r"><span data-v="PD.gap" data-scale="1000">3</span> mm gap, ×<span data-v="PD.factor">3</span></td><td>Drop-stitch spacer fabric, flow across the short side; ×3 is my guess for how much the threads slow the flow versus an open gap. Bench check in §7</td><td><span class="tag s">Speculative</span></td></tr>
+        <tr><td>Panel channels</td><td class="r"><span data-v="B.panelChanN">250</span> × <span data-v="B.panelChanD" data-scale="1000">5</span> mm × <span data-v="B.panelChanLen">1.0</span> m</td><td>A specification to buy against. Pool-heater mats vary, and narrow-channel ones would add friction</td><td><span class="tag s">Speculative</span></td></tr>
+        <tr><td>Largest acceptable loop ΔT</td><td class="r"><span data-v="DS.dTmax">8</span> K</td><td>My comfort limit for the difference between the pad's inlet and outlet ends</td><td><span class="tag s">Speculative</span></td></tr>
         <tr><td>Sleeping metabolism</td><td class="r"><span data-v="B.metSleep">0.7</span> met</td><td>ASHRAE activity table</td><td><span class="tag c">Certain</span></td></tr>
-        <tr><td>Exposed-skin coefficient</td><td class="r"><span data-v="B.hDry">7.5</span> W/m²K</td><td>Still air: about 3 convective plus about 4.5 radiative</td><td><span class="tag l">Likely</span></td></tr>
+        <tr><td>Exposed-skin coefficients</td><td class="r"><span data-v="B.hConvSkin">3.0</span> + <span data-v="B.hRadSkin">4.5</span> W/m²K</td><td>Still air (convection to room air) plus radiation to the mean radiant temperature</td><td><span class="tag l">Likely</span></td></tr>
         <tr><td>Fan coefficient</td><td class="r"><span data-v="F.hDryFan">15</span> W/m²K</td><td>About 1 m/s over a reclining body</td><td><span class="tag s">Speculative</span></td></tr>
         <tr><td>Water properties</td><td class="r">25 °C</td><td>ρ <span data-v="P.RHO_W">997</span>, <var>c</var><sub>p</sub> <span data-v="P.CP_W">4180</span>, μ <span data-v="P.MU_W">0.00089</span>, β <span data-v="P.BETA_W" data-scale="10000">2.57</span>×10⁻⁴</td><td><span class="tag c">Certain</span></td></tr>
       </tbody>
     </table>
   </div>
+</section>
+<section class="wrap" id="revisions">
+  <h2><span class="sec">Revision note</span>What an independent review changed</h2>
+  <p>After the first version, a reviewer rebuilt the model in separate code. It reproduced every headline number, confirmed the citations, and found real problems. All of them are fixed above:</p>
+  <ul>
+    <li><strong>The experiment's control night was biased.</strong> I had said that subtracting a plain empty-bed night "slightly over-corrects". In fact it subtracts the room's gain on the body's patch too, about <span data-v="expPatch">12</span> W. A sleeper behaving exactly as modelled would have read about <span data-v="expNaive">24</span> W and failed the <span data-v="X.passW">30</span> W pass line. The control night now covers that patch with a foam board (§7).</li>
+    <li><strong>The pad's friction was missing from the loop budget,</strong> and the capillary-tube mat I recommended has a lot of it. The loop now counts pipe, fittings, pad and panel, and the recommended pad is drop-stitch spacer fabric. The base-case loop changed from <span data-v="O.dTloop">2.5</span> K, <span data-v="O.mdot">6.0</span> g/s and <span data-v="O.dp">19</span> Pa to <span data-v="dTloop">3.6</span> K, <span data-v="mdot">4.3</span> g/s and <span data-v="dp">27</span> Pa. The lowest pumpless height is now computed (<span data-v="hMin">0.6</span> m) rather than asserted (<span data-v="O.hPump">0.5</span> m).</li>
+    <li><strong>I had the pad-collapse argument backwards.</strong> The pad sits at about <span data-v="padPressure">29</span> kPa, far above body pressure, so its channels can't be squeezed shut. The real issue is ballooning, which is what spacer fabric fixes.</li>
+    <li><strong>The sleeper's dry heat loss ignored the hot ceiling</strong> that §1 makes so much of. With a mean radiant temperature of <span data-v="mrt">33.8</span> °C, the evaporation needed went from <span data-v="O.sweatNoPad">84</span> → <span data-v="O.sweatWithPad">31</span> g/h to <span data-v="sweatNoPad">92</span> → <span data-v="sweatWithPad">39</span> g/h, a cut of <span data-v="sweatCut">57</span>% rather than <span data-v="O.sweatCut">63</span>%. Heat drawn from the sleeper moved from <span data-v="O.qbody">36</span> to <span data-v="Qbody">35</span> W, because the pad also sees the warm ceiling.</li>
+    <li><strong>I misexplained why bigger panels give diminishing returns.</strong> It is the panel's own floor temperature and the parasitic share, not the body (§3.4). "The sky is not the bottleneck" became "the biggest unknown isn't the sky".</li>
+    <li><strong>Smaller fixes:</strong> the pre-mortem now says its percentages are separate judgements, not shares of one failure. Preference and the fan comparison moved under adoption, and the README and the page now agree on the pump threshold.</li>
+  </ul>
 </section>
 </main>
 
@@ -738,7 +773,9 @@ const SkyBedModel = (() => {
     tAir: 31, // outdoor night air at roof level on a hot night, degC
     tDew: 16, // outdoor dew point, degC
     cloud: 0, // effective low-cloud fraction, 0..1 (crude linear blend)
-    tRoom: 33, // top-floor bedroom air and surface temperature, degC
+    tRoom: 33, // top-floor bedroom air temperature (and wall surfaces), degC
+    ceilExcess: 2, // ceiling surface above room air: the roof slab is still hot at night, K
+    fCeil: 0.4, // share of a supine sleeper's (and the pad's) radiant view that is ceiling
     dewIndoorRise: 1, // bedroom dew point above outdoor (sleeper's own moisture), K
     // radiator panel on the roof
     panelArea: 2.0, // m^2
@@ -755,19 +792,36 @@ const SkyBedModel = (() => {
     kTissue: 20, // core-to-skin tissue conductance under the cool pad, W m^-2 K^-1
     uFabric: U_FABRIC, // skin-to-water: sheet + pad film + water film + gaps = 40 W m^-2 K^-1
     padArea: 0.72, // 0.6 m x 1.2 m torso pad, m^2
-    hPadTop: 7.0, // room-to-exposed-pad (radiation + weak convection), W m^-2 K^-1
+    hPadConv: 1.5, // room air to exposed pad top (cool surface facing up: stable), W m^-2 K^-1
+    hPadRad: 5.5, // radiation from room surfaces to exposed pad top, W m^-2 K^-1
     uUnder: 3.5, // pad underside through 10 mm closed-cell foam, W m^-2 K^-1
     uaPipe: 0.4, // ~4 m of insulated indoor pipe, W K^-1
-    // thermosyphon loop
+    // thermosyphon loop: friction budget = pipe + fittings + pad channels + panel channels
     loopHeight: 3.0, // vertical drop from panel to pad, m
     pipeD: 0.02, // inner diameter, m
-    loopLength: 14, // equivalent laminar length incl. pad manifolds, m
+    pipeLength: 20, // both legs plus routing (all of the pipe bought), m
+    fittingsLe: 4, // elbows, tees, valves as extra pipe length (~30 velocity heads at Re ~400), m
+    padType: 'spacer', // see PADS
+    panelChanD: 0.005, // panel water channels: inner diameter, m
+    panelChanLen: 1.0, // channel length down the slope (panel 1 m up-slope x 2 m across), m
+    panelChanN: 250, // parallel channels at 8 mm pitch across 2 m
     // sleeper
     bsa: 1.8, // body surface area, m^2
     metSleep: 0.7, // sleeping metabolic rate, met (ASHRAE: 0.7 met)
     tSkin: 34.5, // mean temperature of exposed skin, degC
-    hDry: 7.5, // exposed skin to room, convection + radiation, W m^-2 K^-1
+    hConvSkin: 3.0, // exposed skin to still room air, W m^-2 K^-1
+    hRadSkin: 4.5, // exposed skin to room surfaces (at mean radiant temperature), W m^-2 K^-1
   });
+
+  // Pad hydraulics. The pad sits at the bottom of an open column (about rho*g*H = 29 kPa),
+  // far above body contact pressure, so channels cannot be squeezed shut; the issues are
+  // ballooning (solved by drop-stitch / spacer fabric) and channel friction (below).
+  const PADS = Object.freeze({
+    spacer: { kind: 'gap', gap: 0.003, flowLen: 0.6, width: 1.2, factor: 3, name: 'Spacer-fabric pad (recommended)' },
+    capX: { kind: 'tubes', d: 0.0027, len: 0.6, n: 80, name: 'Capillary mat, tubes across' },
+    capL: { kind: 'tubes', d: 0.0027, len: 1.2, n: 40, name: 'Capillary mat, tubes lengthwise' },
+  });
+  const DESIGN = Object.freeze({ dTmax: 8 }); // largest loop temperature difference I'd accept, K
 
   const toK = (c) => c + PHYS.K0;
 
@@ -817,9 +871,18 @@ const SkyBedModel = (() => {
   function uaBody(p) {
     return uBody(p) * p.contactArea;
   }
+  // Mean radiant temperature seen by the sleeper and the pad: walls at room air, ceiling hotter.
+  function mrt(p) {
+    return p.tRoom + p.fCeil * p.ceilExcess;
+  }
   function uaParasitic(p) {
     const exposed = Math.max(0, p.padArea - p.contactArea);
-    return p.hPadTop * exposed + p.uUnder * p.padArea + p.uaPipe;
+    return (p.hPadConv + p.hPadRad) * exposed + p.uUnder * p.padArea + p.uaPipe;
+  }
+  // Effective source temperature of the parasitic gains (room air, plus the radiant excess).
+  function tParEff(p) {
+    const exposed = Math.max(0, p.padArea - p.contactArea);
+    return p.tRoom + (p.hPadRad * exposed * (mrt(p) - p.tRoom)) / uaParasitic(p);
   }
 
   // ---- Coupled steady state ---------------------------------------------------
@@ -830,7 +893,7 @@ const SkyBedModel = (() => {
     const tW = tS + qn / p.hPlate;
     const Qpanel = p.panelArea * qn;
     const Qbody = uaBody(p) * (p.tCore - tW);
-    const Qpar = uaParasitic(p) * (p.tRoom - tW);
+    const Qpar = uaParasitic(p) * (tParEff(p) - tW);
     return { tS, tW, qNet: qn, Qpanel, Qbody, Qpar, resid: Qpanel - Qbody - Qpar };
   }
   function solve(pIn) {
@@ -850,27 +913,51 @@ const SkyBedModel = (() => {
   }
 
   // ---- Thermosyphon ----------------------------------------------------------
-  // Buoyancy rho*beta*dT*g*H balances laminar Hagen-Poiseuille loss
-  // 128*mu*L*mdot/(pi*D^4*rho), with mdot = Q/(cp*dT). Solve for dT.
+  // Every element is laminar, so pressure drop = R * volume flow, R in Pa s m^-3:
+  //   tubes:  R = 128 mu L / (pi D^4 N)        (Hagen-Poiseuille, N in parallel)
+  //   gap:    R = 12 mu L f / (W h^3)          (flow between plates; f = spacer-fabric penalty)
+  function rTubes(L, D, N) {
+    return (128 * PHYS.MU_W * L) / (Math.PI * Math.pow(D, 4) * N);
+  }
+  function rGap(L, W, h, factor) {
+    return (12 * PHYS.MU_W * L * factor) / (W * Math.pow(h, 3));
+  }
+  function rPipe(p) {
+    return rTubes(p.pipeLength + p.fittingsLe, p.pipeD, 1);
+  }
+  function rPad(p) {
+    const d = PADS[p.padType] || PADS.spacer;
+    return d.kind === 'gap' ? rGap(d.flowLen, d.width, d.gap, d.factor) : rTubes(d.len, d.d, d.n);
+  }
+  function rPanel(p) {
+    return rTubes(p.panelChanLen, p.panelChanD, p.panelChanN);
+  }
+  function rLoop(p) {
+    return rPipe(p) + rPad(p) + rPanel(p);
+  }
+  // Buoyancy rho*beta*dT*g*H balances friction R*mdot/rho, with mdot = Q/(cp*dT). Solve for dT.
   function thermosyphon(p, Q) {
     if (!(Q > 0) || !(p.loopHeight > 0)) return null;
     const { RHO_W: rho, CP_W: cp, MU_W: mu, BETA_W: beta, G: g } = PHYS;
-    const D4 = Math.pow(p.pipeD, 4);
-    const dT = Math.sqrt((128 * mu * p.loopLength * Q) / (Math.PI * D4 * rho * rho * beta * g * p.loopHeight * cp));
+    const R = rLoop(p);
+    const dT = Math.sqrt((R * Q) / (rho * rho * beta * g * p.loopHeight * cp));
     const mdot = Q / (cp * dT); // kg/s
+    const Qv = mdot / rho; // m^3/s
     const dp = rho * beta * dT * g * p.loopHeight; // Pa
     const area = (Math.PI * p.pipeD * p.pipeD) / 4;
-    const vel = mdot / rho / area; // m/s
+    const vel = Qv / area; // m/s in the pipe
     const Re = (4 * mdot) / (Math.PI * p.pipeD * mu);
-    const dpFriction = (128 * mu * p.loopLength * (mdot / rho)) / (Math.PI * D4);
-    return { dT, mdot, dp, dpFriction, vel, Re };
+    const dpFriction = R * Qv;
+    // lowest loop height that keeps dT within the design limit: dT scales as H^-1/2
+    const hMin = p.loopHeight * Math.pow(dT / DESIGN.dTmax, 2);
+    return { dT, mdot, dp, dpFriction, vel, Re, R, hMin, dpPipe: rPipe(p) * Qv, dpPad: rPad(p) * Qv, dpPanel: rPanel(p) * Qv };
   }
 
   // ---- Sleeper heat balance -------------------------------------------------
   function sleeper(p, Qbody) {
     const M = p.metSleep * PHYS.MET * p.bsa;
     const exposed = p.bsa - p.contactArea;
-    const Qdry = p.hDry * exposed * (p.tSkin - p.tRoom);
+    const Qdry = exposed * (p.hConvSkin * (p.tSkin - p.tRoom) + p.hRadSkin * (p.tSkin - mrt(p)));
     const eNoPad = M - Qdry; // conventional mattress treated as adiabatic
     const eWithPad = M - Qdry - Qbody;
     const gph = (w) => (Math.max(0, w) / PHYS.H_FG) * 3600 * 1000; // g of water per hour
@@ -917,7 +1004,6 @@ const SkyBedModel = (() => {
   const ROOM = Object.freeze({
     tSet: 26,
     ceilArea: 12, // 3 m x 4 m
-    tCeil: 35, // ceiling surface under an uninsulated hot roof, still warm at night
     hIn: 8, // interior surface coefficient, conv + rad, W m^-2 K^-1
     wallArea: 16.7, // two external walls 4 m + 3 m, 2.6 m high, minus window
     uWall: 1.5,
@@ -931,14 +1017,15 @@ const SkyBedModel = (() => {
   function roomLoad(pIn) {
     const p = Object.assign({}, BASE, pIn || {});
     const r = ROOM;
-    const ceiling = r.ceilArea * r.hIn * (r.tCeil - r.tSet);
+    const tCeil = p.tRoom + p.ceilExcess; // ceiling surface under an uninsulated hot roof
+    const ceiling = r.ceilArea * r.hIn * (tCeil - r.tSet);
     const walls = r.wallArea * r.uWall * (p.tAir - r.tSet);
     const windows = r.winArea * r.uWin * (p.tAir - r.tSet);
     const infiltration = ((r.ach * r.volume) / 3600) * PHYS.RHO_AIR * PHYS.CP_AIR * (p.tAir - r.tSet);
     const occupant = p.metSleep * PHYS.MET * p.bsa;
     const total = ceiling + walls + windows + infiltration + occupant;
     const elec = total / r.cop;
-    return { ceiling, walls, windows, infiltration, occupant, total, elec, kWhNight: (elec * r.nightHours) / 1000 };
+    return { tCeil, ceiling, walls, windows, infiltration, occupant, total, elec, kWhNight: (elec * r.nightHours) / 1000 };
   }
 
   // Daytime: hot water sits on top of the loop. Only conduction leaks down the column.
@@ -964,7 +1051,7 @@ const SkyBedModel = (() => {
     ['Roof radiator: unglazed polypropylene pool-heater mat, about 2 m²', 80],
     ['Foil-faced foam under the panel, plus legs to lift it off the roof', 30],
     ['20 m of 20 mm PE/PEX pipe with foam sleeve', 60],
-    ['Torso pad, 0.6 × 1.2 m, with non-collapsible channels (capillary-tube mat or spacer fabric in TPU)', 60],
+    ['Torso pad, 0.6 × 1.2 m: drop-stitch spacer fabric sealed in TPU, 3 mm water gap', 60],
     ['Header cup, fill/drain valves, fittings', 35],
     ['10 mm closed-cell foam under the pad', 10],
   ]);
@@ -994,7 +1081,8 @@ const SkyBedModel = (() => {
   const FAN = Object.freeze({ hDryFan: 15 }); // W m^-2 K^-1 at roughly 1 m/s on a reclining body
   function fanGain(pIn) {
     const p = Object.assign({}, BASE, pIn || {});
-    return (FAN.hDryFan - p.hDry) * (p.bsa - p.contactArea) * (p.tSkin - p.tRoom);
+    // the fan raises only the convective part, and only against room air
+    return (FAN.hDryFan - p.hConvSkin - p.hRadSkin) * (p.bsa - p.contactArea) * (p.tSkin - p.tRoom);
   }
 
   // Scale: heat over one night, and the core-temperature rise it would cause if stored.
@@ -1008,6 +1096,8 @@ const SkyBedModel = (() => {
   const EXP = Object.freeze({
     tWater: 28, mdot: 0.005, sensorDT: 0.05, killW: 20, passW: 30, cost1: 120, // bucket bed
     bucketL: 50, tStart: 24, pumpW: 5, boxUA: 0.8, killPanel: 6, // drifting-bucket protocol
+    boardU: 0.7, // 50 mm foam board laid on the pad on the control night, W m^-2 K^-1
+    benchHead: 0.01, // pad bench check: net head across the pad, m (pad itself ~3 m below the reservoir)
     skyDT: 2, skyKill: 25, cost2: 150, // sky bucket
   });
   function experiment(pIn) {
@@ -1019,10 +1109,36 @@ const SkyBedModel = (() => {
     const uaKill = EXP.killW / (p.tCore - EXP.tWater);
     const uKill = uaKill / p.contactArea;
     const kKill = 1 / (1 / uKill - 1 / p.uFabric);
+    const uPass = EXP.passW / (p.tCore - EXP.tWater) / p.contactArea;
+    const kPass = 1 / (1 / uPass - 1 / p.uFabric);
     // with no ice top-ups the bucket warms: body + parasitic + pump + cooler-box walls
-    const gain = predicted + uaParasitic(p) * (p.tRoom - EXP.tWater) + EXP.pumpW + EXP.boxUA * (p.tRoom - EXP.tWater);
+    const gain = predicted + uaParasitic(p) * (tParEff(p) - EXP.tWater) + EXP.pumpW + EXP.boxUA * (p.tRoom - EXP.tWater);
     const driftKph = (gain * 3600) / (EXP.bucketL * PHYS.CP_W); // 1 L of water ~ 1 kg
-    return { predicted, dTpad, resolution, uaKill, kKill, gain, driftKph };
+    // Control night. An EMPTY bed exposes the contact patch to the room too, so subtracting it
+    // removes the room's gain on that patch as well: a large bias. Covering the patch with a
+    // foam board reproduces the occupied geometry; only the board's small leak remains.
+    const patchGain = p.contactArea * (p.hPadConv * (p.tRoom - EXP.tWater) + p.hPadRad * (mrt(p) - EXP.tWater));
+    const naiveReads = predicted - patchGain;
+    const boardLeak = EXP.boardU * p.contactArea * (p.tRoom - EXP.tWater);
+    const naiveSlope = uaBody(p) - p.contactArea * (p.hPadConv + p.hPadRad);
+    return { predicted, dTpad, resolution, uaKill, kKill, kPass, gain, driftKph, patchGain, naiveReads, boardLeak, naiveSlope };
+  }
+
+  // Pad bench check: seconds to pass 1 L through the pad under EXP.benchHead of net head.
+  function benchSeconds(R) {
+    return (1e-3 * R) / (PHYS.RHO_W * PHYS.G * EXP.benchHead);
+  }
+  // Panel no-load temperature: where sky radiation exactly balances air and back gains.
+  function tStagnation(pIn) {
+    const p = Object.assign({}, BASE, pIn || {});
+    let lo = p.tAir - 60;
+    let hi = p.tAir + 10;
+    for (let i = 0; i < 200; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (qNet(p, mid) > 0) hi = mid;
+      else lo = mid;
+    }
+    return 0.5 * (lo + hi);
   }
 
   // Experiment 2 (the sky bucket): net panel flux with the surface held 2 K below air.
@@ -1038,8 +1154,11 @@ const SkyBedModel = (() => {
     tunedPad: 0.45, tunedUnder: 1.75, tunedFoamMM: 20,
     mildAir: 26, mildRoom: 30, hotRoom: 36,
     smallPipe: 0.015, lowHeight: 1, smallPanel: 1, bigPanel: 4,
-    pumpBelowH: 0.5, // below this loop height the page recommends a 1-3 W pump
   });
+
+  // Values from the first version of this dossier, superseded after an independent review.
+  // Quoted only in the page's revision note, for the record; nothing computes from them.
+  const OLD = Object.freeze({ qbody: 36, sweatNoPad: 84, sweatWithPad: 31, sweatCut: 63, dTloop: 2.5, mdot: 6.0, dp: 19, hPump: 0.5, naiveKill: 9 });
 
   // Back-of-envelope numbers for the candidates I rejected (section 8 of the page).
   const CAND = Object.freeze({
@@ -1086,6 +1205,16 @@ const SkyBedModel = (() => {
     const ex = experiment();
     const killed = solve({ kTissue: ex.kKill });
     const cand = candidates();
+    const capX = solve({ padType: 'capX' });
+    const capL = solve({ padType: 'capL' });
+    const humidCapL = solve({ tDew: S.humidDew, padType: 'capL' });
+    const tsCapX1 = thermosyphon(P({ padType: 'capX', loopHeight: S.lowHeight }), capX.Qpanel);
+    const tsCapL1 = thermosyphon(P({ padType: 'capL', loopHeight: S.lowHeight }), capL.Qpanel);
+    const tStag = tStagnation();
+    const tStagScreen = tStagnation({ windscreen: true });
+    const rRest = rPipe(BASE) + rPanel(BASE);
+    const padStatic = PHYS.RHO_W * PHYS.G * BASE.loopHeight;
+    const bodyP = (BODY.mass * PHYS.G) / BASE.contactArea;
     const q = {
       // sleeper
       M: f(sl.M, 0),
@@ -1101,6 +1230,10 @@ const SkyBedModel = (() => {
       coreRise: f(night.coreRise, 1),
       fanGain: f(fanGain(), 0),
       fanGainHot: f(Math.abs(fanGain({ tRoom: S.hotRoom })), 0),
+      mrt: f(mrt(BASE), 1),
+      tCeil: f(room.tCeil, 0),
+      qDryConv: f((BASE.bsa - BASE.contactArea) * BASE.hConvSkin * (BASE.tSkin - BASE.tRoom), 1),
+      qDryRad: f((BASE.bsa - BASE.contactArea) * BASE.hRadSkin * (BASE.tSkin - mrt(BASE)), 1),
       // sky
       epsSky: f(b.epsSky, 3),
       skyDown: f(b.skyDown, 0),
@@ -1125,11 +1258,19 @@ const SkyBedModel = (() => {
       uBody: f(b.uBody, 1),
       uaBody: f(b.uaBody, 2),
       uaPar: f(b.uaPar, 2),
+      tParEff: f(tParEff(BASE), 1),
+      tStag: f(tStag, 1),
+      QbodyCap: f(uaBody(BASE) * (BASE.tCore - tStag), 0),
+      QbodyCapScreen: f(uaBody(BASE) * (BASE.tCore - tStagScreen), 0),
+      QpanelA4: f(solve({ panelArea: S.bigPanel }).Qpanel, 0),
+      QparA4: f(solve({ panelArea: S.bigPanel }).Qpar, 0),
+      gainPanelA4: f(solve({ panelArea: S.bigPanel }).Qpanel - b.Qpanel, 0),
+      gainParA4: f(solve({ panelArea: S.bigPanel }).Qpar - b.Qpar, 0),
       skinUnderPad: f(b.skinUnderPad, 1),
       padInlet: f(b.padInlet, 1),
       padOutlet: f(b.tW + ts.dT / 2, 1),
       exposed: f(BASE.padArea - BASE.contactArea, 2),
-      padPressure: f((PHYS.RHO_W * PHYS.G * BASE.loopHeight) / 1000, 0),
+      padPressure: f(padStatic / 1000, 0),
       fabricR: f(1 / BASE.uFabric, 3),
       dewMarginPad: f(b.dewMarginPad, 1),
       QbodyScreen: f(screen.Qbody, 0),
@@ -1158,8 +1299,26 @@ const SkyBedModel = (() => {
       dTloop1m: f(ts1m.dT, 1),
       dayLeakMW: f(leak.W * 1000, 0),
       dpMM: f((ts.dp / (PHYS.RHO_W * PHYS.G)) * 1000, 1),
-      bodyPressure: f((BODY.mass * PHYS.G) / BASE.contactArea / 1000, 1),
-      pinchRatio: f((BODY.mass * PHYS.G) / BASE.contactArea / ts.dp, 0),
+      bodyPressure: f(bodyP / 1000, 1),
+      pressRatio: f(padStatic / bodyP, 0),
+      dpPipe: f(ts.dpPipe, 1),
+      dpPad: f(ts.dpPad, 1),
+      dpPanel: f(ts.dpPanel, 1),
+      rLoop: f(ts.R / 1e6, 2),
+      hMin: f(ts.hMin, 1),
+      dTcapX: f(capX.ts.dT, 1),
+      dTcapL: f(capL.ts.dT, 1),
+      dpPadCapX: f(capX.ts.dpPad, 0),
+      dpPadCapL: f(capL.ts.dpPad, 0),
+      dTcapX1m: f(tsCapX1.dT, 1),
+      dTcapL1m: f(tsCapL1.dT, 1),
+      hMinCapX: f(capX.ts.hMin, 1),
+      hMinCapL: f(capL.ts.hMin, 1),
+      dewMarginHumidCapL: f(humidCapL.dewMarginPad, 1),
+      benchSpacer: f(benchSeconds(rPad(BASE)), 0),
+      benchCapX: f(benchSeconds(rPad(P({ padType: 'capX' }))), 0),
+      benchCapL: f(benchSeconds(rPad(P({ padType: 'capL' }))), 0),
+      benchMax: f(benchSeconds(rRest), 0),
       // room comparison
       roomCeiling: f(room.ceiling, 0),
       roomWalls: f(room.walls, 0),
@@ -1183,9 +1342,14 @@ const SkyBedModel = (() => {
       expDT: f(ex.dTpad, 1),
       expRes: f(ex.resolution, 1),
       expKillK: f(ex.kKill, 0),
+      expPassK: f(ex.kPass, 0),
       expKillQbody: f(killed.Qbody, 0),
       expKillBig: f(solve({ kTissue: ex.kKill, panelArea: EXP.killPanel }).Qbody, 0),
       expGain: f(ex.gain, 0),
+      expPatch: f(ex.patchGain, 0),
+      expNaive: f(ex.naiveReads, 0),
+      expBoard: f(ex.boardLeak, 0),
+      expNaiveSlope: f(ex.naiveSlope, 1),
       expDrift: f(ex.driftKph, 1),
       skyTest: f(skyTest(), 0),
       // rejected candidates
@@ -1201,8 +1365,9 @@ const SkyBedModel = (() => {
   }
 
   return {
-    PHYS, BASE, ROOM, COST, RISKS, GEL, FAN, BODY, EXP, FABRIC, SCEN, CAND, DAY, candidates,
-    epsSkyClear, epsSkyEff, skyDown, tSky, qRad, qGain, qNet, uBody, uaBody, uaParasitic,
+    PHYS, BASE, ROOM, COST, RISKS, GEL, FAN, BODY, EXP, FABRIC, SCEN, CAND, DAY, PADS, DESIGN, OLD, candidates,
+    epsSkyClear, epsSkyEff, skyDown, tSky, qRad, qGain, qNet, uBody, uaBody, uaParasitic, mrt, tParEff,
+    rTubes, rGap, rPipe, rPad, rPanel, rLoop, benchSeconds, tStagnation,
     stateAt, solve, thermosyphon, sleeper, areaFor, roomLoad, dayLeak, gelMat, costTotal, survival,
     fanGain, nightHeat, experiment, skyTest,
     quoted, fmt: f,
@@ -1285,6 +1450,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SkyBedMode
     });
     var ws = document.getElementById('ws');
     ws.addEventListener('click', function () { state.windscreen = !state.windscreen; sync(); });
+    var padHost = document.getElementById('pads');
+    Object.keys(M.PADS).forEach(function (key) {
+      var b = el('button', { type: 'button', 'data-pad': key, 'aria-pressed': 'false' }, M.PADS[key].name);
+      b.addEventListener('click', function () { state.padType = key; sync(); });
+      padHost.appendChild(b);
+    });
   }
 
   function sync() {
@@ -1296,6 +1467,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SkyBedMode
     var ws = document.getElementById('ws');
     ws.setAttribute('aria-pressed', state.windscreen ? 'true' : 'false');
     ws.textContent = 'PE windscreen: ' + (state.windscreen ? 'on' : 'off');
+    Array.prototype.forEach.call(document.querySelectorAll('#pads button'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-pad') === state.padType ? 'true' : 'false');
+    });
     update();
   }
 
@@ -1323,7 +1497,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SkyBedMode
     var tsTxt = '—', tsK = 'loop does not run';
     if (ts) {
       tsTxt = fx(ts.dT, 1) + ' K · ' + fx(ts.mdot * 1000, 1) + ' g/s';
-      tsK = 'loop ΔT and flow; drive ' + fx(ts.dp, 0) + ' Pa, Re ' + fx(ts.Re, 0);
+      tsK = 'loop ΔT and flow; drive ' + fx(ts.dp, 0) + ' Pa (pad ' + fx(ts.dpPad, 1) + '), Re ' + fx(ts.Re, 0) + '; pumpless down to ' + fx(ts.hMin, 1) + ' m';
     }
     host.appendChild(ro(tsTxt, tsK));
     host.appendChild(ro(r.running ? (r.dewMarginPad >= 0 ? '+' : '') + fx(r.dewMarginPad, 1) + ' K' : '—', 'pad inlet above bedroom dew point (condensation margin)'));
@@ -1338,9 +1512,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SkyBedMode
     function warn(t, good) { w.appendChild(el('li', good ? { class: 'good' } : null, t)); }
     if (!r.running) warn('The loop does not run: under these conditions the panel cannot cool water below body temperature.');
     if (r.running && ts) {
-      if (state.loopHeight < M.SCEN.pumpBelowH) warn('Panel is less than ' + M.SCEN.pumpBelowH + ' m above the pad: use a small 1–3 W pump instead of relying on thermosyphon flow.');
-      else if (ts.Re > 2000) warn('Flow would be turbulent (Re > 2000), outside the laminar formula used here.');
-      else if (ts.dT > 8) warn('Thermosyphon needs a large ' + fx(ts.dT, 1) + ' K loop difference: use a wider pipe or a small pump.');
+      if (ts.Re > 2000) warn('Flow would be turbulent (Re > 2000), outside the laminar formula used here.');
+      else if (ts.dT > M.DESIGN.dTmax) warn('The thermosyphon needs a ' + fx(ts.dT, 1) + ' K loop difference, past the ' + M.DESIGN.dTmax + ' K limit (one end of the pad much colder than the other). Raise the panel above ' + fx(ts.hMin, 1) + ' m, use a lower-friction pad or wider pipe, or add a 1–3 W pump.');
       else warn('Flows by itself: ' + fx(ts.dp, 0) + ' Pa of buoyancy drives ' + fx(ts.mdot * 1000, 1) + ' g/s with no pump.', true);
     }
     if (r.dewOnPanel) warn('Panel is below the outdoor dew point: dew will form and its latent heat (not modelled) will cut the cooling shown.');
