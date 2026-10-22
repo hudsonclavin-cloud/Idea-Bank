@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unconformity</title>
+  <meta name="description" content="Seeded generative geological sections, drawn like hand-tinted survey plates. Every seed is an invented history; the picture is the evidence.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-state="loading">
+  <main class="wall">
+    <figure class="stage" id="stage">
+      <div class="plate" id="plate">
+        <canvas id="art" role="img" aria-label="Generated geological cross-section"></canvas>
+        <div class="progress" id="progress" aria-hidden="true"><i></i></div>
+      </div>
+      <figcaption class="sr-only" id="artCaption"></figcaption>
+    </figure>
+
+    <aside class="panel">
+      <header class="masthead">
+        <h1>Unconformity</h1>
+        <p class="tag">Every seed is an invented geological history, hundreds of millions of years long. The picture is the only evidence left.</p>
+      </header>
+
+      <p class="plate-title" id="title">&nbsp;</p>
+
+      <div class="controls">
+        <div class="seedrow">
+          <button type="button" id="prev" class="icon" aria-label="Previous seed" title="Previous seed (←)">&#8249;</button>
+          <form id="seedForm" class="seedform" autocomplete="off">
+            <label for="seed">Seed</label>
+            <input id="seed" name="seed" type="text" inputmode="text" spellcheck="false" maxlength="40">
+          </form>
+          <button type="button" id="next" class="icon" aria-label="Next seed" title="Next seed (→)">&#8250;</button>
+        </div>
+        <div class="btnrow">
+          <button type="button" id="roll" class="primary" title="New random seed (R)">New section</button>
+          <button type="button" id="save" title="Download a 2400×3000 PNG (S)">Save PNG</button>
+          <button type="button" id="tint" class="wide" title="Same rocks, another hand-tinting (T)"><span class="k">Tint</span> <span id="tintName">Survey</span></button>
+        </div>
+      </div>
+
+      <section class="record" aria-labelledby="recHead">
+        <h2 id="recHead">The record, oldest first</h2>
+        <ol id="record"></ol>
+        <p class="silent" id="silent"></p>
+      </section>
+
+      <footer class="foot">
+        <p><kbd>←</kbd> <kbd>→</kbd> step seeds · <kbd>R</kbd> new · <kbd>T</kbd> tint · <kbd>S</kbd> save</p>
+        <p>The ages, places and rocks are invented; the geometry obeys the rules a field geologist reads: younger beds lie on older ones, and whatever cuts a rock is younger than it.</p>
+      </footer>
+    </aside>
+  </main>
+
+  <script src="js/core.js"></script>
+  <script src="js/geology.js"></script>
+  <script src="js/record.js"></script>
+  <script src="js/palette.js"></script>
+  <script src="js/plate.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
