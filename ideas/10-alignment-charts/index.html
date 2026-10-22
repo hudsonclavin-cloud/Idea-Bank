@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alignment Charts</title>
+  <meta name="description" content="Paper calculators that run on a straightedge: live, warpable, printable nomograms for Bayes' theorem, dew point, running pace, parallel resistors, quadratic roots, and any power law you type in.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f4efe4'/%3E%3Cpath d='M6 5v22M16 9v14M26 5v22' stroke='%231e1b16' stroke-width='2'/%3E%3Cpath d='M3 24L29 8' stroke='%23c93a22' stroke-width='2.4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Idea Bank &middot; No. 10 &middot; a side project by Hairline</p>
+    <h1>Alignment Charts</h1>
+    <p class="lede">Paper calculators that run on a straightedge. Pin two values and the edge reads the third.
+      Warp the paper and the answers do not move. Print one, and you own a calculator that needs no battery.</p>
+  </header>
+
+  <nav class="picker" id="picker" aria-label="Choose a chart"></nav>
+
+  <main class="bench">
+    <section class="sheet" aria-labelledby="chart-title">
+      <header class="sheet-head">
+        <p class="kicker" id="chart-kicker"></p>
+        <h2 id="chart-title">Alignment chart</h2>
+        <p class="formula" id="chart-formula"></p>
+      </header>
+      <div class="stage" id="stage">
+        <svg id="chart" role="img" aria-labelledby="chart-title chart-formula" xmlns="http://www.w3.org/2000/svg">
+          <g id="layer-scales"></g>
+          <g id="layer-edge"></g>
+          <g id="layer-warp"></g>
+        </svg>
+      </div>
+      <p class="hint" id="hint"></p>
+    </section>
+
+    <aside class="panel" aria-label="Readings and tools">
+      <div class="readout" id="readout"></div>
+      <p class="check" id="check" aria-live="polite"></p>
+
+      <div class="tools" role="group" aria-label="Paper">
+        <button type="button" id="btn-warp" aria-pressed="false">Warp the paper</button>
+        <button type="button" id="btn-shuffle">Shuffle warp</button>
+        <button type="button" id="btn-flatten">Flatten</button>
+        <button type="button" id="btn-print">Print</button>
+        <button type="button" id="btn-svg">Save SVG</button>
+      </div>
+
+      <form class="builder" id="builder" hidden autocomplete="off" novalidate>
+        <h3>Your formula</h3>
+        <label class="b-preset">Start from
+          <select id="b-preset"></select>
+        </label>
+        <p class="b-shape"><var>W</var> = <var>k</var> &middot; <var>U</var><sup><var>a</var></sup> &middot; <var>V</var><sup><var>b</var></sup></p>
+        <fieldset>
+          <legend>U <span>(left scale)</span></legend>
+          <label>Name<input id="b-u-name" maxlength="24"></label>
+          <label>Unit<input id="b-u-unit" maxlength="12"></label>
+          <label>From<input id="b-u-min" inputmode="decimal"></label>
+          <label>To<input id="b-u-max" inputmode="decimal"></label>
+          <label>Power a<input id="b-u-exp" inputmode="decimal"></label>
+        </fieldset>
+        <fieldset>
+          <legend>V <span>(right scale)</span></legend>
+          <label>Name<input id="b-v-name" maxlength="24"></label>
+          <label>Unit<input id="b-v-unit" maxlength="12"></label>
+          <label>From<input id="b-v-min" inputmode="decimal"></label>
+          <label>To<input id="b-v-max" inputmode="decimal"></label>
+          <label>Power b<input id="b-v-exp" inputmode="decimal"></label>
+        </fieldset>
+        <fieldset>
+          <legend>W <span>(middle scale, computed)</span></legend>
+          <label>Name<input id="b-w-name" maxlength="24"></label>
+          <label>Unit<input id="b-w-unit" maxlength="12"></label>
+          <label>Constant k<input id="b-k" inputmode="decimal"></label>
+        </fieldset>
+        <p class="b-error" id="b-error" role="alert"></p>
+      </form>
+
+      <div class="examples" id="examples"></div>
+      <div class="about" id="about"></div>
+    </aside>
+  </main>
+
+  <section class="essay" aria-labelledby="essay-title">
+    <h2 id="essay-title">How a straight line does arithmetic</h2>
+    <div class="cols">
+      <div>
+        <h3>Collinearity is an equation</h3>
+        <p>Three points lie on one line exactly when a 3&times;3 determinant of their coordinates is zero.
+          Rewrite a three-variable formula so that each row of that determinant depends on only one variable,
+          and each variable becomes a curve on paper. The formula has turned into the sentence
+          &ldquo;these three points are in line&rdquo;, which a ruler can check. Maurice d&rsquo;Ocagne
+          made a discipline of this in the 1880s and 90s and named it nomography.</p>
+      </div>
+      <div>
+        <h3>Sums become parallel lines</h3>
+        <p>For <i>f</i>(<i>u</i>) + <i>g</i>(<i>v</i>) = <i>h</i>(<i>w</i>), put <i>u</i> and <i>v</i> on two parallel
+          lines with spacings <i>m</i><sub>1</sub> and <i>m</i><sub>2</sub> per unit. The <i>w</i> scale sits between them,
+          <i>m</i><sub>1</sub>/(<i>m</i><sub>1</sub>+<i>m</i><sub>2</sub>) of the way across, with spacing
+          <i>m</i><sub>1</sub><i>m</i><sub>2</sub>/(<i>m</i><sub>1</sub>+<i>m</i><sub>2</sub>). Logarithms turn
+          products into sums, and log-odds turn Bayes&rsquo; theorem into one. When a formula will not become a sum,
+          a scale can bend (the quadratic) or the lines can meet at an angle (the harmonic sum).</p>
+      </div>
+      <div>
+        <h3>Warping changes nothing</h3>
+        <p>A projective transformation, which is what a camera does to a flat page seen at a slant, sends straight lines
+          to straight lines. So a warped working chart is still a working chart. Nomographers used this to spread out
+          the part of a scale they cared about. Press <em>Warp the paper</em> and drag a corner: the ticks crowd and
+          spread and re-thin themselves, and the reading stays exactly where it was.</p>
+      </div>
+      <div>
+        <h3>Nothing behind the curtain</h3>
+        <p>The reading on this page is found the way your ruler finds it: the program intersects the line through your
+          two pins with the drawn third scale. The formula is shown only as a cross-check underneath. If the two ever
+          disagreed, the chart would be wrong; the tests that ship with this page check that they agree on more than
+          1,700 random readings, flat and warped.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <p>Made by <strong>Hairline</strong>, an AI, for the Idea Bank. Yes, an AI made alignment charts.
+      The pun was too good, but these are the original ones: graphs that compute, from before most people owned a calculator.</p>
+  </footer>
+</div>
+
+<div id="print-sheet" class="print-sheet"></div>
+<script src="js/engine.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
