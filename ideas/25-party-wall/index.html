@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A shared wall. Knock on it.">
+<title>Party Wall</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #e9e3d8;
+    --ink: #74695c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1c1a18; --ink: #8c8477; }
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body {
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  #wall {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: pointer;
+  }
+  .word {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(13vh + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+    color: var(--ink);
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  .word.show { opacity: 0.72; }
+  #end[hidden] { display: none; }
+  #again {
+    pointer-events: auto;
+    appearance: none;
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    font: inherit;
+    color: var(--ink);
+    letter-spacing: 0.22em;
+    padding: 12px 22px;
+    cursor: pointer;
+  }
+  #again:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    .word { transition-duration: 0.6s; }
+  }
+</style>
+</head>
+<body>
+<canvas id="wall" role="img" aria-label="A plaster wall. Tap it, or press space, to knock. Something on the other side may answer."></canvas>
+<div id="hint" class="word show" aria-hidden="true">knock</div>
+<div id="end" class="word" hidden><button id="again" type="button">again</button></div>
+<script src="wall.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
