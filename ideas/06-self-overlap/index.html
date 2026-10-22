@@ -84,7 +84,7 @@
 
 <section id="slide">
   <h2><span class="secnum">3</span> Slide the pattern across itself</h2>
-  <p>The same bookkeeping works for any pattern, and there is a way to do it at a glance, usually credited to John Conway. Lay a copy of the pattern under itself and slide it right, one coin at a time. At each shift, look only at the coins that overlap. If every overlapping pair agrees, the pattern overlaps itself there, and that overlap is worth 2<sup>k</sup>, where k is the number of coins in it. Add up the values, including the starting position, where the copy covers all n coins and is worth 2<sup>n</sup>. The total is the average number of flips you’ll wait.</p>
+  <p>The same bookkeeping works for any pattern, and there is a way to do it at a glance. (The formula itself is older; the sliding picture is usually tied to John Conway’s work on the races in section 5.) Lay a copy of the pattern under itself and slide it right, one coin at a time. At each shift, look only at the coins that overlap. If every overlapping pair agrees, the pattern overlaps itself there, and that overlap is worth 2<sup>k</sup>, where k is the number of coins in it. Add up the values, including the starting position, where the copy covers all n coins and is worth 2<sup>n</sup>. The total is the average number of flips you’ll wait.</p>
   <p>Drag the lower copy sideways. To change the pattern, tap its coins at the top of the panel.</p>
 
   <figure class="widget" id="w-slide">
@@ -145,7 +145,7 @@
 
 <section id="races">
   <h2><span class="secnum">5</span> Races, and why going second wins</h2>
-  <p>Now the head-to-head puzzle from the first panel. A pattern’s average wait depends only on how it overlaps <em>itself</em>. A race between two patterns also depends on how they overlap <em>each other</em>. Conway’s rule stretches to cover it. Write X·Y for the sum of 2<sup>k</sup> over every k where the last k letters of X equal the first k letters of Y, so X·X is X’s average wait. Then, for two different patterns of the same length, the odds that B shows up before A are (A·A − A·B) to (B·B − B·A).</p>
+  <p>Now the head-to-head puzzle from the first panel. A pattern’s average wait depends only on how it overlaps <em>itself</em>. A race between two patterns also depends on how they overlap <em>each other</em>. This is the question Conway built his sliding bookkeeping for. Write X·Y for the sum of 2<sup>k</sup> over every k where the last k letters of X equal the first k letters of Y, so X·X is X’s average wait. Then, for two different patterns of the same length, the odds that B shows up before A are (A·A − A·B) to (B·B − B·A).</p>
   <p>For HH against HT: HH·HH = <span class="num" data-claim="corr:HH:HH">6</span>, HH·HT = <span class="num" data-claim="corr:HH:HT">2</span>, HT·HT = <span class="num" data-claim="corr:HT:HT">4</span> and HT·HH = <span class="num" data-claim="corr:HT:HH">0</span>. The odds are (6 − 2) to (4 − 0): <span class="num" data-claim="odds:HH:HT">4 to 4</span>, an even race, just as the first panel found.</p>
   <p>Here is the race in words, and it settles the puzzle. Once the first head appears, the next flip decides the race, a fair toss. But the two ways of losing are not alike. If HT loses, the coin is showing H, so HT needs only the next tail, <span class="num" data-claim="wait:T">2</span> more flips on average. If HH loses, the coin is showing T, and HH must start from nothing: <span class="num" data-claim="wait:HH">6</span> more. Equal chances of winning, unequal costs of losing. That is enough to get both averages. The first head arrives on flip <span class="num" data-claim="wait:H">2</span> on average, one more flip settles the race, and each pattern loses half the time, paying its extra wait only then. So HH takes 2 + 1 + 6/2 = <span class="num" data-claim="wait:HH">6</span> and HT takes 2 + 1 + 2/2 = <span class="num" data-claim="wait:HT">4</span>.</p>
   <p>Walter Penney turned this into a game in 1969. You choose a pattern of three flips. I choose mine after seeing yours. We flip until one of them appears. It sounds fair, and it isn’t: whatever you choose, I can pick a pattern that comes first at least <span class="num" data-claim="race:HTH:HHT">2/3</span> of the time.</p>
@@ -194,7 +194,7 @@
 
 <section id="coda">
   <h2><span class="secnum">6</span> Where the overlap shows up</h2>
-  <p>Self-overlap matters wherever people search long sequences for patterns. The Knuth–Morris–Pratt string-search algorithm (1977) begins by computing, for each prefix of the word it is looking for, the longest overlap of that prefix with itself, short of the whole thing. That table lets the search slide ahead after a mismatch without missing a match or re-reading text. People who count short “words” in DNA run into the clumping from section 2: a self-overlapping word’s count swings more than a non-overlapping word’s, so a significance test that ignores this can mistake ordinary clumps for signal.</p>
+  <p>Self-overlap matters wherever people search long sequences for patterns. The Knuth–Morris–Pratt string-search algorithm (1977) begins by computing, for each prefix of the word it is looking for, the longest overlap of that prefix with itself, short of the whole thing. That table lets the search slide ahead after a mismatch without missing a match or ever backing up in the text. People who count short “words” in DNA run into the clumping from section 2: a self-overlapping word’s count swings more than a non-overlapping word’s, so a significance test that ignores this can mistake ordinary clumps for signal.</p>
   <p>The coin, meanwhile, was fair the whole time. Every pair of flips was HH one time in four and HT one time in four. Overlap doesn’t change how often a pattern happens. It changes how those happenings are spaced out in time, and waiting is all about spacing.</p>
 </section>
 
@@ -212,7 +212,7 @@
     <li>Donald E. Knuth, James H. Morris and Vaughan R. Pratt, “Fast pattern matching in strings,” <i>SIAM Journal on Computing</i> 6 (1977), 323–350.</li>
     <li>Ronald L. Graham, Donald E. Knuth and Oren Patashnik, <i>Concrete Mathematics</i>, 2nd ed. (1994), section 8.4.</li>
   </ul>
-  <p class="colophon">Every probability, average and count stated in the prose is tagged in the page source and checked by an automated test (<code>test/overlap.test.mjs</code>) against an exact Markov-chain calculation, brute-force enumeration, or simulation. The charts and simulators run on a seeded random-number generator in your browser; nothing is sent anywhere.</p>
+  <p class="colophon">The headline probabilities, averages and counts in the prose (40 of them) are tagged in the page source and checked by an automated test (<code>test/overlap.test.mjs</code>) against an exact Markov-chain calculation, brute-force enumeration, or simulation. The charts and simulators run on a seeded random-number generator in your browser; nothing is sent anywhere.</p>
 </footer>
 
 </main>

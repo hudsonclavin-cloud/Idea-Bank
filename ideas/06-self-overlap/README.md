@@ -12,14 +12,14 @@ An interactive essay in six short sections about one counterintuitive fact: with
 Five interactive figures carry the argument:
 
 1. **The race.** Flip games one at a time (animated) or in batches of 100 or 10,000. Each game hunts for HH and HT in the *same* flips, so the reader watches HH average about 6, HT about 4, and HT come first in only about 50% of games. Histograms compare the reader's games with the exact distributions.
-2. **The strip.** 160 flips with every HH arced above and every HT arced below. HH arcs chain into clumps; HT arcs never touch. A table shows equal counts, equal average gaps (about 4), and the difference: about half of HH's gaps are a single flip.
+2. **The strip.** 160 flips with every HH arced above and every HT arced below. HH arcs chain into clumps; HT arcs never touch. A table shows each pair's count and average gap. These agree on average (39.75 occurrences each in 160 flips, mean gap 4) but vary from strip to strip. It also shows the real difference: about half of HH's gaps are a single flip.
 3. **Slide the pattern across itself** (the core drag). Edit any pattern of 1 to 8 flips, then drag a copy of it sideways across itself, by mouse, touch or arrow keys. Every shift where the overlapping coins agree lights up green and adds 2^k. A ledger sums them into the expected wait, and a button checks the result by simulation.
 4. **The casino.** Shuo-Yen Robert Li's martingale proof as a picture. One row per gambler, one cell per bet, with a slider to scrub through a real game. When the pattern lands, the surviving gamblers are exactly the self-overlaps from section 3, and their payout is the same every game.
 5. **Penney's game.** Pick a pattern (2 to 5 flips); the page answers with its best counter and shows the exact win probability, Conway's arithmetic behind it, and a 1,000-race simulation. A tappable diagram shows the loop HTT → HHT → THH → TTH → HTT.
 
 ## Why I made it
 
-I wanted a fact that sounds like a trick question but isn't one, where the honest "same probability, same wait" intuition is wrong for a reason you can *see*. What hooked me is that the reason lives entirely in how a pattern relates to itself. HH can share a coin with the next HH, so its occurrences clump. A clumpy pattern hits the same long-run frequency as a spread-out one but pays for it with longer droughts, and a fresh start is a drought. Most "probability paradoxes" fade once you do the algebra. This one gets clearer: Conway's slide-it-over-itself rule turns it into something you can do with your eyes, and Li's casino argument makes the rule feel inevitable rather than magic.
+I wanted a fact that sounds like a trick question but isn't one, where the honest "same probability, same wait" intuition is wrong for a reason you can *see*. What hooked me is that the reason lives entirely in how a pattern relates to itself. HH can share a coin with the next HH, so its occurrences clump. A clumpy pattern hits the same long-run frequency as a spread-out one but pays for it with longer droughts, and a fresh start is a drought. Most "probability paradoxes" fade once you do the algebra. This one gets clearer: the slide-it-over-itself rule turns it into something you can do with your eyes, and Li's casino argument makes the rule feel inevitable rather than magic.
 
 Before building I listed candidates: Monty Hall, the birthday paradox, Simpson's paradox (all crossed off as the obvious first picks), Berkson's paradox, volatility drag / ergodicity, Braess's paradox, queueing blow-up near full utilization, Stein's paradox, and this one. I picked self-overlap because its central interaction is a literal drag (sliding a pattern across itself), every number in it is exactly computable, and it shows up far less often than the classics.
 
@@ -38,14 +38,14 @@ Before building I listed candidates: Monty Hall, the birthday paradox, Simpson's
 - exact expected waits and race probabilities from **rational-arithmetic Markov chains** (BigInt Gauss–Jordan), for every pattern up to length 8 and every pair up to length 5;
 - **brute-force enumeration** of all 2^16 flip sequences for the waiting-time distributions, and of all sequences up to length 14 for count variances;
 - **Monte Carlo** with a different PRNG (xoshiro128**) for waits, races, gaps, and count SDs;
-- the Penney facts: the unique best reply for each 3-flip pattern (7/8, 3/4, 2/3), Conway's recipe, the 4-cycle, nontransitivity for every length 3 to 8, and no beater at length 2;
+- the Penney facts: the unique best reply for each 3-flip pattern (7/8, 3/4, 2/3), Conway's recipe, the 4-cycle, nontransitivity for every length 3 to 8, and its failure at length 2 (HT and TH have no beater, only ties);
 - the casino invariant: survivors always hold exactly A·A;
-- **every number in the prose.** Each probability, average and count in `index.html` is wrapped in `data-claim="…"`; the test parses the page and checks all 40 against the independent computations. A deliberately wrong edit ("9 in 13") makes it fail.
+- **the headline numbers in the prose.** The 40 key probabilities, averages and counts in `index.html` are wrapped in `data-claim="…"`; the test parses the page and checks each one against the independent computations. Untagged numbers in the prose (the addends in sums like 8 + 2, "half" of HH's gaps, the 2^n and 2^(n+1) − 2 bounds) are covered by the other tests above or are plain arithmetic. A deliberately wrong edit ("9 in 13") makes it fail.
 
 ## Honest assessment
 
 What works:
-- [Certain] Every number stated in the essay is correct. Each is machine-checked against exact rational Markov-chain solutions or enumeration (see above).
+- [Certain] The 40 tagged numbers in the essay are machine-checked against exact rational Markov-chain solutions or enumeration (see above). An independent fact-check by another agent recomputed every number in the prose, tagged or not, and found none wrong.
 - [Certain] The widgets compute their displayed probabilities and averages from the same tested module. The simulators agree with the exact values within sampling error.
 - [Certain] Smoke test (`node tools/smoke.mjs ideas/06-self-overlap`) passes at desktop and phone width with no console errors or horizontal overflow. A separate Playwright run exercised a real touch drag on the slider, keyboard control, casino scrubbing and play, Penney edits, the cycle links, and reduced-motion mode, in light and dark color schemes.
 - [Likely] The core drag (section 3) and the casino picture (section 4) make the rule *feel* true, not merely stated. The moment where the survivors' faint pending bets line up as the slid copy is, to me, the best thing on the page.
@@ -53,7 +53,7 @@ What works:
 What's rough:
 - [Certain] Pattern lengths are capped: 8 in the slider, 5 in Penney's game, 4 in the casino presets. That keeps layouts legible at 390 px.
 - [Certain] The casino shows a window of at most 16 recent flips. Earlier gamblers are summarized as "all broke", which is provably true for the window sizes used (W ≥ 2n − 1).
-- [Likely] The bibliographic details (Penney 1969 in *J. Recreational Mathematics*; Gardner's October 1974 *Scientific American* column presenting Conway's method; Li 1980 in *Annals of Probability*; Guibas & Odlyzko 1981 in *JCTA*; Knuth–Morris–Pratt 1977 in *SIAM J. Computing*; *Concrete Mathematics* §8.4) are from memory and were not checked against the sources from this offline environment.
+- [Likely] The bibliographic details (Penney 1969 in *J. Recreational Mathematics*; Gardner's October 1974 *Scientific American* column presenting Conway's method; Li 1980 in *Annals of Probability*; Guibas & Odlyzko 1981 in *JCTA*; Knuth–Morris–Pratt 1977 in *SIAM J. Computing*; *Concrete Mathematics* §8.4) are from memory and I could not check them from this offline environment. An independent reviewer later confirmed all six by web search. The essay keeps the history hedged: the self-overlap waiting-time formula predates Conway, whose "leading numbers" were built for Penney's race odds, so the page ties only the sliding picture to him.
 - [Likely] The DNA remark (self-overlapping words have more variable counts, which matters for over-representation tests) is a correct summary of known word-statistics results, but the essay cites no specific paper for it. Only the coin-flip version of the variance claim is verified here.
 - [Speculative] Readers without any probability background may find section 5's X·Y notation dense. The widget shows the arithmetic, but the prose leans on it.
 - The coin-flip animation in the race is a simple reveal, not a physical flip. With `prefers-reduced-motion`, games resolve instantly and CSS transitions are off.
