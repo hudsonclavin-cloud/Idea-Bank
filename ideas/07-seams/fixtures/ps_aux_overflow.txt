@@ -1,0 +1,9 @@
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1 169316 13140 ?        Ss   Oct21   0:03 /sbin/init splash
+root           2  0.0  0.0      0     0 ?        S    Oct21   0:00 [kthreadd]
+root         412  0.0  0.2  47252 18876 ?        Ss   Oct21   0:01 /lib/systemd/systemd-journald
+message+     733  0.0  0.0   9612  5512 ?        Ss   Oct21   0:02 @dbus-daemon --system --address=systemd: --nofork
+alice       2412  3.1  4.2 12802724 693112 ?     Sl   09:12  12:44 /usr/lib/firefox/firefox -contentproc -childID 4
+alice       2533  0.0  0.0  10072  3912 pts/0    Ss   09:13   0:00 -bash
+alice       2601  0.4  1.1 1203112 182220 ?      Sl   09:20   1:02 /usr/bin/python3 -m http.server 8000
+alice       3001  0.0  0.0  11204  3480 pts/0    R+   10:01   0:00 ps aux

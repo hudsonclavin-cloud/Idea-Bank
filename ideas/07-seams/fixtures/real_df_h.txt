@@ -1,0 +1,8 @@
+Filesystem               Size  Used Avail Use% Mounted on
+tmpfs                     16G     0   16G   0% /dev/shm
+/dev/vda                 252G  8.7G   31G  23% /
+/dev/vdc                 308M  277M   25M  92% /opt/claude-code
+/dev/vdd                  47M   31M   16M  67% /opt/env-runner
+model_tools_unavailable  4.0K     0  4.0K   0% /mnt/sandboxing/model_tools_env/v1/python
+tmpfs                    7.9G     0  7.9G   0% /sys/fs/cgroup
+tmpfs                    1.0M     0  1.0M   0% /run/sandbox-telemetry

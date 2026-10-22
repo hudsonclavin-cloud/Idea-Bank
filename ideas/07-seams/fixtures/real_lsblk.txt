@@ -1,0 +1,8 @@
+NAME  MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+zram0 253:0    0     0B  0 disk 
+vda   254:0    0   256G  0 disk /
+vdb   254:16   0   9.6M  1 disk /opt/rclone
+vdc   254:32   0 308.6M  1 disk /opt/claude-code
+vdd   254:48   0  47.8M  1 disk /opt/env-runner
+vde   254:64   0   692K  1 disk /mnt/skills/public
+vdf   254:80   0   5.8M  1 disk /mnt/skills/examples

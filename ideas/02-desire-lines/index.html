@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desire Lines</title>
+<meta name="description" content="A lawn, some doors, and a crowd of walkers who build a path network nobody planned. An interactive active-walker simulation of trail formation.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Desire Lines</h1>
+  <p class="tag">Nobody designs the shortcut. Everybody walks it.</p>
+</header>
+
+<main class="layout">
+  <section class="stage-col" aria-label="Simulation">
+    <div class="stage" id="stage">
+      <canvas id="view" role="img" aria-label="A square lawn seen from above. Coloured dots are people walking between lettered doors; brown marks are worn grass."></canvas>
+      <div class="badge" id="badge" hidden>Paused</div>
+      <div class="empty-note" id="emptyNote" hidden>Tap the grass to add a door.<br>Two or more and people start walking.</div>
+    </div>
+    <div class="tools" role="toolbar" aria-label="Tools">
+      <button type="button" class="tool" data-tool="door" aria-pressed="true"><span class="key">1</span> Doors</button>
+      <button type="button" class="tool" data-tool="pave" aria-pressed="false"><span class="key">2</span> Pave</button>
+      <button type="button" class="tool" data-tool="hedge" aria-pressed="false"><span class="key">3</span> Hedge</button>
+      <button type="button" class="tool" data-tool="erase" aria-pressed="false"><span class="key">4</span> Reseed</button>
+    </div>
+    <p class="hint" id="hint" aria-live="polite"></p>
+  </section>
+
+  <aside class="panel">
+    <div class="group transport">
+      <button type="button" id="play" class="primary" aria-label="Pause">Pause</button>
+      <div class="seg" role="group" aria-label="Speed">
+        <button type="button" class="speed" data-steps="1" aria-pressed="false">1×</button>
+        <button type="button" class="speed" data-steps="4" aria-pressed="false">4×</button>
+        <button type="button" class="speed" data-steps="12" aria-pressed="true">12×</button>
+        <button type="button" class="speed" data-steps="30" aria-pressed="false">30×</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Park</h2>
+      <div class="scenarios" id="scenarios"></div>
+      <p class="blurb" id="blurb"></p>
+    </div>
+
+    <div class="group">
+      <h2>What the crowd is doing</h2>
+      <dl class="stats">
+        <div><dt>Trips made</dt><dd id="sTrips">0</dd></div>
+        <div><dt><span class="sw sw-detour"></span>Average detour</dt><dd id="sDetour">–</dd></div>
+        <div><dt><span class="sw sw-worn"></span>Trail network</dt><dd id="sTrail">–</dd><dd class="sub" id="sTrailSub"></dd></div>
+        <div><dt>Walking on pavement</dt><dd id="sPave">–</dd></div>
+      </dl>
+      <canvas id="chart" class="chart" height="96" aria-label="Chart of average detour and trail network length over time"></canvas>
+      <p class="fine"><strong>Detour</strong>: extra distance walked, compared with the shortest route. <strong>Trail network</strong>: total length of worn paths, compared with the web of straight lines between every pair of doors (what you would get if everyone walked dead straight).</p>
+    </div>
+
+    <div class="group">
+      <h2>Rules of the park</h2>
+      <label class="slider">
+        <span class="lab">Foot traffic <output id="oTraffic"></output></span>
+        <input type="range" id="traffic" min="0.05" max="1" step="0.05">
+      </label>
+      <label class="slider">
+        <span class="lab">Grass memory <output id="oRecovery"></output></span>
+        <input type="range" id="recovery" min="0" max="1" step="0.01">
+        <span class="ends"><span>regrows fast</span><span>scars for ages</span></span>
+      </label>
+      <label class="slider">
+        <span class="lab">Trail pull <output id="oPull"></output></span>
+        <input type="range" id="pull" min="0" max="4" step="0.1">
+        <span class="ends"><span>beeline</span><span>follow the crowd</span></span>
+      </label>
+      <label class="slider">
+        <span class="lab">Sight range <output id="oSight"></output></span>
+        <input type="range" id="sight" min="4" max="40" step="1">
+        <span class="ends"><span>near-sighted</span><span>sees paths far off</span></span>
+      </label>
+      <div class="row">
+        <button type="button" id="defaults">Default rules</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Groundskeeping</h2>
+      <div class="row">
+        <button type="button" id="rake">Fresh lawn</button>
+        <button type="button" id="paveWorn">Pave the worn paths</button>
+      </div>
+      <label class="check"><input type="checkbox" id="showLines"> Show straight routes</label>
+      <label class="check"><input type="checkbox" id="showWalkers" checked> Show walkers</label>
+    </div>
+
+    <details class="group about">
+      <summary>What is going on?</summary>
+      <p>Every dot is a person walking from one door to another. Each follows four rules:</p>
+      <ol>
+        <li>Head for your door.</li>
+        <li>Drift toward trodden ground you can see, but never more than 64° off your bearing.</li>
+        <li>Every step wears the grass a little.</li>
+        <li>Grass grows back.</li>
+      </ol>
+      <p>At first everyone walks straight, so the lawn gets the straight lines between every pair of doors. Then paths start pulling on each other. Where two paths run close, walkers on each drift toward the other, the paths merge, and the merged path is more worn and pulls harder still. The network shrinks into one that nobody designed: a bit longer for each walker, far shorter in total.</p>
+      <p><strong>Try:</strong> watch <em>Three gates</em> for a minute. Then push <em>Grass memory</em> to either end: with long memory the first paths get locked in; with short memory the network shrinks to a single junction. Plant a hedge across a busy path. Pave the worn paths and let the rest grow back.</p>
+      <p class="fine">The lawn is 100 m across. Time is counted in ticks: a walker crosses the lawn in about 350, and <em>Grass memory</em> is how many ticks a footprint takes to fade to about a third.</p>
+      <p class="fine">Based on the active walker model of Helbing, Keltsch &amp; Molnár, <cite>Modelling the evolution of human trail systems</cite>, Nature 388 (1997). Keys: Space plays or pauses, 1 to 4 pick a tool.</p>
+    </details>
+  </aside>
+</main>
+
+<script src="sim.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

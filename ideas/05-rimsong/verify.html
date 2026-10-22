@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rimsong — offline render check</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 20px 16px 40px; background: #0b0d12; color: #d9dde6; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { font: 500 22px/1.2 ui-serif, Georgia, serif; margin: 0 0 6px; }
+  p { max-width: 62ch; color: #9aa2b2; }
+  button { font: inherit; color: #0b0d12; background: #e9c98f; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+  .wrap { overflow-x: auto; max-width: 100%; }
+  table { border-collapse: collapse; margin-top: 16px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 10px; border-bottom: 1px solid #222734; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  .ok { color: #9fd8a8; } .bad { color: #ff9b8f; }
+  a { color: #e9c98f; }
+</style>
+</head>
+<body>
+<h1>Offline render check</h1>
+<p>Renders scripted performances through the exact synthesis code the instrument uses (an
+<code>OfflineAudioContext</code>, 48 kHz stereo) and measures the output. <a href="./">Back to the instrument</a>.</p>
+<button id="run">Render &amp; measure</button>
+<span id="status"></span>
+<div class="wrap"><table id="out" hidden>
+  <thead><tr><th>scenario</th><th>shaper</th><th>peak</th><th>peak dB</th><th>RMS dB</th><th>loudest 100 ms dB</th><th>DC</th><th>NaN</th><th>max jump</th><th>last 1 s dB</th><th></th></tr></thead>
+  <tbody></tbody>
+</table></div>
+<script src="glass.js"></script>
+<script src="audio.js"></script>
+<script src="instrument.js"></script>
+<script src="verify.js"></script>
+<script>
+  const { renderScenario, SCENARIO_NAMES } = window.Rimsong;
+  const status = document.getElementById('status');
+  const table = document.getElementById('out');
+  const body = table.querySelector('tbody');
+  let player = null;
+  async function runAll() {
+    status.textContent = ' rendering…';
+    body.innerHTML = '';
+    const results = [];
+    const jobs = [...SCENARIO_NAMES.map((n) => [n, true]), ['stress', false]];
+    for (const [name, safety] of jobs) {
+      const { stats, buffer } = await renderScenario(name, { safety });
+      results.push(stats);
+      const tr = document.createElement('tr');
+      const good = stats.peak < 1 && stats.nanCount === 0 && Math.abs(stats.dcOffset) < 1e-3;
+      tr.innerHTML = `<td class="${good ? 'ok' : 'bad'}">${name}</td><td>${safety ? 'on' : 'off'}</td><td>${stats.peak.toFixed(3)}</td>` +
+        `<td>${stats.peakDb.toFixed(1)}</td><td>${stats.rmsDb.toFixed(1)}</td><td>${stats.loudest100msRmsDb.toFixed(1)}</td>` +
+        `<td>${stats.dcOffset.toExponential(1)}</td><td>${stats.nanCount}</td><td>${stats.maxSampleJump.toFixed(3)}</td>` +
+        `<td>${Number.isFinite(stats.lastSecondRmsDb) ? stats.lastSecondRmsDb.toFixed(1) : '−∞'}</td><td></td>`;
+      const play = document.createElement('button');
+      play.textContent = 'play';
+      play.addEventListener('click', () => {
+        player ||= new AudioContext();
+        const src = player.createBufferSource();
+        src.buffer = buffer;
+        src.connect(player.destination);
+        src.start();
+      });
+      tr.lastElementChild.appendChild(play);
+      body.appendChild(tr);
+      table.hidden = false;
+    }
+    status.textContent = ' done.';
+    window.__verify = results;
+    return results;
+  }
+  document.getElementById('run').addEventListener('click', () => runAll().catch((e) => { status.textContent = ' failed: ' + e.message; window.__verifyError = e.message; }));
+  if (new URLSearchParams(location.search).has('auto')) runAll().catch((e) => { window.__verifyError = e.message; });
+</script>
+</body>
+</html>

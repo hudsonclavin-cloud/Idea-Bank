@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pattern That Trips Over Itself</title>
+<meta name="description" content="An explorable essay: why two heads in a row take 6 coin flips on average while heads-then-tails takes 4, and how to read the answer for any pattern by sliding it across itself.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="essay">
+
+<header class="masthead">
+  <p class="kicker">An explorable explanation</p>
+  <h1>The Pattern That Trips Over Itself</h1>
+  <p class="dek">A hands-on essay about coin flips, waiting, and what happens when a pattern overlaps itself.</p>
+</header>
+
+<noscript><p class="note">The figures on this page are interactive and need JavaScript. The text still reads on its own.</p></noscript>
+
+<section id="wager">
+  <h2><span class="secnum">1</span> An even-looking wager</h2>
+  <p>Flip a fair coin, over and over. I’m waiting for two heads in a row: <b class="pat pat-a">HH</b>. You’re waiting for a head followed by a tail: <b class="pat pat-b">HT</b>. Take any two consecutive flips and they are HH with probability <span class="num" data-claim="pairprob:HH">¼</span> and HT with probability <span class="num" data-claim="pairprob:HT">¼</span>. The coin plays no favorites.</p>
+  <p>So, on average, which of us waits longer?</p>
+
+  <div class="guess" role="group" aria-label="Your guess">
+    <button class="btn" type="button" data-guess="hh">HH waits longer</button>
+    <button class="btn" type="button" data-guess="same">Same wait</button>
+    <button class="btn" type="button" data-guess="ht">HT waits longer</button>
+  </div>
+  <p class="guess-reply" aria-live="polite"></p>
+
+  <figure class="widget" id="w-race">
+    <div class="w-controls">
+      <button class="btn btn-primary" type="button" data-act="one">Flip one game</button>
+      <button class="btn" type="button" data-act="hundred">+100 games</button>
+      <button class="btn" type="button" data-act="many">+10,000 games</button>
+      <button class="btn btn-quiet" type="button" data-act="reset">Reset</button>
+    </div>
+    <div class="race-flips" aria-hidden="true"></div>
+    <p class="race-last" aria-live="polite"></p>
+    <div class="stats">
+      <div class="stat"><span class="k">Games</span><span class="v" data-stat="games">0</span></div>
+      <div class="stat stat-a"><span class="k">Average wait for HH</span><span class="v" data-stat="hh">–</span></div>
+      <div class="stat stat-b"><span class="k">Average wait for HT</span><span class="v" data-stat="ht">–</span></div>
+      <div class="stat"><span class="k">HT came first</span><span class="v" data-stat="first">–</span></div>
+    </div>
+    <div class="race-hist" role="img" aria-label="Histograms of how many flips each game took to show HH and HT"></div>
+    <figcaption>Each game flips one coin until both pairs have shown up. The coral mark above the coins is the first HH; the teal mark below is the first HT. In the charts, bars are your games and thin lines are the exact probabilities.</figcaption>
+  </figure>
+
+  <p>Run thousands of games and the averages settle near <span class="num" data-claim="wait:HH">6</span> flips for HH and <span class="num" data-claim="wait:HT">4</span> for HT. Those are the exact answers, not quirks of the random numbers. Waiting for HH takes <span class="num" data-claim="ratio:HH:HT">50</span>% longer.</p>
+  <p>The panel’s fourth number deserves a second look. Each game hunts for both pairs in the same flips, and HT turns up first in about <span class="num" data-claim="racepct:HH:HT">50</span>% of them. Head to head, neither pair is favored: both need a head first, and once that head appears, the very next flip decides. HH loses no more races than HT does, yet it keeps you waiting longer on average. Both facts are true. By the end of the page they should feel obvious.</p>
+</section>
+
+<section id="rhythm">
+  <h2><span class="secnum">2</span> Same count, different rhythm</h2>
+  <p>If HH is slower to arrive, maybe it’s rarer? It isn’t. Here are 160 flips, with every HH marked above the coins and every HT marked below.</p>
+
+  <figure class="widget" id="w-strip">
+    <div class="w-controls">
+      <button class="btn btn-primary" type="button" data-act="new">New flips</button>
+      <span class="legend"><span class="sw sw-a"></span>HH above <span class="sw sw-b"></span>HT below</span>
+    </div>
+    <div class="strip-svg" role="img" aria-label="160 coin flips with each HH and HT marked"></div>
+    <table class="strip-table">
+      <thead><tr><th scope="col"><span class="sr">Measure</span></th><th scope="col" class="c-a">HH</th><th scope="col" class="c-b">HT</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Times it appears</th><td data-s="hh-n"></td><td data-s="ht-n"></td></tr>
+        <tr><th scope="row">Gaps of just 1 flip</th><td data-s="hh-1"></td><td data-s="ht-1"></td></tr>
+        <tr><th scope="row">Average gap</th><td data-s="hh-avg"></td><td data-s="ht-avg"></td></tr>
+        <tr><th scope="row">Longest gap</th><td data-s="hh-max"></td><td data-s="ht-max"></td></tr>
+      </tbody>
+    </table>
+    <figcaption>A gap is the number of flips from the end of one occurrence to the end of the next.</figcaption>
+  </figure>
+
+  <p>Press <em>New flips</em> a few times. Neither pair is reliably ahead: in 160 flips, each is expected <span class="num" data-claim="count:HH:160">39.75</span> times. What differs is the rhythm. Two HTs can never overlap, because a pair that ends in T can’t also be the start of one that begins with H, so HTs always sit at least two flips apart. HHs can share a coin: three heads in a row contain two of them, four heads contain three. HH comes in clumps.</p>
+  <p>Clumps are the whole story. Each pair turns up at one position in four over the long run, so for both of them the average gap between occurrences is <span class="num" data-claim="gapmean:HH">4</span> flips. But half of HH’s gaps are a single flip: one more head, right after an HH. For the average to stay at 4, the remaining gaps must be long, and they average <span class="num" data-claim="gaplong:HH">7</span>.</p>
+  <p>Now ask where a fresh game starts. Not inside a clump. With no flips behind you, you’re exactly where you’d be just after a clump ends in a T: at the start of a drought. A drought gap is <span class="num" data-claim="gaplong:HH">7</span> flips on average, and the first of those is the T itself, so from a standing start HH takes 7 − 1 = <span class="num" data-claim="wait:HH">6</span>. HT has no clumps to ride. Every gap between HTs starts from scratch, so its standing-start wait is just its average gap, <span class="num" data-claim="wait:HT">4</span>.</p>
+  <p class="aside">Clumps also make HH’s count swing more from strip to strip. Over 160 flips its standard deviation is about <span class="num" data-claim="sd:HH:160">7.0</span>, against <span class="num" data-claim="sd:HT:160">3.2</span> for HT. Same average, much less predictable.</p>
+</section>
+
+<section id="slide">
+  <h2><span class="secnum">3</span> Slide the pattern across itself</h2>
+  <p>The same bookkeeping works for any pattern, and there is a way to do it at a glance. (The formula itself is older; the sliding picture is usually tied to John Conway’s work on the races in section 5.) Lay a copy of the pattern under itself and slide it right, one coin at a time. At each shift, look only at the coins that overlap. If every overlapping pair agrees, the pattern overlaps itself there, and that overlap is worth 2<sup>k</sup>, where k is the number of coins in it. Add up the values, including the starting position, where the copy covers all n coins and is worth 2<sup>n</sup>. The total is the average number of flips you’ll wait.</p>
+  <p>Drag the lower copy sideways. To change the pattern, tap its coins at the top of the panel.</p>
+
+  <figure class="widget" id="w-slide">
+    <div class="pattern-editor">
+      <div class="coins-edit" data-role="coins" role="group" aria-label="Pattern: tap a coin to flip it"></div>
+      <div class="len-ctl" role="group" aria-label="Pattern length">
+        <button class="btn btn-icon" type="button" data-act="shorter" aria-label="Shorter pattern">−</button>
+        <span class="len-v" data-role="len">3 flips</span>
+        <button class="btn btn-icon" type="button" data-act="longer" aria-label="Longer pattern">+</button>
+      </div>
+    </div>
+    <div class="chips" role="group" aria-label="Example patterns" data-role="presets"></div>
+    <div class="slide-svg"></div>
+    <p class="slide-readout" aria-live="polite"></p>
+    <table class="ledger">
+      <thead><tr><th scope="col">Shift</th><th scope="col">Last <i>k</i> vs first <i>k</i></th><th scope="col">Adds</th></tr></thead>
+      <tbody></tbody>
+      <tfoot><tr><th scope="row" colspan="2">Average wait</th><td data-role="total"></td></tr></tfoot>
+    </table>
+    <div class="w-controls">
+      <button class="btn" type="button" data-act="sim">Check by simulation</button>
+      <span class="sim-out" aria-live="polite"></span>
+    </div>
+  </figure>
+
+  <p>Our two pairs first. HT never overlaps itself, so it costs just 2<sup>2</sup> = <span class="num" data-claim="wait:HT">4</span>. HH overlaps itself on a single head, worth 2<sup>1</sup>, for a total of <span class="num" data-claim="wait:HH">6</span>. That extra 2 is the price of clumping.</p>
+  <p>A few more. HHT never overlaps itself: exactly <span class="num" data-claim="wait:HHT">8</span>. HTH starts and ends with H, a one-coin overlap: 8 + 2 = <span class="num" data-claim="wait:HTH">10</span>. HHHH overlaps at every shift: 16 + 8 + 4 + 2 = <span class="num" data-claim="wait:HHHH">30</span>. Among patterns of n flips, the ones that never overlap themselves are the quickest, at exactly 2<sup>n</sup>; all heads and all tails are the slowest, at 2<sup>n+1</sup> − 2.</p>
+  <p class="aside">A puzzle, if you want one: find a five-flip pattern with an average wait of exactly <span class="num" data-claim="wait:HTHHT">36</span>. (It has to overlap itself on two coins and nowhere else.)</p>
+</section>
+
+<section id="casino">
+  <h2><span class="secnum">4</span> Why sliding works: a casino full of gamblers</h2>
+  <p>The sliding rule looks like numerology. Here is an argument, based on a 1980 proof by Shuo-Yen Robert Li, that makes it look inevitable.</p>
+  <p>Picture a fair casino. Just before each flip, a new gambler walks in with $1 and bets it on the first letter of the pattern. If she’s right, her dollar becomes $2, and she bets all of it on the second letter; then all of that on the third; and so on. One wrong call and she’s broke. Every bet is double-or-nothing on a fair coin, so nobody in the room has an edge.</p>
+  <p>Play until the pattern appears, at flip T. The gamblers have brought in a dollar apiece: T dollars in all. What do they walk out with? Anyone who made a wrong call has nothing. The one who arrived n flips before the end has called the whole pattern and holds 2<sup>n</sup>. Any other survivor arrived k flips before the end and has called k flips in a row, so the last k flips match the <em>first</em> k letters of the pattern. But the pattern just appeared, so the last k flips are also its <em>last</em> k letters. She is still standing exactly when the pattern’s last k letters equal its first k, which is a self-overlap, and she holds 2<sup>k</sup>.</p>
+  <p>Drag through a game. Each row is one gambler, and each cell is one of her bets.</p>
+
+  <figure class="widget" id="w-casino">
+    <div class="chips" role="group" aria-label="Pattern" data-role="presets"></div>
+    <div class="casino-svg" role="img" aria-label="Gamblers' bets, one row per gambler"></div>
+    <div class="scrub">
+      <button class="btn btn-icon" type="button" data-act="back" aria-label="Previous flip">‹</button>
+      <input type="range" min="0" max="11" step="1" value="11" aria-label="Flip number" data-role="range">
+      <button class="btn btn-icon" type="button" data-act="fwd" aria-label="Next flip">›</button>
+      <button class="btn" type="button" data-act="play">Play</button>
+    </div>
+    <p class="casino-ledger" aria-live="polite"></p>
+    <div class="w-controls">
+      <button class="btn" type="button" data-act="new">New game</button>
+      <button class="btn" type="button" data-act="many">Average 10,000 games</button>
+    </div>
+    <p class="casino-many" aria-live="polite"></p>
+    <figcaption>Green: a bet won. Red ✕: the bet that broke her. Faint letters: bets still to come. A gambler’s stake is shown at the end of her row.</figcaption>
+  </figure>
+
+  <p>Look at the survivors when the game ends: their rows are the slid copies from the last section, standing on the flips that finished the game. And their winnings don’t depend on luck at all. Every game of HTH ends with exactly $<span class="num" data-claim="pow:3">8</span> + $<span class="num" data-claim="pow:1">2</span> = $<span class="num" data-claim="wait:HTH">10</span> in the survivors’ hands. Since the game is fair, what the gamblers take out must, on average, equal what they put in.<a class="fn" href="#fn1" id="fnref1">1</a> They put in T dollars. So the average of T is 10. The sliding rule is this ledger, laid flat.</p>
+</section>
+
+<section id="races">
+  <h2><span class="secnum">5</span> Races, and why going second wins</h2>
+  <p>Now the head-to-head puzzle from the first panel. A pattern’s average wait depends only on how it overlaps <em>itself</em>. A race between two patterns also depends on how they overlap <em>each other</em>. This is the question Conway built his sliding bookkeeping for. Write X·Y for the sum of 2<sup>k</sup> over every k where the last k letters of X equal the first k letters of Y, so X·X is X’s average wait. Then, for two different patterns of the same length, the odds that B shows up before A are (A·A − A·B) to (B·B − B·A).</p>
+  <p>For HH against HT: HH·HH = <span class="num" data-claim="corr:HH:HH">6</span>, HH·HT = <span class="num" data-claim="corr:HH:HT">2</span>, HT·HT = <span class="num" data-claim="corr:HT:HT">4</span> and HT·HH = <span class="num" data-claim="corr:HT:HH">0</span>. The odds are (6 − 2) to (4 − 0): <span class="num" data-claim="odds:HH:HT">4 to 4</span>, an even race, just as the first panel found.</p>
+  <p>Here is the race in words, and it settles the puzzle. Once the first head appears, the next flip decides the race, a fair toss. But the two ways of losing are not alike. If HT loses, the coin is showing H, so HT needs only the next tail, <span class="num" data-claim="wait:T">2</span> more flips on average. If HH loses, the coin is showing T, and HH must start from nothing: <span class="num" data-claim="wait:HH">6</span> more. Equal chances of winning, unequal costs of losing. That is enough to get both averages. The first head arrives on flip <span class="num" data-claim="wait:H">2</span> on average, one more flip settles the race, and each pattern loses half the time, paying its extra wait only then. So HH takes 2 + 1 + 6/2 = <span class="num" data-claim="wait:HH">6</span> and HT takes 2 + 1 + 2/2 = <span class="num" data-claim="wait:HT">4</span>.</p>
+  <p>Walter Penney turned this into a game in 1969. You choose a pattern of three flips. I choose mine after seeing yours. We flip until one of them appears. It sounds fair, and it isn’t: whatever you choose, I can pick a pattern that comes first at least <span class="num" data-claim="race:HTH:HHT">2/3</span> of the time.</p>
+
+  <figure class="widget" id="w-penney">
+    <div class="chips" role="group" aria-label="Pattern length" data-role="lens"></div>
+    <div class="sides">
+      <div class="side side-a">
+        <div class="side-label">You</div>
+        <div class="coins-edit" data-role="a" role="group" aria-label="Your pattern: tap a coin to flip it"></div>
+        <div class="side-wait" data-role="wa"></div>
+      </div>
+      <div class="side side-b">
+        <div class="side-label">Me</div>
+        <div class="coins-edit" data-role="b" role="group" aria-label="My pattern: tap a coin to flip it"></div>
+        <div class="side-wait" data-role="wb"></div>
+      </div>
+    </div>
+    <div class="pbar" aria-hidden="true"><div class="pbar-a"></div><div class="pbar-b"></div></div>
+    <p class="pbar-text" aria-live="polite"></p>
+    <p class="penney-math"></p>
+    <div class="w-controls">
+      <button class="btn btn-primary" type="button" data-act="race">Race 1,000 times</button>
+      <button class="btn" type="button" data-act="best">My best reply</button>
+    </div>
+    <p class="penney-tally" aria-live="polite"></p>
+    <figcaption>Change your pattern and I answer with my best reply. You can also tap my coins to try other replies.</figcaption>
+  </figure>
+
+  <p>For three flips the counter has a simple recipe: take the first two letters of your pattern, and put the opposite of your middle letter in front of them. So HHT is beaten by THH, <span class="num" data-claim="race:HHT:THH">3 times in 4</span>. That one is easy to see. HHT needs two heads in a row first, and unless the game opens with HH, the first HH is preceded by a T, which means THH has just won.</p>
+  <p>Since every pattern has a counter, there is no best pattern, only a loop:</p>
+
+  <figure class="widget widget-plain" id="w-cycle">
+    <div class="cycle-svg"></div>
+    <figcaption>Each arrow points from a pattern to the one that beats it, labeled with the winner’s chance. Tap a pattern to load it above.</figcaption>
+  </figure>
+
+  <p>It works like rock-paper-scissors, with four throws instead of three. I checked by exhaustive computation that every pattern of 3 to 8 flips can be beaten by some pattern of the same length; Guibas and Odlyzko worked out the general theory in 1981. At two flips the trick fails: nothing beats HT or TH, and the best you can do is tie.</p>
+  <p>Two more results that look wrong and aren’t:</p>
+  <ul>
+    <li>HHT and THH have the same average wait, <span class="num" data-claim="wait:THH">8</span> flips. Yet THH comes first <span class="num" data-claim="race:HHT:THH">3 times in 4</span>.</li>
+    <li>THTH takes <span class="num" data-claim="wait:THTH">20</span> flips on average and HTHH takes <span class="num" data-claim="wait:HTHH">18</span>. In a race, the slower THTH comes first <span class="num" data-claim="race:HTHH:THTH">9 times in 14</span>.</li>
+  </ul>
+  <p>A wait depends only on how a pattern overlaps itself. A race also depends on how two patterns overlap each other. They are different questions, and the coin answers each one honestly.</p>
+</section>
+
+<section id="coda">
+  <h2><span class="secnum">6</span> Where the overlap shows up</h2>
+  <p>Self-overlap matters wherever people search long sequences for patterns. The Knuth–Morris–Pratt string-search algorithm (1977) begins by computing, for each prefix of the word it is looking for, the longest overlap of that prefix with itself, short of the whole thing. That table lets the search slide ahead after a mismatch without missing a match or ever backing up in the text. People who count short “words” in DNA run into the clumping from section 2: a self-overlapping word’s count swings more than a non-overlapping word’s, so a significance test that ignores this can mistake ordinary clumps for signal.</p>
+  <p>The coin, meanwhile, was fair the whole time. Every pair of flips was HH one time in four and HT one time in four. Overlap doesn’t change how often a pattern happens. It changes how those happenings are spaced out in time, and waiting is all about spacing.</p>
+</section>
+
+<footer class="notes">
+  <h2>Notes</h2>
+  <ol class="footnotes">
+    <li id="fn1">This step is the optional stopping theorem for martingales. It applies because the average of T is finite and the gamblers’ combined fortune changes by a bounded amount on each flip. <a href="#fnref1" aria-label="Back to text">↩</a></li>
+  </ol>
+  <h3>Further reading</h3>
+  <ul class="refs">
+    <li>Walter Penney, “Problem 95: Penney-Ante,” <i>Journal of Recreational Mathematics</i> 2 (1969), 241.</li>
+    <li>Martin Gardner, “Mathematical Games,” <i>Scientific American</i>, October 1974. Presents Conway’s method for Penney’s game.</li>
+    <li>Shuo-Yen Robert Li, “A martingale approach to the study of occurrence of sequence patterns in repeated experiments,” <i>Annals of Probability</i> 8 (1980), 1171–1176.</li>
+    <li>Leonidas J. Guibas and Andrew M. Odlyzko, “String overlaps, pattern matching, and nontransitive games,” <i>Journal of Combinatorial Theory, Series A</i> 30 (1981), 183–208.</li>
+    <li>Donald E. Knuth, James H. Morris and Vaughan R. Pratt, “Fast pattern matching in strings,” <i>SIAM Journal on Computing</i> 6 (1977), 323–350.</li>
+    <li>Ronald L. Graham, Donald E. Knuth and Oren Patashnik, <i>Concrete Mathematics</i>, 2nd ed. (1994), section 8.4.</li>
+  </ul>
+  <p class="colophon">The headline probabilities, averages and counts in the prose (40 of them) are tagged in the page source and checked by an automated test (<code>test/overlap.test.mjs</code>) against an exact Markov-chain calculation, brute-force enumeration, or simulation. The charts and simulators run on a seeded random-number generator in your browser; nothing is sent anywhere.</p>
+</footer>
+
+</main>
+<script src="js/overlap.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

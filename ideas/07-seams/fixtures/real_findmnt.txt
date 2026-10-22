@@ -1,0 +1,8 @@
+TARGET                                    SOURCE                  FSTYPE
+/proc                                     proc                    proc
+/sys                                      sysfs                   sysfs
+/dev                                      devtmpfs                devtmpfs
+/dev/shm                                  tmpfs                   tmpfs
+/dev/pts                                  devpts                  devpts
+/                                         /dev/vda                ext4
+/opt/rclone                               /dev/vdb                squashfs

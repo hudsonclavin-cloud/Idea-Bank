@@ -1,0 +1,6 @@
+ id |  name   |       email       | active
+----+---------+-------------------+--------
+  1 | alice   | alice@example.com | t
+  2 | bob     |                   | f
+ 10 | charlie | c@example.org     | t
+(3 rows)

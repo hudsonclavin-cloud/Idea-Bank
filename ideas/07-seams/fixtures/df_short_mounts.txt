@@ -1,0 +1,4 @@
+Filesystem     1K-blocks    Used Available Use% Mounted on
+/dev/sda1       48254668 9373356  36400272  21% /
+tmpfs            8174452       0   8174452   0% /dev
+/dev/sda2         523248    6220    517028   2% /boot
