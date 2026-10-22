@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Minimus</title>
+<meta name="description" content="A cycle of twelve poems, one a month in a village bell tower, whose line-endings ring every change of Plain Bob Minimus on four words and come round.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>Minimus</h1>
+  <p class="sub">Twelve months in a ringing chamber, on four bells.</p>
+  <nav class="controls" aria-label="Reading aids">
+    <button id="bells-toggle" type="button" aria-pressed="false">Show the bells</button>
+    <button id="ring" type="button" aria-pressed="false">Ring the year</button>
+    <button id="theme" type="button" aria-label="Switch light and dark">Light / dark</button>
+    <a href="#how">How it’s rung</a>
+  </nav>
+</header>
+
+<main id="cycle" aria-label="The poems"></main>
+
+<section id="how">
+  <h2>How it’s rung</h2>
+  <p>In an English church tower the bells are not played as tunes. They are rung in <em>rows</em>: every bell once, in some order. Each row differs from the one before only by swapping neighbouring pairs, because a bell is half a ton of bronze swinging full circle, and all a ringer can do is hold it back or let it go a little. A bell can move one place at a time. A <em>method</em> is a fixed pattern of those swaps. Plain Bob Minimus is one of the oldest and simplest, for four bells: twenty-four changes, every possible order of the four bells exactly once, and then rounds, the order you started in.</p>
+  <p>Here the bells are words.</p>
+  <ul class="words">
+    <li><span class="bell-1">round</span> <b>— the treble</b></li>
+    <li><span class="bell-2">hand</span> <b>— second</b></li>
+    <li><span class="bell-3">still</span> <b>— third</b></li>
+    <li><span class="bell-4">home</span> <b>— the tenor</b></li>
+  </ul>
+  <p>Each stanza is one row: its four line-endings, read down, are the four bells in that row’s order. The first stanza is rounds. The twenty-fifth is rounds again. The twenty-three between are the rest of the extent, in the method’s own order, so no word ever jumps: between any stanza and the next, a word keeps its line or trades with the line beside it. The treble, <em>round</em>, plain hunts from the first line to the last and back for the whole year. The others dodge and make places. <em>Show the bells</em> colours the endings and marks each stanza with its row; <em>Ring the year</em> sounds the extent, one stanza at a time, with the open handstroke gap after every whole pull.</p>
+  <div id="check" aria-live="polite"></div>
+  <figure>
+    <svg id="blueline" role="img" aria-label="Diagram of the path of each word through the twenty-five rows"></svg>
+    <figcaption>The blue line, as ringers draw it: the path of each word through the twenty-five rows. Dashed rules mark the lead ends, where the treble lies at the front for two rows while one bell makes seconds and the other two dodge.</figcaption>
+  </figure>
+  <p class="colophon">The poems live in <a href="poems.txt">poems.txt</a>; this page carries a verbatim copy, and the folder’s test fails if the two differ or if any stanza strays from the method. Everything above is checked again from the text each time the page loads.</p>
+</section>
+
+<script type="text/plain" id="poems">
+# Minimus
+
+## January
+
+Muffles on. Bells up. The year comes round
+to its last ten minutes. The old man's hand
+is on the tenor rope. The tower is still.
+Look to. And we ring the old year home:
+
+open, hush, open, hush. Then every hand
+up for the muffles, and the bells go round
+clean for the new one. Then four ways home
+through frost, the bells behind us, still.
+
+## February
+
+Sleet. Practice night. A learner's hand
+under his on the sally, and it comes home
+to them both. Above, the bell goes round
+and over, and the stay holds it, still.
+
+You never see the bell. It's up there, home
+on its wheel in the dark. All in the hand,
+he says. When to pull. When to hold still.
+And half a ton of bronze coming round.
+
+## March
+
+He lives at the end of the lane alone. Home
+is a chair, a stove, her photograph still
+on the sill, a dog's head in his hand,
+and a mantel clock he winds, that goes round
+
+and strikes, and then the house is still.
+Tuesdays, he's the first one home
+to the tower, up the stair, and first round
+the ropes, checking each one with his hand.
+
+## April
+
+Good Friday, by custom, the bells are still.
+Easter they're not. Six, and the sun round
+the hill's shoulder. She's walked from home
+in the dark, early, with the rope in hand.
+
+Look to. Treble's going. She's gone. Round
+and over, and her face is white and still
+with counting, and the rope in her hand
+is a live thing, and she brings it home.
+
+## May
+
+The swifts are back. Dusk. They scream round
+the tower, and round, and are never still,
+and only land to nest, and this is home.
+If one comes down, you take it in your hand
+
+and hold your arm up, open, and keep still,
+till it drops, and catches, and is round
+the tower again. Then a wedding. Every hand
+to a rope; we ring the two of them home.
+
+## June
+
+Striking competition. The judges sit still
+under the yew with clipboards. Every hand
+shakes a little. The test piece goes round.
+We come fourth. The pub is on the way home.
+
+The longest day. The pub garden. His hand
+on his glass has a shake. We keep still
+about it. Light till ten. No one's home
+before dark. The old man buys the round.
+
+## July
+
+His eightieth. We ring for it. The hand
+on the tenor is the one that rang her home
+half-muffled, years back, and it is still
+the one that calls. Go, Plain Bob. Round
+
+the twenty-four we go, and come home
+at the twenty-fifth. That's all. Each hand
+lets go. The hill sends it back round
+a beat behind us, and then it's still.
+
+## August
+
+The swifts go in a night. Then, at home
+in his chair, he does not come round.
+The dog. The neighbour. A doctor's hand
+on his wrist, and then the lane gone still.
+
+Tuesday. Nobody rings. We stand round
+the ropes and don't. His is tied up, home
+on its hook, the bell above it still,
+the sally worn to the shape of his hand.
+
+## September
+
+We tie the muffles on. His job. Round
+one side of each clapper, and ring him home,
+open, hush, open, hush, a borrowed hand
+on his bell, until he's in. Then still.
+
+Harvest. We ring on three. The tenor's home
+in its frame, mouth down, rope wound round
+its hook. Three bells sound thin. Still
+a band, just about, and short of a hand.
+
+## October
+
+Clocks go back. The lost hour comes home.
+She takes his rope down. Hold still,
+I say. The bell does it. Let it come round
+to you. Not the arm. Not even the hand.
+
+She pulls. The bell goes up and holds still
+on its stay. She lets it off. It swings home
+and over. The sally comes to her hand.
+She takes it, and brings the tenor round.
+
+## November
+
+Eleven. Two minutes. The village still.
+Muffles on. Her job now. Her hand
+on his rope. The names that never came home
+are the names on the peal boards all round
+
+the chamber walls. Open, hush. Her hand
+won't fight it. Open, hush. Stand. The still
+that follows is his, till the hill, round
+the far side, gives it back. Then home.
+
+## December
+
+Christmas. Mince pies on the sill. Her hand
+has a blister off the tenor. We ring round
+for the ten o'clock. The lane is still
+mostly in bed. Then everyone home.
+
+New Year's Eve. She ties the muffles round
+the clappers: his job, now hers. Her hand
+is slow with cold. We wait below. At home
+the village counts. The ropes hang still.
+
+Look to. Treble's going. She's gone. Round
+and over. The year goes out, hand over hand,
+open, hush, open, hush. A minute still
+in the dark. Then open. And four ways home.
+</script>
+<script src="app.js"></script>
+</body>
+</html>
