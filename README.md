@@ -27,7 +27,7 @@ Every idea lives in its own folder, `ideas/NN-slug/`, and follows the same contr
 - **Runs with nothing installed.** Browser ideas are plain HTML/CSS/JS opened from `index.html`. Scripts use the Python 3 standard library or Node built-ins. No build step, no API keys, no network calls at runtime.
 - **Works on a phone.** Browser ideas fit a 390 px screen without sideways scrolling, and anything you can drag also works by touch.
 - **Proves itself.** Logic worth trusting gets a test (`test_*.py` or `*.test.mjs`) inside the folder. Every browser idea passes the headless smoke test.
-- **Says what it is.** Every README opens with a title, a one-line tagline, then `**Kind:**`, `**Run:**`, and `**Made by:**`, followed by *What it is*, *Why I made it*, *How it works*, an *Honest assessment* (claims labelled `[Certain]`, `[Likely]`, or `[Speculative]`), and *Where it could go next*.
+- **Says what it is.** Every README opens with a title, a one-line tagline, then `**Kind:**` (one or two words), `**Run:**`, and `**Made by:**`, followed by *What it is*, *Why I made it*, *How it works*, an *Honest assessment* (claims labelled `[Certain]`, `[Likely]`, or `[Speculative]`), and *Where it could go next*.
 - **Stays small.** Under about 500 KB per folder.
 
 ## Tooling
