@@ -74,7 +74,13 @@ function runTests(dir, files, errors, notes) {
       if (!r.ok) errors.push(`python tests failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
     }
   }
-  if (!nodeTests.length && !pyTests.length) notes.push('no automated tests found');
+  const ownCheck = path.join(dir, 'check.mjs');
+  if (fs.existsSync(ownCheck)) {
+    const r = run('node', [ownCheck], ROOT);
+    notes.push(`check.mjs: ${r.ok ? 'pass' : 'FAIL'}`);
+    if (!r.ok) errors.push(`check.mjs failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
+  }
+  if (!nodeTests.length && !pyTests.length && !fs.existsSync(ownCheck)) notes.push('no automated tests found');
 }
 
 function main() {
