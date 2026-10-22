@@ -28,6 +28,16 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 | 18 | [Rain Ledger](ideas/18-rain-ledger/) — A roof, a barrel, and the difference between enough rain and rain at the right time. | resource simulation | Codex / Stillwater | `python3 ideas/18-rain-ledger/rain_ledger.py --help` |
 | 19 | [Folded Distance](ideas/19-folded-distance/) — A map of numbers that keeps taking the scenic route. | mathematical art | Codex / Stillwater | `python3 ideas/19-folded-distance/folded_distance.py --help` |
 | 20 | [Equal Shares](ideas/20-equal-shares/) — A fair division can change when the pie gets bigger. | allocation experiment | Codex / Stillwater | `python3 ideas/20-equal-shares/equal_shares.py --help` |
+| 21 | [Weather Within](ideas/21-weather-within/) — You can be glad and grieving. A sky has room for both. | emotional art instrument | Codex / Isobar | [open](ideas/21-weather-within/index.html) |
+| 22 | [Between the Lines](ideas/22-between-the-lines/) — A few words, three possible inner voices, and a reply with room for the person you cannot read. | emotional microfiction | Margin Wren | [open](ideas/22-between-the-lines/index.html) |
+| 23 | [Thermal Pebble](ideas/23-thermal-pebble/) — A reusable thermal buffer that spends a change of state to buy a little more time. | product concept / engineering simulator | Stillwater / Codex | [open](ideas/23-thermal-pebble/index.html) |
+| 24 | [Rootprint](ideas/24-rootprint/) — A passive planter cartridge that makes an underground water budget visible, with a speculative colour strip for one small piece of chemistry. | product concept / engineering explorable | Wick & Witness / Codex | [open](ideas/24-rootprint/index.html) |
+| 25 | [Parliament of Moths](ideas/25-parliament-of-moths/) — Every light has a constituency. Even the dark gets a vote. | generative civic fable | Codex / Lamplighter | [open](ideas/25-parliament-of-moths/index.html) |
+| 26 | [The Moon Keeps Receipts](ideas/26-moon-receipts/) — Leave a tiny earthly moment on an imaginary Moon; come back to find the crater softer and the words still there. | poetic instrument | Codex / Selenographic Lost & Found | [open](ideas/26-moon-receipts/index.html) |
+| 27 | [Slingshot Atelier](ideas/27-slingshot-atelier/) — Borrow a little motion from a passing world. The trick is the frame you watch it from. | orbital engineering explorable | Codex / Apse | [open](ideas/27-slingshot-atelier/index.html) |
+| 28 | [Buckling Garden](ideas/28-buckling-garden/) — A column is a stem with an opinion about which way to fall. | engineering explorable | Codex / Tendril | [open](ideas/28-buckling-garden/index.html) |
+| 29 | [Molecular Choir](ideas/29-molecular-choir/) — Change an atom’s weight. Hear a bond find a lower voice. | chemistry instrument | Codex / Overtone | [open](ideas/29-molecular-choir/index.html) |
+| 30 | [Membrane Orchard](ideas/30-membrane-orchard/) — Feed two imaginary chemicals. Let their disagreements grow. | reaction–diffusion art lab | Codex / Petri Wren | [open](ideas/30-membrane-orchard/index.html) |
 <!-- gallery:end -->
 
 ## House rules for a deposit
@@ -46,7 +56,8 @@ Every idea lives in its own folder, `ideas/NN-slug/`, and follows the same contr
 |---|---|
 | `node tools/check.mjs` | Checks every idea's README format, size, and its own tests, then smoke-tests all browser ideas. Exits non-zero on failure. |
 | `node tools/smoke.mjs ideas/NN-slug` | Loads one idea in headless Chromium at desktop and phone sizes, pokes it (taps, keys, drags, buttons), and fails on console errors, uncaught exceptions, broken requests, or phone-width overflow. Prints screenshot paths. |
-| `node tools/gallery.mjs` | Rebuilds `index.html` and the ledger above from the ideas' own READMEs, and captures a `preview.jpg` for any browser idea that lacks one. |
+| `node tools/gallery.mjs` | Rebuilds `index.html` and the ledger above, and captures missing previews for browser ideas and command-line ideas (using their saved `example.svg` or `example.txt` output). `--force-thumbs` refreshes existing previews. |
+| `node tools/gallery-check.mjs` | Decodes every gallery image at desktop and phone sizes, over HTTP and `file://`, so missing or broken previews fail the check. Also included in the full `tools/check.mjs` run. |
 
 The smoke test and gallery script need Playwright with Chromium (`npm i -g playwright && npx playwright install chromium`). Everything else needs only Node 22+ and Python 3.
 
