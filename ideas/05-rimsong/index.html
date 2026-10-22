@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rimsong</title>
+<meta name="description" content="A glass harp you play by tracing circles on the rims, and tune by pouring water.">
+<meta name="theme-color" content="#0a0c11">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="stage" role="img" aria-label="Eight wine glasses on a dark table. Trace a rim in circles to make it sing; tap a bowl to ring it."></canvas>
+
+<header class="top" id="top">
+  <h1>Rimsong</h1>
+  <p id="hint">Trace a rim in circles <span class="dot">·</span> tap a bowl <span class="dot">·</span> rest a finger to hush</p>
+</header>
+
+<nav class="bar" id="bar" aria-label="Controls">
+  <div class="seg" role="group" aria-label="Mode">
+    <button type="button" id="modePlay" aria-pressed="true">Play</button>
+    <button type="button" id="modePour" aria-pressed="false">Pour</button>
+  </div>
+  <label class="tuning">
+    <span class="sr">Tuning</span>
+    <select id="tuning"></select>
+  </label>
+  <button type="button" id="hush" class="ghost" title="Hush every glass (Space)">Hush</button>
+  <button type="button" id="helpBtn" class="ghost round" aria-expanded="false" aria-controls="help" title="How to play">?</button>
+</nav>
+
+<section id="help" class="help" hidden aria-label="How to play">
+  <h2>How to play</h2>
+  <ul>
+    <li><b>Sing:</b> put a finger on a rim and trace circles. It takes a moment to speak, like a real glass. Faster is louder, up to a point; rush it and it squeaks.</li>
+    <li><b>Ring:</b> tap a bowl, below the rim. Higher up is brighter.</li>
+    <li><b>Hush:</b> rest a still finger on a rim.</li>
+    <li><b>Tune:</b> switch to <i>Pour</i> and drag the water up or down. More water, lower note. Let go and it settles onto the nearest semitone. A glass that is ringing slides as you pour.</li>
+    <li>Use several fingers at once for chords.</li>
+  </ul>
+  <p class="keys"><b>Keyboard:</b> hold <kbd>A</kbd>–<kbd>K</kbd> to rub glasses 1–8, tap <kbd>Z</kbd>–<kbd>,</kbd> to ring them, <kbd>Space</kbd> to hush.</p>
+  <button type="button" id="helpClose">Close</button>
+</section>
+
+<div class="intro" id="intro">
+  <div class="card">
+    <h2>Rimsong</h2>
+    <p>A glass harp. You play it the way you play real glasses: a fingertip going round and round the rim.</p>
+    <button type="button" id="start" class="start">Tap to begin</button>
+    <p class="fine" id="introFine">Sound on. Headphones help. Several fingers work at once.</p>
+  </div>
+</div>
+
+<script src="glass.js"></script>
+<script src="audio.js"></script>
+<script src="instrument.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
