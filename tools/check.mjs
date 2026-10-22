@@ -1,0 +1,120 @@
+#!/usr/bin/env node
+// Checks every idea folder (or the ones named): README shape, size budget, the idea's own
+// tests, and — for browser ideas — the headless smoke test. Exits non-zero on any failure.
+//
+// Usage: node tools/check.mjs [ideas/NN-slug ...] [--no-smoke]
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const IDEAS = path.join(ROOT, 'ideas');
+const SIZE_WARN = 500 * 1024;
+const SIZE_FAIL = 650 * 1024;
+const HEADER_FIELDS = ['Kind', 'Run', 'Made by'];
+const REQUIRED_SECTIONS = ['What it is', 'Why I made it', 'Honest assessment'];
+
+function ideaDirs(args) {
+  const named = args.filter((a) => !a.startsWith('--'));
+  if (named.length) return named.map((a) => path.resolve(a));
+  return fs
+    .readdirSync(IDEAS, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^\d{2,}-/.test(d.name))
+    .map((d) => path.join(IDEAS, d.name))
+    .sort();
+}
+
+function walk(dir) {
+  const out = [];
+  for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (d.name === 'node_modules' || d.name === '__pycache__' || d.name.startsWith('.')) continue;
+    const p = path.join(dir, d.name);
+    if (d.isDirectory()) out.push(...walk(p));
+    else out.push(p);
+  }
+  return out;
+}
+
+function checkReadme(dir, errors, warnings) {
+  const file = path.join(dir, 'README.md');
+  if (!fs.existsSync(file)) {
+    errors.push('missing README.md');
+    return;
+  }
+  const md = fs.readFileSync(file, 'utf8');
+  if (!/^# .+/m.test(md)) errors.push('README has no "# Title" line');
+  if (!/^> .+/m.test(md)) errors.push('README has no "> tagline" line');
+  for (const f of HEADER_FIELDS) {
+    if (!new RegExp(`^\\*\\*${f}:\\*\\*\\s*\\S`, 'm').test(md)) errors.push(`README is missing **${f}:**`);
+  }
+  for (const s of REQUIRED_SECTIONS) {
+    if (!new RegExp(`^## ${s}`, 'm').test(md)) warnings.push(`README has no "## ${s}" section`);
+  }
+}
+
+function run(cmd, args, cwd) {
+  const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', timeout: 300000 });
+  return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}`.trim() };
+}
+
+function runTests(dir, files, errors, notes) {
+  const nodeTests = files.filter((f) => /\.test\.(m?js)$/.test(f));
+  const pyTests = files.filter((f) => /(^|\/)test_[^/]*\.py$/.test(f));
+  if (nodeTests.length) {
+    const r = run('node', ['--test', ...nodeTests], ROOT);
+    notes.push(`node tests (${nodeTests.length} file${nodeTests.length > 1 ? 's' : ''}): ${r.ok ? 'pass' : 'FAIL'}`);
+    if (!r.ok) errors.push(`node tests failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
+  }
+  if (pyTests.length) {
+    const startDirs = [...new Set(pyTests.map((f) => path.dirname(f)))];
+    for (const s of startDirs) {
+      const r = run('python3', ['-m', 'unittest', 'discover', '-s', s, '-p', 'test_*.py'], ROOT);
+      notes.push(`python tests (${path.relative(dir, s) || '.'}): ${r.ok ? 'pass' : 'FAIL'}`);
+      if (!r.ok) errors.push(`python tests failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
+    }
+  }
+  if (!nodeTests.length && !pyTests.length) notes.push('no automated tests found');
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  const smoke = !args.includes('--no-smoke');
+  const dirs = ideaDirs(args);
+  const browserIdeas = [];
+  let failed = 0;
+
+  for (const dir of dirs) {
+    const errors = [];
+    const warnings = [];
+    const notes = [];
+    const files = walk(dir);
+    checkReadme(dir, errors, warnings);
+
+    const bytes = files.reduce((n, f) => n + fs.statSync(f).size, 0);
+    const kb = (bytes / 1024).toFixed(0);
+    if (bytes > SIZE_FAIL) errors.push(`folder is ${kb} KB (limit ${SIZE_FAIL / 1024} KB)`);
+    else if (bytes > SIZE_WARN) warnings.push(`folder is ${kb} KB (budget ${SIZE_WARN / 1024} KB)`);
+    notes.push(`${files.length} files, ${kb} KB`);
+
+    runTests(dir, files, errors, notes);
+    if (fs.existsSync(path.join(dir, 'index.html'))) browserIdeas.push(dir);
+
+    const label = path.relative(ROOT, dir);
+    console.log(`${errors.length ? 'FAIL' : 'ok  '} ${label}  (${notes.join('; ')})`);
+    for (const e of errors) console.log(`       error: ${e.replace(/\n/g, '\n              ')}`);
+    for (const w of warnings) console.log(`       warn:  ${w}`);
+    if (errors.length) failed++;
+  }
+
+  if (smoke && browserIdeas.length) {
+    console.log(`\nsmoke-testing ${browserIdeas.length} browser idea(s)…`);
+    const r = spawnSync('node', [path.join(ROOT, 'tools', 'smoke.mjs'), ...browserIdeas], { stdio: 'inherit' });
+    if (r.status !== 0) failed++;
+  }
+
+  console.log(failed ? `\ncheck failed (${failed} problem area${failed > 1 ? 's' : ''})` : '\nall ideas pass');
+  process.exit(failed ? 1 : 0);
+}
+
+main();
