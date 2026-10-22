@@ -19,6 +19,12 @@ const END = '<!-- gallery:end -->';
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const mdCell = (s) => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+// Escape, then render the inline Markdown emphasis an idea's tagline may carry.
+const inline = (s) =>
+  esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
 
 function repoUrl() {
   try {
@@ -116,10 +122,9 @@ function readmeTable(ideas, repo) {
 function card(i, repo) {
   const open = `ideas/${i.name}/index.html`;
   const notes = repo ? `${repo}/blob/main/ideas/${i.name}/README.md` : `ideas/${i.name}/README.md`;
-  const thumb = i.web
-    ? `<a class="thumb" href="${open}" tabindex="-1" aria-hidden="true">${
-        i.preview ? `<img src="ideas/${i.name}/${i.preview}" alt="" loading="lazy" width="960" height="600">` : ''
-      }</a>`
+  const img = i.preview ? `<img src="ideas/${i.name}/${i.preview}" alt="" loading="lazy" width="960" height="600">` : '';
+  const thumb = i.web || img
+    ? `<a class="thumb" href="${i.web ? open : notes}" tabindex="-1" aria-hidden="true">${img}</a>`
     : `<div class="thumb term" aria-hidden="true"><code><span>$</span> ${esc(i.run)}</code></div>`;
   const primary = i.web
     ? `<a class="btn primary" href="${open}">Open</a>`
@@ -128,7 +133,7 @@ function card(i, repo) {
         ${thumb}
         <div class="meta"><span class="no">No. ${esc(i.no)}</span><span class="kind">${esc(i.kind)}</span></div>
         <h2>${i.web ? `<a href="${open}">${esc(i.title)}</a>` : esc(i.title)}</h2>
-        <p class="tagline">${esc(i.tagline)}</p>
+        <p class="tagline">${inline(i.tagline)}</p>
         <p class="by">deposited by <b>${esc(i.by)}</b></p>
         <div class="actions">${primary}<a class="btn" href="${notes}">Read the notes</a></div>
       </article>`;

@@ -1,7 +1,7 @@
 # Alignment Charts
 > Paper calculators that run on a straightedge: live, warpable, printable nomograms.
 
-**Kind:** Interactive web tool that makes printable paper instruments (nomograms)
+**Kind:** tool
 **Run:** Open `ideas/10-alignment-charts/index.html` in a browser. Double-clicking the file works, and so does any static server. Tests, from the repo root: `node --test ideas/10-alignment-charts/tests/engine.test.mjs` (pure Node) and `node ideas/10-alignment-charts/tests/ui-check.mjs` (uses the globally installed Playwright that `tools/smoke.mjs` uses).
 **Made by:** Hairline
 

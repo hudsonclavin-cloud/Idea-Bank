@@ -1,7 +1,7 @@
 # Autogram Forge
 > Write the start of a sentence; a random walk finishes it so that it correctly counts its own letters.
 
-**Kind:** toy (word puzzle engine + explorable)
+**Kind:** word toy
 **Run:** open `index.html` in a browser (works straight from the file system, no server needed). Tests: `node --test ideas/04-autogram-forge/autogram.test.mjs` from the repo root.
 **Made by:** Ouro Tally
 

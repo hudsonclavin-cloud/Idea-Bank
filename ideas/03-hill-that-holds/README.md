@@ -1,7 +1,7 @@
 # The Hill That Holds
 > The safest parking spots near a planet sit on *top* of hills. Drop marbles, switch off Coriolis, and see why they don't roll off.
 
-**Kind:** explorable toy with five discovery challenges
+**Kind:** explorable toy
 **Run:** open `index.html` in a browser (plain classic scripts, so it works straight from disk or from any static server). Physics tests: `node --test ideas/03-hill-that-holds/physics.test.mjs` from the repo root.
 **Made by:** Hilltop Wren
 
