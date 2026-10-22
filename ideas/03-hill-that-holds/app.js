@@ -52,7 +52,7 @@
       id: 'heavy', title: 'Too heavy to hold',
       text: 'Make the planet heavier than about 1/26 of the system and watch a hilltop swarm fall apart.',
       hint: 'Drop a swarm, then drag the mass slider past the dashed line (or tap Pluto–Charon).',
-      insight: 'Past μ ≈ 0.0385 (Routh’s limit) the steering can’t keep up, and the summits stop holding.',
+      insight: 'Past μ ≈ 0.0385 (Routh’s limit) the steering can’t keep up: now even the smallest nudge grows, and the summits stop holding.',
     },
   ];
   const STORE_KEY = 'hill-that-holds.v1';
@@ -866,16 +866,35 @@
     for (const b of group.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.v === String(value)));
   }
 
+  /** Format 27μ(1−μ) with enough digits that it never prints as "1.000" when it isn't exactly 1. */
+  function fmtK(k) {
+    let d = 3;
+    while (d < 8 && Math.abs(k - 1) < 0.5 * Math.pow(10, -d)) d++;
+    return k.toFixed(d);
+  }
+
   function renderVerdict() {
     const k = 27 * S.mu * (1 - S.mu);
     const lin = S.lin;
-    if (lin.stable) {
-      const yrs = 1 / lin.sLong;
-      ui.verdict.innerHTML = `27μ(1−μ) = ${k.toFixed(3)} &lt; 1 · <span class="good">The summits hold.</span> A small tadpole takes about ${yrs.toFixed(1)} planet-years to circle L4.`;
+    let html;
+    if (lin.marginal) {
+      html = `27μ(1−μ) = 1 · <span class="bad">Right at the limit.</span> The two wobbles of a tadpole merge into one, so linear theory can no longer promise the summits hold. Here even a tiny nudge can swell a thousandfold.`;
+    } else if (lin.stable) {
+      html = `27μ(1−μ) = ${fmtK(k)} &lt; 1 · <span class="good">Linearly stable:</span> small nudges circle the summit. A small tadpole takes about ${(1 / lin.sLong).toFixed(1)} planet-years to go round L4.`;
+      // Linear stability is necessary, not sufficient. These bands are where this app's own
+      // L4 swarm loses marbles within ~100 planet-years (see README).
+      const r = lin.ratio;
+      if (Math.abs(r - 3) < 0.16 || Math.abs(r - 2) < 0.3) {
+        const n = Math.abs(r - 3) < 0.16 ? 3 : 2;
+        html += ` <span class="warn">But this is near a ${n}:1 resonance</span> (exact at μ ≈ ${P.resonantMu(n).toFixed(5)}): the fast wobble is ${n}× the slow one, and that rhythm can still shake wide tadpoles loose. Try Swarm at L4.`;
+      } else if (r < 1.3) {
+        html += ` <span class="warn">Close to the limit,</span> though: the two wobbles nearly merge, and only small tadpoles stay put.`;
+      }
     } else {
       const efold = 1 / (lin.growthRate * TAU);
-      ui.verdict.innerHTML = `27μ(1−μ) = ${k.toFixed(3)} &gt; 1 · <span class="bad">Too heavy: the summits can't hold.</span> A nudge at L4 grows e-fold every ${efold.toFixed(2)} planet-years.`;
+      html = `27μ(1−μ) = ${fmtK(k)} &gt; 1 · <span class="bad">Too heavy: the summits can't hold.</span> Even the smallest nudge at L4 grows, e-fold every ${efold.toFixed(2)} planet-years.`;
     }
+    ui.verdict.innerHTML = html;
   }
 
   function updateHint() {

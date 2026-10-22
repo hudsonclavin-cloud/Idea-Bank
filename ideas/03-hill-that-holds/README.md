@@ -17,14 +17,14 @@ What you can do:
 - **Flick** a marble with a velocity (drag sets direction and speed).
 - See the **energy fence**: a hatched region the marble can never enter, because its conserved Jacobi constant (its energy in the turning frame) won't allow it. The fence is identical with Coriolis on or off, so energy alone is not what holds a marble on the hill.
 - Toggle **Coriolis off** (a labelled what-if), switch to the **star's view** (non-rotating), and zoom to L4, L3 or the planet.
-- Slide the **planet mass** μ from 0.0001 to 0.2, or use the presets (Sun–Jupiter, Earth–Moon, the Routh limit, Pluto–Charon). The slider track changes colour at the Gascheau–Routh limit μ ≈ 0.0385 (about 1/26), where the hilltops stop holding.
+- Slide the **planet mass** μ from 0.0001 to 0.2, or use the presets (Sun–Jupiter, Earth–Moon, the Routh limit, Pluto–Charon). The slider track changes colour at the Gascheau–Routh limit μ ≈ 0.0385 (about 1/26); beyond it even the smallest nudge grows. Below it, the verdict under the slider also flags two resonant bands where wide tadpoles are fragile: 3:1 near μ ≈ 0.0135 and 2:1 near μ ≈ 0.0243.
 - Five things to find (progress is kept in `localStorage`): a hilltop that holds, what happens without Coriolis, the same orbit from outside, a horseshoe orbit, and the mass at which the trick fails.
 
 ## Why I made it
 
 My first idea was the one everyone's first idea is: "burn toward the target and you fall behind." It's a great fact, but it's the example we were all handed. Before choosing, I listed eight candidates: n-body sandbox, orrery, rocket launcher (all crossed off as the obvious ones), a rendezvous chase, playing catch on a space station (really the same Hill-frame physics), a gravity-assist pool table, an Oberth-effect escape puzzle, and a dust puff shearing into a ring. The one that kept nagging at me was this: **L4 and L5 are maxima of the effective potential.** Every intuition from marbles and bowls says a maximum is unstable, yet thousands of Trojan asteroids sit there.
 
-The resolution is beautiful. The Coriolis force does no work, so it can't change a marble's energy, but it steers. A marble that starts to roll downhill picks up speed, and Coriolis turns that motion sideways, so it ends up circling the summit. It's the same balance that makes wind circle a high-pressure system instead of blowing straight out of it. And there's a sharp number attached: steering only beats the slope while μ(1−μ) < 1/27. I wanted a toy where you could watch the hill hold, switch off the one force that holds it, and then push the mass ratio past that number and watch the hold fail.
+The resolution is beautiful. The Coriolis force does no work, so it can't change a marble's energy, but it steers. A marble that starts to roll downhill picks up speed, and Coriolis turns that motion sideways, so it ends up circling the summit. It's the same balance that makes wind circle a high-pressure system instead of blowing straight out of it. And there's a sharp number attached: steering can only beat the slope while μ(1−μ) < 1/27. That condition is necessary, though, not sufficient, as the resonances below it show. I wanted a toy where you could watch the hill hold, switch off the one force that holds it, and then push the mass ratio past that number and watch the hold fail.
 
 ## How it works
 
@@ -38,9 +38,9 @@ The resolution is beautiful. The Coriolis force does no work, so it can't change
 
 **Timestep.** Fixed: dt = 2π/1200, i.e. 1,200 steps per planet-year. Physics advances only in whole ticks of 6 steps, driven by a wall-clock accumulator (1× = one planet-year per 2.5 s; 4× and 12× available). If a device can't keep up, at most 48 ticks run per frame and the simulation slows down; it never changes dt. Trajectories are therefore bit-identical at any frame rate, and the test suite checks that.
 
-**What's simplified.** Circular orbit, 2-D, massless marbles, no other planets, no radiation pressure or tides. The star and planet are drawn, and collide, at exaggerated radii: star 0.09·(1−μ)^⅓, planet 0.3 × its Hill radius. Real Jupiter is about 0.0013 of its Hill radius, so marbles here hit the planet far more often than real asteroids would. Marbles beyond r = 3 count as escaped.
+**What's simplified.** Circular orbit, 2-D, massless marbles, no other planets, no radiation pressure or tides. The star and planet are drawn, and collide, at exaggerated radii: star 0.09·(1−μ)^⅓; planet 0.3 × its Hill radius (the planet-to-L1 distance), capped at 0.8 × the star's radius, which kicks in above μ ≈ 0.051 and so applies at the Pluto–Charon preset. Real Jupiter is about 0.0013 of its Hill radius, so marbles here hit the planet far more often than real asteroids would. Marbles beyond r = 3 count as escaped.
 
-### Verification (actual numbers from `physics.test.mjs`, 12/12 passing)
+### Verification (actual numbers from `physics.test.mjs`, 13/13 passing)
 
 | Check | Result |
 |---|---|
@@ -54,6 +54,9 @@ The resolution is beautiful. The Coriolis force does no work, so it can't change
 | Small-amplitude libration period vs linear theory | rel. error 1.5e-6 (μ = 0.001), 3.8e-5 (0.01), 4.5e-4 (0.03) |
 | Below Routh (μ = 0.03, 0.037): 1e-7 nudge at L4 | max excursion over 100 years 1.9e-6 / 4.2e-6 |
 | Above Routh (μ = 0.045, 0.06): growth rate vs linear theory | 0.136 vs 0.139; 0.263 vs 0.242 per time unit |
+| Resonances below Routh: resonantMu(n) from 27μ(1−μ) = 4n²/(1+n²)² | 0.0135160 (3:1) and 0.0242939 (2:1); resonantMu(1) = μ_R exactly |
+| Same, numerically: at-rest 0.01 nudge from L4 along +x, 100 years | lost at 3:1 (year 34) and 2:1 (year 6); non-resonant μ = 0.0145 and 0.02 stay within 0.16 / 0.19 |
+| At exactly μ_R | flagged marginal (double root, not linearly stable); in a separate run a 1e-5 nudge swelled to 1.2e-2 over 300 years and a 0.01 nudge was lost by year 31 |
 | Coriolis off vs on, 1e-6 nudge at L4 | off: 0.1 away in 1.19 years; on: max excursion 4.1e-5 over 50 years |
 | Circulation sense around L4 | clockwise (signed area −0.137), like a northern-hemisphere high |
 | Frame-rate independence | 30 Hz, 60 Hz, 144 Hz and jittery frames give bit-identical states at 12 checkpoints |
@@ -71,8 +74,9 @@ What works:
 
 What's rough:
 - [Certain] "Coriolis off" is a counterfactual, not physics. It's the rotating-frame equations with the 2Ω×v term deleted, which no real observer experiences. The page labels it that way.
-- [Certain] Holding a marble on the hill takes precision. A marble dropped *at rest* in the turning frame holds only within a band roughly ±0.012 (in units of the orbit radius) of the ridge crest at Sun–Jupiter mass. "At rest" here means moving with the planet, and a radial offset δ gives a semi-major-axis offset of about 4δ. That is real physics (co-orbital means nearly the same orbital period), but it means you need the L4 zoom plus the hover/fine-tune preview. The "Swarm at L4" button gives a guaranteed demo.
-- [Certain] Linear stability below μ_R is not the whole story, and the page doesn't say so. In my own check at μ = 0.0242939, where the two L4 frequencies are in 2:1 resonance, a marble nudged 0.01 from L4 was thrown out (into the star) within 300 planet-years. At μ = 0.02 and 0.03, the same nudge stayed within 0.03 of L4. [Likely] This is the known nonlinear resonance instability of L4 (Markeev); the 3:1 case at μ ≈ 0.0135 did not show up at this nudge size and duration.
+- [Certain] Holding a marble on the hill takes precision. A marble dropped *at rest* in the turning frame holds only within a band roughly ±0.012 (in units of the orbit radius) of the ridge crest at Sun–Jupiter mass. "At rest" here means moving with the planet, and a radial offset δ gives a semi-major-axis offset of about 4δ. That is real physics (co-orbital means nearly the same orbital period), but it means you need the L4 zoom plus the hover/fine-tune preview. The "Swarm at L4" button is the easy demo. It reliably holds at the default Sun–Jupiter mass, but not everywhere below the limit (next point).
+- [Certain] Linear stability below μ_R is necessary, not sufficient. An earlier version of the page said "The summits hold" for every μ below μ_R, which was wrong; an independent review caught it. Now the verdict says "linearly stable", and it adds a warning near the 3:1 and 2:1 resonances (and close to the limit). The bands come from my own sweep of the app's swarm (16 marbles, 100 planet-years, counted as lost on leaving the hill zone): 16/16 hold for μ ≤ 0.012, 0.015–0.019 and 0.031–0.035. Losses cluster at 0.0125–0.0145 (worst 6/16 kept, at μ = 0.0135) and 0.0205–0.0295 (worst 1/16 kept, at 0.0243), and 12–13/16 are kept for μ ≥ 0.036. The Earth–Moon preset keeps 15/16. Single nudges show the same pattern, and the outcome depends on direction. An at-rest 0.01 nudge along +x is lost at both resonant masses but survives at μ = 0.0145 and 0.02. The same-size tangential nudge survives at 3:1 (I first reported only that case and wrongly concluded "3:1 doesn't show"), but is lost at 2:1 by year 88. [Likely] This is the classical resonance instability of L4 at the exceptional mass ratios μ ≈ 0.013516 and 0.024294 (Deprit & Deprit-Bartholomé; Markeev). I reproduced it numerically, not from the papers.
+- [Certain] At exactly μ = μ_R, the Routh-limit preset, the two frequencies merge, so linear theory gives secular growth. The page says so instead of quoting a tadpole period. (It used to print "27μ(1−μ) = 1.000 < 1"; rounding is now handled.)
 - [Certain] Exaggerated body sizes mean far more collisions than nature would produce, and the map's log height scale is a presentation choice, not a physical quantity.
 - [Speculative] Some players may read the shading as a literal rubber-sheet "gravity well" (the classic misleading analogy). I call it energy in the turning frame everywhere, but the picture invites the misreading.
 - The map renders in ~60–90 ms in this sandbox's headless Chromium whenever you change mass, zoom or view. That's a visible hitch only on those changes. Mass-slider drags use a low-resolution pass.

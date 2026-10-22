@@ -220,6 +220,43 @@ test('Routh threshold: L4 holds below mu = 0.03852 and fails above, at the predi
   }
 });
 
+test('linear stability is necessary, not sufficient: 3:1 and 2:1 resonances, and the marginal limit', () => {
+  // Analytic: sShort/sLong = n  ⇔  27μ(1−μ) = 4n²/(1+n²)². Literature values: 0.0135160 (3:1), 0.0242939 (2:1).
+  assert.ok(Math.abs(P.resonantMu(1) - ROUTH_MU) < 1e-15);
+  assert.ok(Math.abs(P.resonantMu(3) - 0.013516) < 1e-6);
+  assert.ok(Math.abs(P.resonantMu(2) - 0.0242939) < 1e-6);
+  for (const n of [2, 3]) assert.ok(Math.abs(P.l4Linear(P.resonantMu(n)).ratio - n) < 1e-9);
+  // Exactly at the limit the frequencies merge (double root): flagged marginal, not linearly stable.
+  const lim = P.l4Linear(ROUTH_MU);
+  assert.equal(lim.marginal, true);
+  assert.equal(lim.stable, false);
+  assert.equal(P.l4Linear(0.0385).marginal, false);
+  assert.equal(P.l4Linear(0.0385).stable, true);
+
+  // Numerical: an at-rest 0.01 nudge from L4 along +x, 100 planet-years, app collision radii.
+  function nudge(mu) {
+    const [x4, y4] = P.lagrangePoints(mu).L4;
+    const s = P.makeState(x4 + 0.01, y4, 0, 0);
+    let maxd = 0, lostAt = NaN;
+    const r = run(s, mu, true, 100, (st, k) => {
+      maxd = Math.max(maxd, Math.hypot(st.x - x4, st.y - y4));
+      if (Number.isNaN(lostAt) && maxd > 0.5) lostAt = (k * TICK_STEPS) / ORBIT;
+    }, P.bodyRadii(mu), 3);
+    if (r.fate && Number.isNaN(lostAt)) lostAt = (r.ticks * TICK_STEPS) / ORBIT;
+    return { maxd, lostAt };
+  }
+  for (const n of [3, 2]) {
+    const mu = P.resonantMu(n), o = nudge(mu);
+    log(`${n}:1 resonance, mu=${mu.toFixed(6)} (27μ(1−μ)=${(27 * mu * (1 - mu)).toFixed(3)} < 1): 0.01 nudge lost after ${o.lostAt.toFixed(1)} years`);
+    assert.ok(o.lostAt < 100);
+  }
+  for (const mu of [0.0145, 0.02]) {
+    const o = nudge(mu);
+    log(`non-resonant neighbour mu=${mu}: same nudge, max excursion ${o.maxd.toFixed(3)} over 100 years`);
+    assert.ok(Number.isNaN(o.lostAt) && o.maxd < 0.3);
+  }
+});
+
 test('the counterfactual: without Coriolis a marble rolls off the L4 hilltop; with it, it stays', () => {
   const mu = 0.000954;
   const [x4, y4] = P.lagrangePoints(mu).L4;

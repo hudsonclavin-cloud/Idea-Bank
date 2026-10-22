@@ -141,24 +141,42 @@
     return { star, planet: Math.min(0.3 * hill, 0.8 * star), hill };
   }
 
-  /** Linearised motion about L4: λ⁴ + λ² + (27/4) μ(1−μ) = 0. */
+  /**
+   * Linearised motion about L4: λ⁴ + λ² + (27/4) μ(1−μ) = 0.
+   * Below the Gascheau–Routh limit (27μ(1−μ) < 1) there are two oscillations: a slow libration
+   * sLong (the "tadpole") and a fast epicycle sShort (≈ 1 per planet-year), with ratio = sShort/sLong.
+   * Linear stability is necessary but not sufficient: where ratio is 2 or 3 (resonantMu(2), resonantMu(3))
+   * the nonlinear terms can still destabilise L4, and wide tadpoles nearby are fragile.
+   * Exactly at the limit (marginal) the two frequencies merge into a double root; the linear
+   * solution then grows like t·sin(t/√2), so it is reported as not linearly stable.
+   */
   function l4Linear(mu) {
     const k = 27 * mu * (1 - mu);
     const disc = 1 - k;
+    if (Math.abs(disc) < 1e-9) {
+      const s = Math.SQRT1_2;
+      return { stable: false, marginal: true, growthRate: 0, sLong: s, sShort: s, ratio: 1 };
+    }
     if (disc < 0) {
       // Complex λ²: one root pair has a positive real part → exponential growth.
       const re = -0.5, im = 0.5 * Math.sqrt(-disc);
       const mod = Math.sqrt(Math.hypot(re, im));
       const arg = Math.atan2(im, re) / 2;
-      return { stable: false, growthRate: mod * Math.cos(arg), sLong: NaN, sShort: NaN };
+      return { stable: false, marginal: false, growthRate: mod * Math.cos(arg), sLong: NaN, sShort: NaN, ratio: NaN };
     }
     const sq = Math.sqrt(disc);
-    return {
-      stable: true,
-      growthRate: 0,
-      sLong: Math.sqrt((1 - sq) / 2), // slow libration (the "tadpole")
-      sShort: Math.sqrt((1 + sq) / 2), // fast epicycle, ~1 per planet-year
-    };
+    const sLong = Math.sqrt((1 - sq) / 2), sShort = Math.sqrt((1 + sq) / 2);
+    return { stable: true, marginal: false, growthRate: 0, sLong, sShort, ratio: sShort / sLong };
+  }
+
+  /**
+   * The mass ratio at which the fast and slow L4 frequencies are in n:1 resonance.
+   * From sLong² + sShort² = 1 and sLong²·sShort² = 27μ(1−μ)/4 with sShort = n·sLong:
+   * 27μ(1−μ) = 4n²/(1+n²)². n = 1 gives the Routh limit; n = 2, 3 give ≈ 0.024294, 0.013516.
+   */
+  function resonantMu(n) {
+    const q = (4 * n * n) / (27 * (1 + n * n) * (1 + n * n));
+    return (1 - Math.sqrt(1 - 4 * q)) / 2;
   }
 
   /*
@@ -270,7 +288,7 @@
 
   return {
     TAU, DT, STEPS_PER_ORBIT, TICK_STEPS, TICKS_PER_ORBIT, ROUTH_MU, W0, W1,
-    omega, gradU, gradOmega, makeState, velocity, jacobi, lagrangePoints, crestRadius, bodyRadii, l4Linear,
+    omega, gradU, gradOmega, makeState, velocity, jacobi, lagrangePoints, crestRadius, bodyRadii, l4Linear, resonantMu,
     integrate, toInertial, fromInertial, makeClock, clockTicks,
   };
 });

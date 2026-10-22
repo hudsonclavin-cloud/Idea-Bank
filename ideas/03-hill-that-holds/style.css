@@ -246,6 +246,7 @@ input[type="range"]::-moz-range-thumb {
 .verdict { margin: 10px 0 0; font-size: 13.5px; }
 .verdict .good { color: var(--ok); font-weight: 600; }
 .verdict .bad { color: var(--hot); font-weight: 600; }
+.verdict .warn { color: var(--gold); font-weight: 600; }
 
 .readouts {
   display: grid;
