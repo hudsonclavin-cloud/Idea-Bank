@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hill That Holds</title>
+<meta name="description" content="Near a planet, the stable parking spots (L4 and L5) sit on top of hills. Drop marbles, switch Coriolis off, and see why they don't roll off.">
+<meta name="theme-color" content="#05060d">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="sky" aria-label="Map of effective potential energy around a star and a planet, seen in the frame that turns with the planet. Click or tap to drop marbles." role="img"></canvas>
+    <div class="hud hud-tl">
+      <div class="hud-frame" id="hudFrame">Turning with the planet</div>
+      <div class="hud-time" id="hudTime">t = 0.0 planet-years</div>
+      <div class="badge-off" id="badgeOff" hidden>Coriolis OFF · a what-if, not real physics</div>
+    </div>
+    <div class="hud hud-bottom" id="hudHint">Hover to preview a marble's path · click to drop it</div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <aside class="panel">
+    <header class="masthead">
+      <h1>The Hill That Holds</h1>
+      <p class="tagline">The safest parking spots near a planet sit on <em>top</em> of hills. Drop marbles, switch off Coriolis, and see why they don't roll off.</p>
+    </header>
+
+    <section class="controls" aria-label="Controls">
+      <div class="row">
+        <button id="play" class="btn btn-primary" type="button" aria-label="Pause">Pause</button>
+        <div class="seg" id="speed" role="group" aria-label="Speed">
+          <button type="button" data-v="0">1×</button><button type="button" data-v="1">4×</button><button type="button" data-v="2">12×</button>
+        </div>
+        <button id="clear" class="btn" type="button">Clear</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Tool</span>
+        <div class="seg" id="tool" role="group" aria-label="Tool">
+          <button type="button" data-v="drop" title="Place a marble at rest (D)">Drop</button><button type="button" data-v="flick" title="Drag to give it a velocity (F)">Flick</button>
+        </div>
+        <button id="swarm" class="btn" type="button" title="Drop a fan of marbles on the L4 ridge (S)">Swarm at L4</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Coriolis</span>
+        <div class="seg seg-cor" id="coriolis" role="group" aria-label="Coriolis force">
+          <button type="button" data-v="on">On · real</button><button type="button" data-v="off">Off · what-if</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl">View</span>
+        <div class="seg" id="view" role="group" aria-label="Reference frame">
+          <button type="button" data-v="rot" title="Camera turns with the planet (V)">Turning</button><button type="button" data-v="inertial" title="Camera fixed to the stars (V)">Star's view</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl">Zoom</span>
+        <div class="seg seg-wrap" id="focus" role="group" aria-label="Zoom">
+          <button type="button" data-v="system">System</button><button type="button" data-v="L4">L4</button><button type="button" data-v="L3">L3</button><button type="button" data-v="planet">Planet</button>
+        </div>
+      </div>
+
+      <div class="mass">
+        <label for="mu" class="mass-label">Planet mass <span class="muted">(share of the total)</span> μ = <output id="muOut">0.000954</output></label>
+        <div class="slider-wrap">
+          <input id="mu" type="range" min="0" max="1000" step="1" value="300" aria-describedby="verdict">
+          <div class="routh-mark" id="routhMark" aria-hidden="true"><span>1/26</span></div>
+        </div>
+        <div class="presets" id="presets"></div>
+        <p class="verdict" id="verdict"></p>
+      </div>
+    </section>
+
+    <section class="readouts" aria-label="Readouts">
+      <div class="stat"><span class="k">Marbles</span><span class="v" id="rCount">0</span></div>
+      <div class="stat"><span class="k">Lost</span><span class="v" id="rLost">0</span></div>
+      <div class="stat stat-wide"><span class="k">Worst Jacobi drift</span><span class="v mono" id="rDrift">–</span></div>
+      <div class="selected" id="rSel">No marble selected yet. Your last drop is tracked here.</div>
+    </section>
+
+    <section class="missions" aria-label="Missions">
+      <h2>Things to find <span class="muted" id="mScore">0/5</span></h2>
+      <ol id="missionList"></ol>
+      <button id="resetMissions" class="link" type="button">Reset progress</button>
+    </section>
+
+    <section class="explain">
+      <h2>What you're looking at</h2>
+      <p>A star and a planet on a circular orbit, filmed by a camera that turns with the planet so both hold still. The shading is the <strong>effective potential energy</strong> a marble feels in that turning frame: the gravity of both bodies plus the centrifugal pull outward. Bright means high. The bright ridge is the planet's orbit, and its two summits, <strong>L4</strong> and <strong>L5</strong>, sit 60° ahead of and behind the planet.</p>
+
+      <h2>Why don't marbles roll off?</h2>
+      <p>Switch Coriolis off and they do. In a turning frame, anything that moves also feels the <strong>Coriolis force</strong>, a sideways shove at right angles to its motion. It does no work, so it can't lift a marble or let it down. It only steers. When a marble starts to roll downhill, Coriolis turns it sideways, and "rolling off" becomes "circling the summit". Here that circling is clockwise, the same way wind circles a high-pressure system in the northern hemisphere.</p>
+
+      <h2>The energy fence</h2>
+      <p>The hatched patch that appears while you aim is where that marble can never go: getting there would take more energy than it has. That energy is its <em>Jacobi constant</em>, which the simulation conserves. A marble dropped at rest starts right on the fence. The fence is identical with Coriolis on or off, so energy alone does not keep anything on the hill.</p>
+
+      <h2>Why about 1/26?</h2>
+      <p>Steering only wins if the planet is light enough. The summits hold only while 27μ(1−μ)&nbsp;&lt;&nbsp;1, i.e. μ&nbsp;&lt;&nbsp;0.0385, about 1/26 of the system's mass (Gascheau and Routh worked this out in the 19th century). Jupiter (μ&nbsp;≈&nbsp;0.00095) keeps thousands of Trojan asteroids at its L4 and L5. Pluto–Charon (μ&nbsp;≈&nbsp;0.11) can't hold any in this model.</p>
+
+      <h2>Small print</h2>
+      <p class="muted">Circular restricted three-body problem: two bodies on a circular orbit, a massless marble, flat 2-D, nothing else in the universe. Bodies are drawn, and collide, at exaggerated sizes. Integrator: 4th-order symplectic (Yoshida) with an exact frame-rotation step, 1,200 fixed steps per planet-year. The README has the tests and numbers. Keys: <kbd>Space</kbd> pause, <kbd>C</kbd> Coriolis, <kbd>V</kbd> view, <kbd>S</kbd> swarm, <kbd>D</kbd>/<kbd>F</kbd> tool, <kbd>Z</kbd> zoom.</p>
+    </section>
+  </aside>
+</div>
+<script src="physics.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
