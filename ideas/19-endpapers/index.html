@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A field guide passes through three pairs of hands over sixty years. What the first hand writes in it is what the last hand finds. Interactive fiction, about fifteen minutes.">
+<title>Endpapers</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#page">Skip to the text</a>
+
+<header class="top" id="top">
+  <div class="top-inner">
+    <a class="brand" href="#" id="brand" title="Back to the title page">Endpapers</a>
+    <div class="where" id="where" aria-live="polite"></div>
+    <div class="tools">
+      <button type="button" class="tool" id="btn-register" aria-pressed="false" title="The list in the back of the book, as it stands now">The register</button>
+      <button type="button" class="tool" id="btn-restart" title="Start again from the beginning">Start again</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <!-- Title page -->
+  <section class="screen title" id="screen-title">
+    <h1>Endpapers</h1>
+    <p class="sub">A field guide, three pairs of hands, sixty years.</p>
+    <p class="note">You play each pair of hands in turn. What the first writes in the book, leaves in it, or takes out of it is what the next one finds. A first reading takes about fifteen minutes; later ones a few. Choices are numbered: tap one, or press its number.</p>
+    <nav class="choices" aria-label="Begin">
+      <button type="button" class="choice" id="btn-begin"><span class="num">1</span><span class="label">Begin.</span></button>
+    </nav>
+    <p class="colophon" id="colophon"></p>
+  </section>
+
+  <!-- A passage -->
+  <section class="screen page" id="screen-page" hidden>
+    <article id="page" tabindex="-1" aria-labelledby="where">
+      <div class="head" id="head" hidden>
+        <span class="chapter" id="head-chapter"></span>
+        <span class="who" id="head-who"></span>
+        <span class="date" id="head-date"></span>
+      </div>
+      <div class="text" id="text"></div>
+      <nav class="choices" id="choices" aria-label="Choices"></nav>
+    </article>
+  </section>
+
+  <!-- Provenance: the proof, shown after an ending -->
+  <section class="screen provenance" id="screen-provenance" hidden>
+    <article tabindex="-1" id="prov">
+      <h2>Provenance</h2>
+      <p class="prov-sub">One copy of <em>A Field Guide to the Birds of Britain and Europe</em> (Collins, 1954), green cloth, no jacket, pale on the spine.</p>
+      <ol class="prov-list" id="prov-list"></ol>
+      <p class="prov-count" id="prov-count"></p>
+      <nav class="choices" aria-label="After">
+        <button type="button" class="choice" id="btn-again"><span class="num">1</span><span class="label">Read it again.</span></button>
+      </nav>
+    </article>
+  </section>
+
+  <!-- The register, as it stands now -->
+  <aside class="register-panel" id="register" hidden aria-labelledby="register-title">
+    <div class="register-inner">
+      <h2 id="register-title">The endpapers</h2>
+      <p class="register-sub" id="register-sub">The list in the back of the book, as it stands at this point in the reading.</p>
+      <ol class="register" id="register-list"></ol>
+      <button type="button" class="tool close" id="btn-register-close">Close</button>
+    </div>
+  </aside>
+</main>
+
+<script src="engine.js"></script>
+<script src="story.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
