@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gait</title>
+  <meta name="description" content="A rolling game where you choose how many corners you have. Every corner is a footstep; keep them out of the holes.">
+  <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161828" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='4,26 28,26 16,5' fill='%23ec5a3c' stroke='%231e2033' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <canvas id="stage" aria-label="Game view: a rolling shape crossing ground full of holes"></canvas>
+
+    <header class="hud" aria-label="Run status">
+      <div class="hud-left">
+        <div class="dist"><span id="dist">0</span><small>m</small></div>
+        <div class="best">best <span id="best">0</span> m</div>
+      </div>
+      <div class="hud-right">
+        <div class="score"><span id="score">0</span><small>pts</small></div>
+        <div class="chain" id="chain"><i class="bell" aria-hidden="true"></i><span id="chainText">chain 0</span></div>
+      </div>
+    </header>
+
+    <div class="tools">
+      <button class="icon-btn" id="helpBtn" aria-label="How to play">?</button>
+      <button class="icon-btn" id="muteBtn" aria-label="Mute sound" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="cross" d="M16 9l6 6M22 9l-6 6"/></svg>
+      </button>
+    </div>
+
+    <div class="coach" id="coach" role="status" aria-live="polite"></div>
+
+    <nav class="gears" id="gears" aria-label="Choose how many corners you have">
+      <button class="gear" data-n="3" aria-label="Triangle, 2.0 metre stride (key 3)"></button>
+      <button class="gear" data-n="4" aria-label="Square, 1.5 metre stride (key 4)"></button>
+      <button class="gear" data-n="5" aria-label="Pentagon, 1.2 metre stride (key 5)"></button>
+      <button class="gear" data-n="6" aria-label="Hexagon, 1.0 metre stride (key 6)"></button>
+    </nav>
+
+    <section class="overlay" id="intro" aria-labelledby="introTitle">
+      <div class="card">
+        <h1 id="introTitle">Gait</h1>
+        <p class="lede">You are a loop of string 6&nbsp;m around, rolling over broken ground. You choose how many corners it has.</p>
+        <ul class="rules">
+          <li><b>Each corner is a footstep.</b> Fewer corners, longer strides.</li>
+          <li><b>Never land a corner in a hole.</b> Dotted arcs show where the next ones will land.</li>
+          <li><b>A new shape starts on your next step.</b> Think one ahead.</li>
+          <li>Land exactly on a <i class="bell" aria-hidden="true"></i> chime to score. Chain them.</li>
+        </ul>
+        <button class="cta" id="startBtn">Roll <kbd>Space</kbd></button>
+        <p class="keys"><span class="kb">Shapes: <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> <kbd>6</kbd> or <kbd>&uarr;</kbd><kbd>&darr;</kbd>. </span>Or tap the shapes below.</p>
+      </div>
+    </section>
+
+    <section class="overlay hidden" id="over" aria-labelledby="overTitle">
+      <div class="card">
+        <h2 id="overTitle">Made it <span id="oDist">0</span>&nbsp;m</h2>
+        <p class="cause" id="oCause"></p>
+        <div class="stats">
+          <div><b id="oScore">0</b><span>points</span></div>
+          <div><b id="oChimes">0</b><span>chimes</span></div>
+          <div><b id="oChain">0</b><span>best chain</span></div>
+        </div>
+        <p class="newbest hidden" id="oBest">New best</p>
+        <div class="strip" id="oStrip" aria-label="Your last steps"></div>
+        <button class="cta" id="againBtn">Roll again <kbd>Space</kbd></button>
+        <p class="tip" id="oTip"></p>
+      </div>
+    </section>
+
+    <section class="overlay hidden" id="paused" aria-labelledby="pausedTitle">
+      <div class="card small">
+        <h2 id="pausedTitle">Paused</h2>
+        <button class="cta" id="resumeBtn">Resume <kbd>Space</kbd></button>
+      </div>
+    </section>
+  </main>
+
+  <script src="logic.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

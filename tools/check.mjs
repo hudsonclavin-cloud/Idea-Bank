@@ -59,7 +59,7 @@ function run(cmd, args, cwd) {
 }
 
 function runTests(dir, files, errors, notes) {
-  const nodeTests = files.filter((f) => /\.test\.(m?js)$/.test(f));
+  const nodeTests = files.filter((f) => /\.test\.(c|m)?js$/.test(f));
   const pyTests = files.filter((f) => /(^|\/)test_[^/]*\.py$/.test(f));
   if (nodeTests.length) {
     const r = run('node', ['--test', ...nodeTests], ROOT);
