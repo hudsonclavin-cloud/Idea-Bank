@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autogram Forge</title>
+  <meta name="description" content="Write the start of a sentence; a search finishes it so that it truthfully counts its own letters.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f1a14'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' text-anchor='middle' fill='%23f08a4b'%3Ea%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="masthead">
+      <p class="eyebrow">Idea Bank &middot; 04 &middot; a toy about language</p>
+      <h1>Autogram Forge</h1>
+      <p class="lede">An <em>autogram</em> is a sentence that counts its own letters, and gets every count right. You write the opening words. The forge searches for an ending that makes the whole sentence true.</p>
+    </header>
+
+    <main>
+      <section class="card forge" aria-labelledby="forge-h">
+        <h2 id="forge-h" class="visually-hidden">Forge a sentence</h2>
+        <label class="field-label" for="prefix">Begin the sentence</label>
+        <textarea id="prefix" rows="2" maxlength="200" spellcheck="false" autocomplete="off">This sentence contains</textarea>
+
+        <div class="opts">
+          <fieldset class="seg" id="listMode">
+            <legend>List</legend>
+            <label><input type="radio" name="list" value="auto" checked><span>letters it uses</span></label>
+            <label><input type="radio" name="list" value="all"><span>all 26</span></label>
+            <label><input type="radio" name="list" value="custom"><span>only&hellip;</span></label>
+          </fieldset>
+          <label class="custom-wrap" id="customWrap" hidden>these letters
+            <input id="custom" type="text" value="aeiou" maxlength="26" spellcheck="false" autocomplete="off" aria-label="Letters to list">
+          </label>
+          <label class="check"><input type="checkbox" id="total"> also state the total number of letters</label>
+          <label class="suffix-wrap">end with <input id="suffix" type="text" value="." maxlength="60" spellcheck="false" autocomplete="off" aria-label="Ending after the list"></label>
+        </div>
+
+        <details class="liberties">
+          <summary>Liberties the forge may take</summary>
+          <label class="check"><input type="checkbox" id="libConj" checked> swap the final &ldquo;and&rdquo; for &ldquo;&amp;&rdquo;, or drop it</label>
+          <label class="check"><input type="checkbox" id="libLone" checked> add lone letters such as &ldquo;one q&rdquo; <span class="aside">(true, because that q is the only q)</span></label>
+          <p class="aside">For one exact wording the search tends either to succeed within a few seconds or not at all, so the forge searches several harmless variations at once. Every result is still checked letter by letter.</p>
+        </details>
+
+        <div class="actions">
+          <button type="button" id="go" class="btn primary">Forge</button>
+          <button type="button" id="surprise" class="btn">Surprise me</button>
+        </div>
+        <p id="status" class="status" aria-live="polite">Ready. Press Forge.</p>
+      </section>
+
+      <section class="card result" id="result" aria-labelledby="result-h">
+        <div class="result-head">
+          <h2 id="result-h" class="small-h">The sentence</h2>
+          <span id="seal" class="seal" hidden>true</span>
+        </div>
+        <p id="sentence" class="sentence" aria-live="off"><span class="placeholder">Your sentence will appear here, claims and all.</span></p>
+        <p id="note" class="note"></p>
+        <div id="tally" class="tally" role="group" aria-label="Letter tally: claimed and counted"></div>
+        <div id="inspect" class="inspect" hidden></div>
+        <div class="result-actions">
+          <button type="button" id="copy" class="btn small" disabled>Copy</button>
+          <button type="button" id="another" class="btn small" disabled>Find another</button>
+        </div>
+      </section>
+
+      <section class="card explain" aria-labelledby="why-h">
+        <h2 id="why-h">Why this is hard</h2>
+        <p>Every number you write is made of letters. Correct the count of <b>e</b> from twenty-seven to twenty-eight and you swap <i>s,&nbsp;e,&nbsp;v,&nbsp;e,&nbsp;n</i> for <i>e,&nbsp;i,&nbsp;g,&nbsp;h,&nbsp;t</i>: the sentence now has one <em>fewer</em> e, plus different counts of s, v, n, i, g, h and t, so those claims break in turn. Step through the number words to see what each change costs:</p>
+        <div class="stepper">
+          <button type="button" class="btn small round" id="stepDown" aria-label="Previous number">&minus;</button>
+          <div class="step-words" aria-live="polite">
+            <div class="step-line"><span id="wordA" class="numword"></span> <span class="nowrap"><span class="arrow">&rarr;</span> <span id="wordB" class="numword"></span></span></div>
+            <div id="diff" class="diff"></div>
+          </div>
+          <button type="button" class="btn small round" id="stepUp" aria-label="Next number">+</button>
+        </div>
+        <p>So a true sentence is a <em>fixed point</em>: a set of claims that, once written out, produces exactly those counts. The forge looks for one by a random walk. It picks a false claim, moves it part of the way toward the count the sentence really has, re-counts, and repeats, up to a few hundred thousand times a second.</p>
+      </section>
+
+      <section class="card audit" aria-labelledby="audit-h">
+        <h2 id="audit-h">Audit any sentence</h2>
+        <p class="aside">Paste a sentence and every claim like &ldquo;seven e&rsquo;s&rdquo; is counted. Or load a classic:</p>
+        <div class="examples" id="examples"></div>
+        <textarea id="auditIn" rows="4" spellcheck="false" aria-label="Sentence to audit" placeholder="This sentence contains three a's, ..."></textarea>
+        <p id="auditSummary" class="audit-summary"></p>
+        <p id="auditOut" class="audit-out"></p>
+      </section>
+
+      <section class="card shelf" aria-labelledby="shelf-h">
+        <div class="shelf-head">
+          <h2 id="shelf-h">Your forged sentences</h2>
+          <button type="button" id="clearShelf" class="btn small ghost" hidden>Clear</button>
+        </div>
+        <ol id="shelfList" class="shelf-list"></ol>
+        <p id="shelfEmpty" class="aside">Nothing yet. Sentences you forge are kept here, in this browser only.</p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Only the 26 letters a&ndash;z are counted, case-insensitively. Accents are stripped first (&eacute; counts as e). Digits, punctuation and other scripts are ignored. Everything runs on this page. Nothing is sent anywhere.</p>
+    </footer>
+  </div>
+
+  <script src="autogram.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
