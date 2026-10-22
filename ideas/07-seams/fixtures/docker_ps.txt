@@ -1,0 +1,4 @@
+CONTAINER ID   IMAGE         COMMAND                  CREATED              STATUS                      PORTS                                     NAMES
+4c01db0b339c   nginx:1.27    "/docker-entrypoint.…"   2 hours ago          Up 2 hours                  0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   web
+9f3e2a1b7c8d   postgres:16   "docker-entrypoint.s…"   3 days ago           Up 3 days (healthy)         5432/tcp                                  db
+a1b2c3d4e5f6   redis:7       "redis-server"           About a minute ago   Exited (0) 10 seconds ago                                             cache

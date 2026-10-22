@@ -1,0 +1,16 @@
+total 646436
+-rwxr-xr-x 1 root root          97 Oct  1 15:41 2to3-3.11
+-rwxr-xr-x 1 root root      445024 Apr  1  2024 X0tigervnc
+lrwxrwxrwx 1 root root           1 Apr  8  2024 X11 -> .
+-rwxr-xr-x 1 root root     2064864 Jul 15 00:17 Xvfb
+-rwxr-xr-x 1 root root       55744 Aug 25 15:09 [
+lrwxrwxrwx 1 root root          25 Feb  1  2024 aclocal -> /etc/alternatives/aclocal
+-rwxr-xr-x 1 root root       36020 Feb  1  2024 aclocal-1.16
+-rwxr-xr-x 1 root root        4934 Aug  3  2024 activate-global-python-argcomplete
+-rwxr-xr-x 1 root root       16422 Jan  5  2026 add-apt-repository
+-rwxr-xr-x 1 root root       14720 Aug 19 16:47 addpart
+lrwxrwxrwx 1 root root          26 Feb  9  2026 addr2line -> x86_64-linux-gnu-addr2line
+-rwxr-xr-x 1 root root     3836776 Jun 19  2025 age
+-rwxr-xr-x 1 root root     2105944 Jun 19  2025 age-keygen
+lrwxrwxrwx 1 root root          30 May 27  2024 amdgpu-arch-18 -> ../lib/llvm-18/bin/amdgpu-arch
+lrwxrwxrwx 1 root root          32 May 27  2024 analyze-build-18 -> ../lib/llvm-18/bin/analyze-build
