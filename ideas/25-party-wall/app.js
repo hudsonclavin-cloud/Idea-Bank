@@ -59,6 +59,15 @@
   let knocked = false;
   let againTimer = null;
 
+  // A knock more than this overdue is neither played nor drawn: after a stall (a tab in the
+  // background, a sleeping laptop) the machine catches up in one go, and a pile of knocks at once
+  // would be wrong.
+  const STALE_MS = 1000;
+  // Long stretches are caught up in slices this long, so no single call builds a huge list.
+  const SLICE_MS = 60000;
+  // Their knocks are emitted on the first frame after their time, so they sound up to a frame late.
+  const FRAME_MS = 17;
+
   // ---------- the wall ----------
   function rgba(c, a) {
     return `rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -290,7 +299,9 @@
   }
 
   // A knock: a short thump (sine sweeping down) and a knuckle click (band-passed noise).
-  // Theirs goes through a low-pass filter — the wall — that opens as the two of you fall in step.
+  // Theirs goes through a low-pass filter — the wall — that opens as the two of you fall in step,
+  // and their voice (thump, body, click) moves from darker to yours. At full clarity the filter is
+  // gone and their knock is made exactly like yours: as if there were no wall.
   function playKnock(ev, retried) {
     if (!ac) return;
     if (ac.state !== 'running') {
@@ -304,7 +315,7 @@
     const out = ac.createGain();
     out.gain.value = ev.gain * (them ? 0.95 : 0.75);
     let node = out;
-    if (them) {
+    if (them && c < 1) {
       const lp = ac.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 280 * Math.pow(2, c * 3.8); // 280 Hz through the wall, ~3.9 kHz clear
@@ -320,11 +331,11 @@
     }
     node.connect(master);
     const wet = ac.createGain();
-    wet.gain.value = them ? 0.9 - 0.4 * c : 0.45;
+    wet.gain.value = them ? lerp(0.9, 0.45, c) : 0.45;
     node.connect(wet);
     wet.connect(room);
 
-    const f0 = them ? lerp(80, 115, c) : 118;
+    const f0 = them ? lerp(80, 118, c) : 118;
     const osc = ac.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(f0 * 1.7, when);
@@ -332,7 +343,7 @@
     const oe = ac.createGain();
     oe.gain.setValueAtTime(0.0001, when);
     oe.gain.linearRampToValueAtTime(1, when + 0.004);
-    oe.gain.exponentialRampToValueAtTime(0.0005, when + (them ? 0.2 : 0.16));
+    oe.gain.exponentialRampToValueAtTime(0.0005, when + (them ? lerp(0.2, 0.16, c) : 0.16));
     osc.connect(oe);
     oe.connect(out);
     osc.start(when);
@@ -340,7 +351,7 @@
 
     const body = ac.createOscillator();
     body.type = 'triangle';
-    body.frequency.value = them ? 190 : 260;
+    body.frequency.value = them ? lerp(190, 260, c) : 260;
     const be = ac.createGain();
     be.gain.setValueAtTime(0.0001, when);
     be.gain.linearRampToValueAtTime(0.35, when + 0.003);
@@ -354,7 +365,7 @@
     src.buffer = noiseBuf;
     const bp = ac.createBiquadFilter();
     bp.type = 'bandpass';
-    bp.frequency.value = them ? 900 : 1500;
+    bp.frequency.value = them ? lerp(900, 1500, c) : 1500;
     bp.Q.value = 0.8;
     const ne = ac.createGain();
     ne.gain.setValueAtTime(0.7, when);
@@ -377,7 +388,7 @@
   }
 
   // ---------- events from the machine ----------
-  function handle(events, silent) {
+  function handle(events) {
     const now = performance.now();
     for (const ev of events) {
       if (ev.type === 'knock') {
@@ -388,7 +399,7 @@
             hint.classList.remove('show');
           }
         }
-        if (!silent) {
+        if (now - ev.t <= STALE_MS) {
           pulses.push({ who: ev.who, x: ev.x, y: ev.y, t0: Math.max(now - 1, Math.min(now, ev.t)), clarity: ev.clarity, gain: ev.gain });
           playKnock(ev);
           if (ev.who === 'them' && navigator.vibrate) {
@@ -420,9 +431,39 @@
     requestAnimationFrame(() => endBox.classList.add('show'));
   }
 
-  function knockAt(x, y) {
+  // How late their knocks reach you: up to a frame, plus the output latency the browser reports
+  // (Chrome 102+, Firefox, Safari 18.4+; elsewhere nothing is added). The machine stretches the late
+  // edge of the beat window by this much, capped at 200 ms.
+  function audioLag() {
+    let s = 0;
+    if (ac) {
+      const out = Number(ac.outputLatency);
+      const base = Number(ac.baseLatency);
+      if (out > 0) s += out;
+      if (base > 0) s += base;
+    }
+    return FRAME_MS + s * 1000;
+  }
+
+  // Bring the machine up to time `to`, in slices if it has fallen far behind.
+  function advance(to) {
+    let t = wall.state().time;
+    while (to - t > SLICE_MS) {
+      t += SLICE_MS;
+      handle(wall.step(t));
+    }
+    handle(wall.step(to));
+  }
+
+  // A knock at (x, y). `stamp` is the input event's own time stamp: when the tap happened, which
+  // can be a little before the handler runs. Anything implausible falls back to now.
+  function knockAt(x, y, stamp) {
     ensureAudio();
-    handle(wall.knock(performance.now(), x, y), false);
+    wall.setLag(audioLag());
+    const now = performance.now();
+    const t = typeof stamp === 'number' && stamp <= now && stamp >= now - STALE_MS ? stamp : now;
+    advance(t);
+    handle(wall.knock(t, x, y));
   }
 
   function reset() {
@@ -443,22 +484,22 @@
   // ---------- loop ----------
   let lastFrame = performance.now();
   function frame() {
+    requestAnimationFrame(frame); // first, so that nothing below can stop the loop
     const now = performance.now();
     const dt = Math.min(100, now - lastFrame);
     lastFrame = now;
-    handle(wall.step(now), false);
+    advance(now);
     // Ease the slow things.
     const rate = 1 - Math.pow(0.001, dt / (reduce ? 1200 : 900));
     glow.level += (glow.target - glow.level) * rate;
     if (endedAt != null) endMix = Math.min(1, (now - endedAt) / 2600);
     draw(now);
-    requestAnimationFrame(frame);
   }
 
   // ---------- input ----------
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    knockAt(e.clientX / W, e.clientY / H);
+    knockAt(e.clientX / W, e.clientY / H, e.timeStamp);
   });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   window.addEventListener('keydown', (e) => {
@@ -466,7 +507,7 @@
     if (e.target === againBtn) return;
     if (e.code === 'Space' || e.code === 'Enter') {
       e.preventDefault();
-      knockAt(lastPos.x, lastPos.y);
+      knockAt(lastPos.x, lastPos.y, e.timeStamp);
     }
   });
   againBtn.addEventListener('click', (e) => {
@@ -479,8 +520,8 @@
     reduce = mqReduce.matches;
   });
   document.addEventListener('visibilitychange', () => {
-    // After a stretch in the background, catch the machine up without replaying a pile of knocks.
-    if (!document.hidden) handle(wall.step(performance.now()), true);
+    // After a stretch in the background, catch the machine up; overdue knocks are skipped, not piled up.
+    if (!document.hidden) advance(performance.now());
   });
 
   reset();

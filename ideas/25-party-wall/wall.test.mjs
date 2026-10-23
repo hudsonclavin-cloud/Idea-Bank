@@ -50,6 +50,7 @@ function settle(w, log = []) {
   return log;
 }
 
+const HOUR = 3600 * 1000;
 const theirs = (log) => log.filter((e) => e.type === 'knock' && e.who === 'them');
 const ofType = (log, type) => log.filter((e) => e.type === type);
 
@@ -90,6 +91,7 @@ test('the constants the README quotes', () => {
   assert.equal(T.BEAT_INTERVAL, 900);
   assert.equal(T.BEAT_COUNT, 12);
   assert.equal(T.BEAT_TOLERANCE, 180);
+  assert.equal(T.LAG_MAX, 200);
   assert.equal(T.MATCHES_TO_END, 4);
   assert.equal(T.ENDED_REPLY_DELAY, 40);
 });
@@ -434,4 +436,165 @@ test('nothing is stored: neither the machine nor the page touches browser storag
   const html = fs.readFileSync(path.join(HERE, 'index.html'), 'utf8');
   assert.ok(/<meta name="viewport" content="width=device-width, initial-scale=1">/.test(html));
   assert.ok(!/https?:\/\//.test(html.replace(/<!--[\s\S]*?-->/g, '')), 'no external resources');
+});
+
+// ---------- added after the independent review ----------
+
+test('a tab left in the background for hours: one step catches up without error, same events as small steps', () => {
+  // Before the fix a single step() gave up after 10,000 events (about 94 minutes of their beat).
+  for (const hours of [1.6, 8, 24]) {
+    const a = fiveReplies(31).wall;
+    const b = fiveReplies(31).wall;
+    const q = a.state().quietSince;
+    let one;
+    assert.doesNotThrow(() => {
+      one = a.step(q + hours * HOUR);
+    }, `${hours} h in one step`);
+    const many = [];
+    for (let t = b.state().time + 1000; t < q + hours * HOUR; t += 1000) many.push(...b.step(t));
+    many.push(...b.step(q + hours * HOUR));
+    assert.equal(JSON.stringify(one), JSON.stringify(many), `${hours} h: same events`);
+    // one offering every 14,080 ms (4 s of quiet + 11 × 900 ms + 180 ms to close the last window)
+    const cycle = T.QUIET_FOR_BEAT + (T.BEAT_COUNT - 1) * T.BEAT_INTERVAL + T.BEAT_TOLERANCE;
+    assert.equal(a.state().offerings, Math.floor((hours * HOUR - T.QUIET_FOR_BEAT) / cycle) + 1);
+    assert.equal(a.state().time, q + hours * HOUR);
+  }
+});
+
+test('a clock that is not a finite number is ignored, not obeyed', () => {
+  const w = fiveReplies(33).wall;
+  const t = w.state().time;
+  for (const bad of [NaN, Infinity, -Infinity, undefined, '5000']) {
+    assert.doesNotThrow(() => w.step(bad));
+    assert.equal(w.state().time, t);
+  }
+  const ev = w.knock(Infinity, 0.5, 0.5);
+  assert.equal(ev.find((e) => e.who === 'you').t, t, 'a knock at an impossible time is stamped now');
+});
+
+test('the late edge of the beat window stretches by the page lag; the early edge does not', () => {
+  const lag = 120;
+  const cases = [
+    [-T.BEAT_TOLERANCE, 'match'],
+    [-T.BEAT_TOLERANCE - 0.001, 'miss'],
+    [T.BEAT_TOLERANCE + lag, 'match'],
+    [T.BEAT_TOLERANCE + lag + 0.001, 'miss'],
+    [T.BEAT_TOLERANCE + 60, 'match'], // a miss without the lag
+  ];
+  for (const [off, expect] of cases) {
+    const { wall } = fiveReplies(41);
+    wall.setLag(lag);
+    const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+    const at = t0 + 2 * T.BEAT_INTERVAL + off;
+    run({ wall, until: at - 0.5, cadence: 1 });
+    const ev = wall.knock(at, 0.5, 0.5);
+    assert.ok(ev.some((e) => e.type === expect), `${off} ms from beat 2 with lag ${lag}: ${expect}`);
+  }
+  // and each window closes lag ms later than it used to
+  const { wall } = fiveReplies(41);
+  wall.setLag(lag);
+  const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+  const log = run({ wall, until: t0 + 3 * T.BEAT_INTERVAL, cadence: 10 }).log;
+  assert.deepEqual(
+    ofType(log, 'beat').map((c) => c.t - t0),
+    [0, 1, 2].map((k) => k * T.BEAT_INTERVAL + T.BEAT_TOLERANCE + lag),
+  );
+});
+
+test('the lag is clamped to 0–200 ms and fixed for each offering when it starts', () => {
+  assert.equal(createWall({ lag: 500 }).state().lag, T.LAG_MAX);
+  assert.equal(createWall({ lag: -40 }).state().lag, 0);
+  assert.equal(createWall({ lag: NaN }).state().lag, 0);
+  assert.equal(createWall({}).state().lag, 0);
+  const { wall } = fiveReplies(43);
+  const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+  run({ wall, until: t0 + 10, cadence: 10 }); // the offering has started with lag 0
+  wall.setLag(150);
+  assert.equal(wall.state().lag, 150);
+  const at = t0 + T.BEAT_INTERVAL + T.BEAT_TOLERANCE + 100;
+  run({ wall, until: at - 1, cadence: 1 });
+  assert.ok(wall.knock(at, 0.5, 0.5).some((e) => e.type === 'miss'), 'the open offering keeps its own window');
+});
+
+test('with a lag, four joins still end it, and the end still comes on the next beat', () => {
+  const { wall } = fiveReplies(47);
+  wall.setLag(T.LAG_MAX);
+  const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+  const bt = (k) => t0 + k * T.BEAT_INTERVAL;
+  const log = [];
+  for (let k = 0; k < 4; k++) {
+    const at = bt(k) + T.BEAT_TOLERANCE + T.LAG_MAX; // every knock on the very late edge
+    log.push(...run({ wall, until: at - 1, cadence: 1 }).log, ...wall.knock(at, 0.5, 0.5));
+  }
+  log.push(...run({ wall, until: bt(6), cadence: 10 }).log);
+  assert.deepEqual(ofType(log, 'match').map((m) => m.streak), [1, 2, 3, 4]);
+  const final = theirs(log).find((k) => k.kind === 'final');
+  assert.equal(final.t, bt(4));
+  assert.equal(wall.state().phase, 'ended');
+});
+
+test('quiet after the fourth answer does nothing; after the fifth, they knock first', () => {
+  // README: "From the fourth answer they add something small of their own. After the fifth, if you
+  // go quiet, they knock first."
+  const w = createWall({ seed: 51 });
+  let t = 1000;
+  for (let r = 0; r < 4; r++) {
+    w.knock(t, 0.5, 0.5);
+    w.knock(t + 300, 0.5, 0.5);
+    settle(w);
+    t = w.state().time + 1000;
+  }
+  assert.equal(w.state().replies, 4);
+  const quiet = run({ wall: w, until: w.state().time + 10 * 60 * 1000, cadence: 100 }).log;
+  assert.equal(quiet.length, 0, 'ten minutes of nothing after four answers');
+  const { wall } = fiveReplies(51);
+  const q = wall.state().quietSince;
+  const log = run({ wall, until: q + T.QUIET_FOR_BEAT, cadence: 100 }).log;
+  assert.equal(theirs(log).length, 1);
+  assert.equal(theirs(log)[0].t, q + T.QUIET_FOR_BEAT);
+});
+
+test('a knock just before the first beat of an offering is a new phrase, not a join', () => {
+  // README: "for the first beat of an offering, only from the beat onward"
+  const { wall } = fiveReplies(53);
+  const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+  run({ wall, until: t0 - 101, cadence: 10 });
+  const ev = wall.knock(t0 - 100, 0.5, 0.5);
+  assert.ok(!ev.some((e) => e.type === 'match' || e.type === 'miss'));
+  const log = run({ wall, until: t0 + 4000, cadence: 10 }).log;
+  assert.ok(!theirs(log).some((k) => k.kind === 'beat'), 'no beat: they answer the phrase instead');
+  assert.equal(theirs(log)[0].t, t0 - 100 + T.PHRASE_GAP + T.REPLY_DELAY);
+});
+
+test('deterministic through the beat, the ending and after it, with a lag, at any frame rate', () => {
+  const play = (cadence, seed = 'whole') => {
+    const { wall, log } = fiveReplies(seed);
+    wall.setLag(90);
+    const t0 = wall.state().quietSince + T.QUIET_FOR_BEAT;
+    const script = [
+      [t0 + 400], // a miss
+      [t0 + 1 * T.BEAT_INTERVAL + 30],
+      [t0 + 2 * T.BEAT_INTERVAL + 250], // late, but inside the stretched window
+      [t0 + 3 * T.BEAT_INTERVAL - 170],
+      [t0 + 4 * T.BEAT_INTERVAL + 5],
+      [t0 + 9000, 0.2, 0.8],
+      [t0 + 9500, 0.8, 0.2],
+    ];
+    log.push(...run({ wall, script, until: t0 + 12000, cadence }).log);
+    return log;
+  };
+  const strip = (log) => JSON.stringify(log);
+  const a = play(1);
+  assert.ok(ofType(a, 'end').length === 1, 'the script reaches the end');
+  assert.equal(theirs(a).filter((k) => k.kind === 'ended').length, 2);
+  for (const cadence of [7, 16.7, 53, 1000, 5000]) assert.equal(strip(play(cadence)), strip(a), `cadence ${cadence}`);
+  assert.notEqual(strip(play(7, 'other')), strip(a));
+});
+
+test('the README says what the machine does', () => {
+  const md = fs.readFileSync(path.join(HERE, 'README.md'), 'utf8');
+  assert.ok(md.includes('After the fifth, if you go quiet, they knock first'));
+  assert.ok(!/From the fourth answer[^.]*\.\s*If you then go quiet/.test(md), 'the old fourth-answer claim is gone');
+  assert.ok(md.includes(`±${T.BEAT_TOLERANCE} ms`));
+  assert.ok(md.includes(`up to ${T.LAG_MAX} ms`));
 });

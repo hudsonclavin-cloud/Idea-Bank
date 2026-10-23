@@ -30,6 +30,7 @@
     BEAT_INTERVAL: 900,
     BEAT_COUNT: 12, // beats per offering
     BEAT_TOLERANCE: 180, // ± window for a knock to count as on the beat
+    LAG_MAX: 200, // the late edge of that window also stretches by the page's reported lag, up to this
     MATCHES_TO_END: 4, // consecutive on-beat beats that end the piece
     ENDED_REPLY_DELAY: 40, // after the end, every knock is answered this soon
     GAIN: Object.freeze({ first: 0.35, echo: 0.55, ask: 0.6, beat: 0.6, final: 0.9, ended: 0.8 }),
@@ -78,6 +79,15 @@
     let endedAt = null;
     let currentTime = 0;
     let scheduledReplyAt = null;
+    let lag = clampLag(options.lag);
+
+    // How late the page's sound reaches the player, in ms: their knocks are played on the first
+    // frame after their time, and then the device adds its audio output latency. A knock is judged
+    // against the beat as it was scheduled, so this much is added to the late edge of each beat
+    // window (never to the early edge, so a wrong figure can only make the window more lenient).
+    function clampLag(ms) {
+      return typeof ms === 'number' && Number.isFinite(ms) ? Math.min(T.LAG_MAX, Math.max(0, Math.round(ms))) : 0;
+    }
 
     function jitter(amount) {
       return 1 + (rand() * 2 - 1) * amount;
@@ -120,7 +130,8 @@
     function startBeat(at, out) {
       phase = 'beat';
       offerings++;
-      beat = { t0: at, k: 0, matched: new Array(T.BEAT_COUNT).fill(false), closed: 0, streak: 0 };
+      // The lag is fixed for the whole offering, so changing it never moves a window already open.
+      beat = { t0: at, k: 0, matched: new Array(T.BEAT_COUNT).fill(false), closed: 0, streak: 0, lag };
       queue = [];
       replyKind = 'beat';
       out.push({ type: 'phase', phase, t: at });
@@ -130,14 +141,25 @@
       return beat.t0 + k * T.BEAT_INTERVAL;
     }
 
+    // The last moment a knock still counts for beat k. The window closes strictly after it, so a
+    // knock stamped exactly on either edge counts.
+    function closeTime(k) {
+      return beatTime(k) + T.BEAT_TOLERANCE + beat.lag;
+    }
+
     // Advance the clock to `now`, emitting everything due. Times must not go backwards.
     function step(now) {
       const out = [];
-      if (!(now >= currentTime)) now = currentTime;
+      if (typeof now !== 'number' || !Number.isFinite(now) || now < currentTime) now = currentTime;
       // Process in time order: pending scheduled things, pending reply starts, beat windows.
+      // Every pass emits something or moves the clock on, so the loop always ends; the guard only
+      // catches a bug. Left alone after the fifth reply they offer their beat for ever, 25 passes
+      // per 14 s offering, so the limit grows with the stretch of time being caught up (a tab left
+      // in the background for hours) rather than being a fixed count.
+      const limit = 10000 + 4 * Math.ceil((now - currentTime) / T.BEAT_INTERVAL);
       let guard = 0;
       for (;;) {
-        if (++guard > 10000) throw new Error('party-wall: step did not converge');
+        if (++guard > limit) throw new Error('party-wall: step did not converge');
         // Candidate next event times.
         let nextT = Infinity;
         let what = null;
@@ -165,9 +187,7 @@
             }
           }
           if (beat.closed < beat.k) {
-            // A window closes strictly after its last moment, so a knock stamped exactly
-            // ±BEAT_TOLERANCE from the beat still counts.
-            const ct = beatTime(beat.closed) + T.BEAT_TOLERANCE;
+            const ct = closeTime(beat.closed);
             if (ct < now && ct < nextT) {
               nextT = ct;
               what = 'close';
@@ -220,7 +240,7 @@
           out.push(theirKnock(beatTime(k), pos.x, pos.y, gain, clarity, { kind: 'beat', index: k }));
         } else if (what === 'close') {
           const k = beat.closed++;
-          const ct = beatTime(k) + T.BEAT_TOLERANCE;
+          const ct = closeTime(k);
           if (beat.matched[k]) beat.streak++;
           else beat.streak = 0;
           out.push({ type: 'beat', t: ct, index: k, matched: beat.matched[k], streak: beat.streak });
@@ -248,7 +268,7 @@
     // including your own knock, after first advancing the clock to t.
     function knock(t, x, y) {
       const out = step(t);
-      if (!(t >= currentTime)) t = currentTime; // the clock never runs backwards
+      if (typeof t !== 'number' || !Number.isFinite(t) || t < currentTime) t = currentTime; // the clock never runs backwards
       const px = typeof x === 'number' ? Math.min(1, Math.max(0, x)) : 0.5;
       const py = typeof y === 'number' ? Math.min(1, Math.max(0, y)) : 0.5;
       const k = { t, x: px, y: py };
@@ -262,17 +282,18 @@
       }
       if (phase === 'ending') return out; // the last knock is already on its way
       if (phase === 'beat') {
-        // On the beat? Nearest beat of this offering within the tolerance.
+        // On the beat? From BEAT_TOLERANCE before an open beat to its close time (BEAT_TOLERANCE
+        // after it, plus the lag). Windows never overlap, so at most one beat qualifies. The first
+        // beat of an offering has no early side in practice: before it starts they are listening,
+        // and a knock then is an ordinary phrase knock.
         let best = -1;
-        let bestD = Infinity;
-        for (let i = 0; i < T.BEAT_COUNT; i++) {
-          const d = Math.abs(beatTime(i) - t);
-          if (d < bestD) {
-            bestD = d;
+        for (let i = beat.closed; i < T.BEAT_COUNT; i++) {
+          if (t >= beatTime(i) - T.BEAT_TOLERANCE && t <= closeTime(i)) {
             best = i;
+            break;
           }
         }
-        if (best >= 0 && bestD <= T.BEAT_TOLERANCE && best >= beat.closed) {
+        if (best >= 0) {
           const fresh = !beat.matched[best];
           beat.matched[best] = true;
           if (fresh) out.push({ type: 'match', t, index: best, streak: beat.streak + 1 });
@@ -316,11 +337,17 @@
         quietSince,
         scheduledReplyAt: phase === 'listening' && phrase.length ? scheduledReplyAt : null,
         endedAt,
+        lag,
         time: currentTime,
       };
     }
 
-    return { knock, step, state, T };
+    // The page's lag in ms (see clampLag). It takes effect from the next offering of the beat.
+    function setLag(ms) {
+      lag = clampLag(ms);
+    }
+
+    return { knock, step, state, setLag, T };
   }
 
   return { createWall, T, PHASES, hashSeed, rng };
