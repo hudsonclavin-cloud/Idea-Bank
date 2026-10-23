@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Still Rising</title>
+  <meta name="description" content="A practice ladder for one habit of mind: find what is piling up, and ask whether more is coming in than going out. Shops, reservoirs, wards, debts, the air.">
+  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14171f" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M5 9v13a5 5 0 0 0 5 5h12a5 5 0 0 0 5-5V9' fill='none' stroke='%231f2430' stroke-width='3' stroke-linecap='round'/%3E%3Crect x='7' y='16' width='18' height='9' rx='2' fill='%233a5fb0'/%3E%3Cpath d='M6 13h20' stroke='%23c98a1b' stroke-width='2' stroke-dasharray='3 2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path class="logo-tub" d="M5 9v13a5 5 0 0 0 5 5h12a5 5 0 0 0 5-5V9"/><rect class="logo-water" x="7" y="16" width="18" height="9" rx="2"/><path class="logo-mark" d="M6 13h20"/></svg>
+        <span>Still Rising</span>
+      </div>
+      <ol class="ladder" id="ladder" aria-label="The ladder: seven rungs"></ol>
+    </header>
+
+    <main id="main">
+      <section id="intro" class="panel intro">
+        <h1>Still Rising</h1>
+        <p class="lede">Shops, baths, reservoirs, hospital wards, bank accounts, national debts, the air. Each of them fills and empties, and one question about what is piling up answers a surprising amount about all of them.</p>
+        <p>This is practice, not a lesson. You answer, you see straight away what really happened, and you go again. Three right in a row clears a rung; seven rungs make the ladder. The first question comes before any teaching, so you can see where you started.</p>
+        <div class="row">
+          <button id="startBtn" class="btn primary" type="button">Start with a shop</button>
+        </div>
+        <p class="small" id="introNote">Twenty-nine questions to climb the ladder if you get every one right; nearer forty-five if you get four in five, sixty if seven in ten. It remembers where you got to on this device.</p>
+      </section>
+
+      <section id="q" class="panel q" hidden>
+        <div class="qhead">
+          <span id="qMode" class="tag"></span>
+          <span id="qCount" class="count"></span>
+        </div>
+        <h2 id="qTitle"></h2>
+        <p id="qStory" class="story"></p>
+        <p id="qAsk" class="ask"></p>
+        <div id="chartBox" class="chartbox" hidden>
+          <div class="legend" id="legend"></div>
+          <div id="chart" class="chart" tabindex="0" role="group"></div>
+          <p id="chartHint" class="hint"></p>
+        </div>
+        <div id="controls" class="controls"></div>
+        <div id="feedback" class="feedback" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="summary" class="panel summary" hidden></section>
+
+      <aside id="carry" class="carry" hidden>
+        <p class="carry-label">The question to carry</p>
+        <p class="carry-q">What is piling up here? And right now, is more coming in than going out?</p>
+      </aside>
+    </main>
+
+    <footer class="foot">
+      <button id="resetBtn" class="linkbtn" type="button">Start over</button>
+      <span class="foot-note">Idea 63 in the Idea Bank. No tracking; progress stays in this browser.</span>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="tub.js"></script>
+  <script src="bank.js"></script>
+  <script src="words.js"></script>
+  <script src="trainer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

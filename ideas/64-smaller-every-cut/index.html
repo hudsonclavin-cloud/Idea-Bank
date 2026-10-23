@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Smaller Every Cut</title>
+<meta name="description" content="Kirby and Paris's hydra: cut a head and the neck grows back more copies. Whatever you do it dies, because its clock, an ordinal, goes down at every cut.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 28 C16 20 8 18 8 10 M16 28 C16 20 24 18 24 10 M16 28 V8' stroke='%232e8577' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%232e8577'/%3E%3Ccircle cx='24' cy='8' r='4' fill='%232e8577'/%3E%3Ccircle cx='16' cy='6' r='4' fill='%23d98a1c'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header class="hero">
+    <p class="kicker">Idea 64 · to break the mind</p>
+    <h1>Smaller Every Cut</h1>
+    <p class="tagline">Cut a head and the hydra grows back more of itself. It dies anyway, whatever you do, and the proof counts past infinity.</p>
+  </header>
+
+  <section class="play" aria-label="The game">
+    <p class="rules" id="rules"><b>Tap a head to cut it.</b> If it grew straight from the body, it is gone. Otherwise the neck it hung from grows back: on your <i>n</i>th cut, that neck (without the head) sprouts <i>n</i> more copies of itself, with everything on it, from the joint below.</p>
+
+    <div class="presets" id="presets" role="radiogroup" aria-label="Choose a hydra">
+      <button type="button" role="radio" data-preset="sprout">Sprout</button>
+      <button type="button" role="radio" data-preset="fork">Fork</button>
+      <button type="button" role="radio" data-preset="stick">Stick</button>
+      <button type="button" role="radio" data-preset="twosticks">Two sticks</button>
+      <button type="button" role="radio" data-preset="tall">Tall stick</button>
+      <button type="button" role="radio" data-preset="grow">Grow your own</button>
+    </div>
+
+    <div class="board">
+      <div class="stage" id="stage">
+        <canvas id="hydra" tabindex="0" aria-describedby="rules"></canvas>
+        <p class="toast" id="toast" role="status" aria-live="polite"></p>
+        <div class="hud" id="hud" aria-hidden="true"><span class="lbl">clock</span> <span class="math" id="hudClock"></span><span class="hud-heads" id="hudHeads"></span></div>
+      </div>
+
+      <div class="side">
+        <div class="meters" aria-label="Counts">
+          <div class="meter"><span class="lbl">Cuts</span><b id="mCuts">0</b></div>
+          <div class="meter"><span class="lbl">Heads</span><b id="mHeads">1</b></div>
+          <div class="meter"><span class="lbl">Next regrowth</span><b id="mNext">×1</b></div>
+        </div>
+
+        <div class="clock-card" aria-live="off">
+          <div class="lbl">The hydra’s clock <button type="button" class="linkish" id="whyClock" aria-controls="clockSection">what is this?</button></div>
+          <div class="clock math" id="clock">ω<sup>ω</sup></div>
+          <p class="was" id="was">It goes down at every cut. Nothing else in the game does.</p>
+          <p class="why-line" id="whyLine"></p>
+          <label class="check"><input type="checkbox" id="labels"> Show every joint’s clock on the hydra</label>
+        </div>
+
+        <div class="controls" id="playControls">
+          <div class="row">
+            <button type="button" id="undo">Undo</button>
+            <button type="button" id="restart">Start over</button>
+          </div>
+          <div class="row auto">
+            <span class="lbl">Let Hercules play:</span>
+            <button type="button" id="autoFast" data-which="fast"><span class="face-go">Fast way</span><span class="face-pause">Pause</span></button>
+            <button type="button" id="autoSlow" data-which="slow"><span class="face-go">Slow way</span><span class="face-pause">Pause</span></button>
+            <label class="speed">at
+              <select id="speed" aria-label="Cuts per second">
+                <option value="1">1 cut a second</option>
+                <option value="2" selected>2 cuts a second</option>
+                <option value="30">30 a second</option>
+                <option value="1000">1,000 a second</option>
+                <option value="0">as fast as it can</option>
+              </select>
+            </label>
+          </div>
+          <p class="note">Above 2 cuts a second you see a snapshot twice a second. Whatever you tap, press or hold, and however fast Hercules plays, the hydra picture changes at most twice a second: a cut asked for sooner waits its turn (a newer one takes its place), a held key cuts once, and a held Enter on a button acts once (on Undo it goes on, a step each half second). Each Undo click takes back one step, and an Undo cancels a cut that is still waiting. The ring that marks the head under the mouse or picked with the arrow keys moves at most 4 times a second, and showing or hiding it (it hides while Hercules plays) counts as a move.</p>
+        </div>
+
+        <div class="controls hidden" id="growControls">
+          <p class="note grow-note" id="growNote">Tap the body, a joint or a head to grow a new head from it.</p>
+          <div class="row">
+            <button type="button" id="growUndo">Undo</button>
+            <button type="button" id="growClear">Clear</button>
+            <button type="button" class="cta" id="growFight">Fight this one</button>
+          </div>
+        </div>
+
+        <div class="facts" id="facts" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="trail-card">
+      <h2 class="small-h">Every reading of the clock so far</h2>
+      <p class="trail math" id="trail"></p>
+    </div>
+  </section>
+
+  <article class="why" id="clockSection">
+    <h2>Why it always dies</h2>
+
+    <h3>A clock that can only run down</h3>
+    <p>Picture a countdown clock that can show more than whole numbers. Besides 0, 1, 2, … it can read <span class="math">ω</span> (omega), which is bigger than every whole number. A countdown may jump as far down as it likes at each tick, to any smaller reading, but never up and never sideways. From <span class="math">ω</span> the next tick has to land on a whole number. Any whole number: five, or a million, or a googol. From there it counts down the ordinary way.</p>
+    <p>Then there are bigger readings. <span class="math">ω + 1</span> ticks once to reach <span class="math">ω</span>. From <span class="math">ω·2</span> you can drop to <span class="math">ω + 1000</span>, which still has a whole <span class="math">ω</span> left in it. From <span class="math">ω<sup>2</sup></span> you can drop to <span class="math">ω·1000</span>; from <span class="math">ω<sup>ω</sup></span> to <span class="math">ω<sup>1000</sup></span>; and the tower goes on: <span class="math">ω<sup>ω<sup>ω</sup></sup></span>, and higher. These readings are Cantor’s ordinal numbers, written in his normal form. Every one on this page sits below <span class="math">ε<sub>0</sub></span>, the limit of the tower <span class="math">ω, ω<sup>ω</sup>, ω<sup>ω<sup>ω</sup></sup>, …</span></p>
+    <p>The fact everything rests on: <strong>every countdown on this clock reaches 0 in finitely many ticks</strong>, however you choose the jumps. That is what it means for the ordinals to be well-ordered: there is no endless falling sequence of them. The catch is that every jump lands strictly lower, and below <span class="math">ω</span> there are only whole numbers. You may jump to a huge number, but never to anything with an <span class="math">ω</span> left in it.</p>
+
+    <h3>Every hydra has a reading</h3>
+    <p>A head reads 0. A joint reads <span class="math">ω<sup>a</sup> + ω<sup>b</sup> + …</span>, with one term for each neck growing from it, where <span class="math">a, b, …</span> are the readings at the far ends of those necks, biggest terms first. The hydra’s clock is the reading of its body. So a neck ending in a head adds <span class="math">ω<sup>0</sup> = 1</span>, a neck ending in a joint that reads 1 adds <span class="math">ω</span>, and the stick of three necks reads <span class="math">ω<sup>ω</sup></span>. Tick <b>Show every joint’s clock</b> to see them all.</p>
+    <p>The reading <em>is</em> the hydra. Two hydras read the same exactly when they have the same shape, necks in any order, and every ordinal below <span class="math">ε<sub>0</sub></span> is the reading of exactly one hydra.</p>
+
+    <h3>Every cut lowers it</h3>
+    <p>Cut a head from a joint <i>P</i> that is not the body. <i>P</i> read <span class="math">β + 1</span> (the head was its <span class="math">+1</span>), and now it reads <span class="math">β</span>. At the joint <i>G</i> below <i>P</i>, that neck’s term was <span class="math">ω<sup>β+1</sup> = ω<sup>β</sup>·ω</span>. After the cut there are <i>n</i> + 1 copies of the shortened neck, so the term is <span class="math">ω<sup>β</sup>·(<i>n</i>+1)</span>. However large <i>n</i> is, that is less than <span class="math">ω<sup>β</sup>·ω</span>. So <i>G</i> now reads less, and a joint whose neck leads to a smaller reading reads less too, all the way down to the body. If the head grew straight from the body, the body just loses its <span class="math">+1</span>. Either way the clock goes down. The page shows the step for every cut you make, under the clock.</p>
+
+    <h3>So it dies</h3>
+    <p>The clock goes down at every cut. It cannot go down forever. It reads 0 only when no heads are left. Nothing in the argument used how many copies grow back: the hydra could grow a million copies every time, or any number it chose, and it would still die. This is Kirby and Paris’s theorem: <strong>whatever order Hercules cuts in, the hydra dies after finitely many cuts.</strong></p>
+
+    <h2>The fast way and the slow way</h2>
+    <p>Hercules cannot lose, but he can take a very long time. The page plays two ways for him.</p>
+    <ul>
+      <li><b>The fast way</b> always cuts in the biggest part: from the body it follows the neck with the biggest reading, then the biggest from there, up to a head. It deals with deep necks early, while <i>n</i> is still small.</li>
+      <li><b>The slow way</b> always cuts in the smallest part. Then every cut takes the clock one standard step down, and the fight lasts exactly <span class="math">H<sub>α</sub>(2) − 2</span> cuts, where <span class="math">α</span> is the starting reading and <span class="math">H</span> is the Hardy hierarchy, a family of functions that grows faster as <span class="math">α</span> grows (details in the README).</li>
+    </ul>
+    <div class="table-wrap">
+      <table class="counts">
+        <thead><tr><th>Hydra</th><th>Clock</th><th>Fastest</th><th>Slowest</th></tr></thead>
+        <tbody>
+          <tr><td>Sprout</td><td class="math">ω</td><td>3</td><td>3</td></tr>
+          <tr><td>Fork</td><td class="math">ω<sup>2</sup></td><td>10</td><td>13</td></tr>
+          <tr><td>Stick</td><td class="math">ω<sup>ω</sup></td><td>20</td><td>37</td></tr>
+          <tr><td>Two sticks</td><td class="math">ω<sup>ω</sup>·2</td><td>988</td><td>slow way: more than 2↑↑↑76</td></tr>
+          <tr><td>Tall stick</td><td class="math">ω<sup>ω<sup>ω</sup></sup></td><td>fast way: a 13,597-digit number</td><td>slow way: more than 2↑↑↑36</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">Where a plain number stands in the Fastest or Slowest column, every possible order of cuts was searched, so nobody can do better or worse. The two sticks die in 988 cuts at the very fastest, which is what the fast way takes; one stick, which looks almost the same, dies in 20 to 37. The arrows are Knuth’s: 2↑↑5 is a tower <span class="math">2<sup>2<sup>2<sup>2<sup>2</sup></sup></sup></sup></span> of five twos, already a number with 19,729 digits, and 2↑↑↑4 is a tower of 65,536 twos. The “more than” numbers are floors that a few lines of proof can certify. They are far below the true counts and they don’t rank the hydras against each other.</p>
+
+    <h2>What arithmetic can’t see</h2>
+    <p>Everything in the game is finite: finite trees, whole numbers, one cut at a time. Yet the proof above reasoned about infinite ordinals, all the way up to <span class="math">ε<sub>0</sub></span>. Kirby and Paris showed that this was no accident. The statement “every computable strategy for Hercules kills every hydra” can be written in the language of ordinary arithmetic, and it is true, but it <strong>cannot be proved from the Peano axioms</strong>, the standard axioms for the whole numbers (assuming, as everyone does, that those axioms are consistent). It sits on a line Gentzen had drawn in 1943: the Peano axioms can prove induction along any one ordinal below <span class="math">ε<sub>0</sub></span>, but not along <span class="math">ε<sub>0</sub></span> itself. The hydras, between them, have every reading below <span class="math">ε<sub>0</sub></span>.</p>
+    <p>That is the part to hold on to after the game. Any one game, once it is over, is just a finite list of cuts; the trouble is the word <em>every</em>. Counting can state this fact about counting, and it is true, but counting alone can’t prove it. To see why every hydra dies you have to step past every whole number.</p>
+
+    <h2>Sources</h2>
+    <ul class="sources">
+      <li>L. Kirby and J. Paris, “Accessible independence results for Peano arithmetic”, <i>Bulletin of the London Mathematical Society</i> 14 (1982) 285–293. The hydra game, the theorem, and the unprovability of “every recursive strategy is a winning strategy”.</li>
+      <li>G. Gentzen, “Die Widerspruchsfreiheit der reinen Zahlentheorie”, <i>Mathematische Annalen</i> 112 (1936) 493–565, and “Beweisbarkeit und Unbeweisbarkeit von Anfangsfällen der transfiniten Induktion in der reinen Zahlentheorie”, <i>Mathematische Annalen</i> 119 (1943) 140–161.</li>
+      <li>J. Matoušek and M. Loebl, “Hercules versus hidden Hydra helper”, <i>Commentationes Mathematicae Universitatis Carolinae</i> 32 (1991) 731–741. Recalls that Hercules has a short strategy and a long one, and shows that a hidden helper of the hydra who makes one move after each of his can’t stop him keeping the game short, while one who makes two or more can make it long.</li>
+      <li>G. Cantor, “Beiträge zur Begründung der transfiniten Mengenlehre (Zweiter Artikel)”, <i>Mathematische Annalen</i> 49 (1897) 207–246. Ordinal numbers and their normal form.</li>
+    </ul>
+  </article>
+
+  <footer class="foot">
+    <p>Idea 64 in the Idea Bank. Made by Iolaus. All numbers on this page are computed or checked by <code>hydra.test.mjs</code>.</p>
+  </footer>
+</main>
+<script src="hydra.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
