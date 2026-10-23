@@ -6,7 +6,12 @@
 //  1. typing a new message leaves sheet A's fingerprint unchanged and changes sheet B's;
 //  2. with the sheets aligned, reading the table canvas back cell by cell decodes EXACTLY the
 //     message picture (two sheets, three sheets with any pair, and two-pictures mode);
-//  3. one subpixel of misregistration makes the same read-back wrong for many cells;
+//  3. one subpixel of misregistration makes the same count read-back wrong for many cells, yet the
+//     canvas's full subpixel pattern, decoded with leak.js, still gives much of the message away,
+//     and the status line no longer says there is nothing to read;
+//  3b. switching scheme draws a fresh key, and so does the first change after printing or saving a
+//     non-key sheet; the stated estimator bias in two-pictures mode is the corrected one; without
+//     crypto.getRandomValues the page refuses to print or save and says why;
 //  4. a real touch drag (CDP touch events) on the phone layout moves a sheet and snaps it;
 //  5. the arrow keys nudge by one subpixel; the mode buttons work; dark mode and the print
 //     layout render with no console errors; no horizontal overflow at 390 px.
@@ -19,6 +24,9 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const localRequire = createRequire(import.meta.url);
+const VC = localRequire('./vc.js');
+const Leak = localRequire('./leak.js');
 const ROOT = path.resolve(HERE, '..', '..');
 const OUT = (() => {
   const i = process.argv.indexOf('--out');
@@ -92,6 +100,25 @@ function READBACK({ threshold, exclude }) {
   return { wrong, cells, black, offsets: T.state.offsets.map((o) => o.slice()), top };
 }
 
+// The full subpixel raster of sheet A's frame as drawn on the table canvas (ink = 1).
+function READRASTER() {
+  const T = window.__twoSheets;
+  const g = T.geometry();
+  const c = document.getElementById('tableCanvas').getContext('2d');
+  const [dx, dy] = T.state.offsets[0];
+  const x0 = (g.baseX + dx) * g.k, y0 = (g.padY + dy) * g.k;
+  const img = c.getImageData(x0, y0, T.SW * g.k, T.SH * g.k).data;
+  const stride = T.SW * g.k * 4;
+  const out = new Array(T.SW * T.SH);
+  for (let y = 0; y < T.SH; y++) for (let x = 0; x < T.SW; x++) {
+    const o = (y * g.k + Math.floor(g.k / 2)) * stride + (x * g.k + Math.floor(g.k / 2)) * 4;
+    out[y * T.SW + x] = img[o + 3] > 200 && img[o] < 80 ? 1 : 0;
+  }
+  return { raster: out, bits: [...T.state.bits], W: T.W, H: T.H, offsets: T.state.offsets.map((o) => o.slice()) };
+}
+
+const keyPrint = (page) => page.evaluate(() => window.__twoSheets.VC.fingerprint(window.__twoSheets.state.key));
+
 async function run() {
   const { chromium } = loadPlaywright();
   const server = await serve();
@@ -136,7 +163,28 @@ async function run() {
       r = await page.evaluate(READBACK, { threshold: 4 });
       check(r.wrong > 0.15 * r.cells, 'one subpixel to the right: many cells read wrong', `${r.wrong} wrong of ${r.cells}`);
       check(r.offsets[1][0] - r.offsets[0][0] === 1, 'nudge moved the top sheet by exactly one subpixel');
-      check(/1 subpixel right/.test(await page.textContent('#status')), 'status reports the one-subpixel offset');
+      const slipStatus = await page.textContent('#status');
+      check(/1 subpixel right/.test(slipStatus), 'status reports the one-subpixel offset');
+      check(!/Nothing to read/.test(slipStatus) && /ghost/.test(slipStatus), 'status warns of a ghost rather than claiming nothing is left', slipStatus);
+      // what a camera gets: decode the slipped canvas from its full subpixel pattern
+      {
+        const rr = await page.evaluate(READRASTER);
+        const [dx, dy] = [rr.offsets[1][0] - rr.offsets[0][0], rr.offsets[1][1] - rr.offsets[0][1]];
+        // Rows are independent chains at a sideways slip. Leave out the top cell row, whose first
+        // subpixel row the sheets' paper tabs overlap by half a subpixel on screen.
+        const W = rr.W, H = rr.H - 1;
+        const bits = Uint8Array.from(rr.bits.slice(rr.W));
+        const raster = Uint8Array.from(rr.raster.slice(2 * 2 * rr.W));
+        const p = bits.reduce((a, b) => a + b, 0) / bits.length;
+        const res = Leak.analyseObserved(VC, Leak.cellPatterns(raster, W, H), W, H, dx, dy, { bits, p });
+        let tp = 0, tn = 0, black = 0;
+        for (let i = 0; i < bits.length; i++) { if (bits[i]) { black++; if (res.decoded[i]) tp++; } else if (!res.decoded[i]) tn++; }
+        const balanced = (tp / black + tn / (bits.length - black)) / 2;
+        check(res.impossible === 0, 'the slipped canvas is exactly the modelled overlay', `${res.impossible} cells unexplained`);
+        check(balanced > 0.75 && res.infoPerCell > 0.3 * res.entropyPerCell,
+          'one subpixel off, the canvas still gives the message away to a computer',
+          `${tp} of ${black} black cells and ${tn} of ${bits.length - black} white cells decoded right (balanced ${(balanced * 100).toFixed(1)}%, coin toss 50%); ${res.infoPerCell.toFixed(3)} of ${res.entropyPerCell.toFixed(3)} bits per cell`);
+      }
       // keyboard nudge
       await page.focus('#table');
       await page.keyboard.press('ArrowLeft');
@@ -144,10 +192,41 @@ async function run() {
       r = await page.evaluate(READBACK, { threshold: 4 });
       check(r.wrong === 0, 'ArrowLeft nudges back to alignment and the read-back is exact again');
 
+      // one key, one printing
+      {
+        const k0 = await keyPrint(page);
+        await page.fill('#msg', 'ANOTHER ONE');
+        await page.waitForTimeout(200);
+        check((await keyPrint(page)) === k0, 'before anything is printed or saved, editing the message keeps the key (the demonstration)');
+        const dlA = page.waitForEvent('download');
+        await page.click('#downloads button:nth-child(1)');
+        await dlA;
+        await page.fill('#msg', 'A THIRD ONE');
+        await page.waitForTimeout(200);
+        check((await keyPrint(page)) === k0, 'saving only the key sheet A keeps the key (make B later)');
+        const dlB = page.waitForEvent('download');
+        await page.click('#downloads button:nth-child(2)');
+        await dlB;
+        check(!(await page.isHidden('#keyNote')), 'after saving sheet B the page says the next change draws a fresh key', await page.textContent('#keyNote'));
+        await page.fill('#msg', 'A NEW MESSAGE');
+        await page.waitForTimeout(200);
+        const k1 = await keyPrint(page);
+        check(k1 !== k0, 'the first change after saving sheet B draws a fresh key');
+        await page.fill('#msg', 'A NEW MESSAGES');
+        await page.waitForTimeout(200);
+        check((await keyPrint(page)) === k1, 'and only the first: further edits keep the new key until the next save');
+        await page.fill('#msg', 'A NEW MESSAGE');
+        await page.waitForTimeout(200);
+        await page.click('#btnAlign');
+        await page.waitForTimeout(100);
+      }
+
       // three sheets: each pair decodes
+      const keyBeforeMode = await keyPrint(page);
       await page.click('[data-mode="three"]');
       await page.waitForTimeout(200);
       check((await page.$$('#downloads button')).length === 3, 'three-sheet mode offers three downloads');
+      check((await keyPrint(page)) !== keyBeforeMode, 'switching scheme draws a fresh key');
       await page.click('#btnAlign');
       await page.waitForTimeout(100);
       r = await page.evaluate(READBACK, { threshold: 2 });
@@ -175,6 +254,9 @@ async function run() {
         return bad;
       });
       check(coverOk === 0, 'two pictures: every cell of each sheet has its own cover\'s darkness');
+      const floorText = await page.textContent('#miFloor');
+      const floor = Math.max(...floorText.split(/[–-]/).map(Number));
+      check(floor > 0.001 && floor < 0.0018, 'two pictures: the stated bias of the estimate is the conditional one, about 8/(2N ln 2)', floorText);
       await page.screenshot({ path: path.join(OUT, 'desktop-cover-aligned.png'), fullPage: true });
 
       // print layout
@@ -234,6 +316,29 @@ async function run() {
       const drawn = await page.evaluate(() => window.__twoSheets.state.drawBits.reduce((a, b) => a + b, 0));
       check(drawn > 0, 'touch drawing painted cells on the message', `${drawn} cells`);
       check(fpBefore[0] === fpAfter[0] && fpBefore[1] !== fpAfter[1], 'drawing changed sheet B only');
+      await ctx.close();
+    }
+
+    // ---- a browser without crypto.getRandomValues: the page must refuse to make sheets ----
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await ctx.addInitScript(() => { Object.defineProperty(window, 'crypto', { value: undefined, configurable: true }); });
+      const page = await ctx.newPage();
+      hook(page, 'no-crypto');
+      await page.goto(url, { waitUntil: 'load' });
+      await page.waitForTimeout(200);
+      const st = await page.evaluate(() => ({
+        secure: window.__twoSheets.secure,
+        print: document.getElementById('btnPrint').disabled,
+        saves: [...document.querySelectorAll('#downloads button')].map((b) => b.disabled),
+        note: !document.getElementById('noCrypto').hidden,
+      }));
+      await page.evaluate(() => window.__twoSheets.buildPrintArea());
+      const printed = await page.evaluate(() => document.querySelectorAll('#printArea img').length);
+      check(!st.secure && st.print && st.saves.length === 2 && st.saves.every(Boolean) && st.note && printed === 0,
+        'without crypto.getRandomValues, printing and saving are off and the page says so', JSON.stringify({ ...st, printed }));
+      const ctxSecure = await page.evaluate(() => typeof window.crypto);
+      check(ctxSecure === 'undefined', 'the no-crypto browser really had no crypto');
       await ctx.close();
     }
 

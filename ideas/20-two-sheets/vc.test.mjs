@@ -6,13 +6,19 @@
 // patterns on a sheet is the same for every value of the secret (and, for the cover scheme, the
 // same for every value of the other sheet's cover). The whole-picture tests then check that the
 // sheet functions are the cell functions applied cell by cell, that laying the sheets together
-// reads back the exact picture, and that a misregistered overlay does not.
+// reads back the exact picture, and how much a misregistered overlay still gives away (a lot: only a
+// single sheet is secret, never a pair, however it lies).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const VC = require('./vc.js');
+const Leak = require('./leak.js');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const { KEY_RANGE, TWO, THREE, ONE, popcount } = VC;
 
 const W = 120;
@@ -172,6 +178,36 @@ test('cover sheets: sheet A depends only on cover A; sheet B is distributed by c
   }
 });
 
+test('cover sheets: the ghost is a choice; a variant with a uniform three-subpixel white has none', () => {
+  // Change only (white secret, both covers white): B shares exactly one subpixel with A, chosen by
+  // the second key value. Each sheet's histogram must still depend only on its own cover, and every
+  // white cell must then show three black subpixels, every black cell four.
+  const variant = (bit, ca, cb, k) => {
+    const [A, B] = VC.cellCover(bit, ca, cb, k);
+    if (bit || ca || cb) return [A, B];
+    const h = (k / 12) | 0;
+    return [A, (1 << VC.bitsOf(A)[h % 2]) | (1 << VC.bitsOf(~A & 15)[(h >> 1) % 2])];
+  };
+  const hists = {};
+  for (const bit of [0, 1]) for (const ca of [0, 1]) for (const cb of [0, 1]) {
+    const as = [];
+    const bs = [];
+    for (let k = 0; k < KEY_RANGE; k++) {
+      const [a, b] = variant(bit, ca, cb, k);
+      as.push(a);
+      bs.push(b);
+      assert.equal(popcount(b), cb ? 3 : 2);
+      assert.equal(popcount(a | b), bit ? 4 : 3, 'no ghost: white is always three');
+    }
+    for (const [name, list, c] of [['A', as, ca], ['B', bs, cb]]) {
+      const key = `${name}${c}`;
+      const h = histOf(list).join();
+      if (hists[key] === undefined) hists[key] = h;
+      assert.equal(h, hists[key], `${name}'s histogram depends only on its own cover`);
+    }
+  }
+});
+
 // ---- whole pictures -------------------------------------------------------------------------
 
 test('two sheets: a new message leaves sheet A byte-identical and the aligned overlay reads back exactly', () => {
@@ -210,7 +246,9 @@ test('two sheets: empirical mutual information, single sheets vs the overlay', (
   console.log(`  MI bits: A ${miA.toFixed(5)}, B ${miB.toFixed(5)}, overlay ${miOver.toFixed(5)} (entropy ${entropy.toFixed(5)})`);
 });
 
-test('two sheets: misregistration by one subpixel (or one cell) does not read', () => {
+test('misregistration: the black-subpixel count per cell (what the eye averages) carries little or nothing', () => {
+  // This is the statistic the eye uses, and the one an earlier version of this entry mistook for
+  // "the" information in a slipped stack. It is small at one subpixel and zero at a whole cell.
   const key = VC.seededKey(W * H, 11);
   const results = {};
   for (const kind of ['disc', 'bars']) {
@@ -227,14 +265,255 @@ test('two sheets: misregistration by one subpixel (or one cell) does not read', 
       const mi = VC.mutualInformation(bits, counts).bits;
       results[`${kind} ${dx},${dy}`] = { acc, mi };
       if (dx === 0 && dy === 0) assert.equal(acc, 1);
-      else if (dx >= 2 || dy >= 2) assert.ok(mi < 0.01, `one whole cell off: MI ${mi}`);
+      else if (dx >= 2 || dy >= 2) assert.ok(mi < 0.01, `one whole cell off: count MI ${mi}`);
     }
   }
-  // The pictures are mostly white, so "accuracy" is dominated by the white background; mutual
-  // information is the honest measure. A one-subpixel shift leaves a little, a one-cell shift none.
-  for (const [k, v] of Object.entries(results)) console.log(`  ${k.padEnd(10)} accuracy ${(v.acc * 100).toFixed(1)}%  MI ${v.mi.toFixed(4)} bits`);
+  for (const [k, v] of Object.entries(results)) console.log(`  ${k.padEnd(10)} count decoder ${(v.acc * 100).toFixed(1)}%  MI(message; count) ${v.mi.toFixed(4)} bits`);
   assert.ok(results['disc 1,0'].mi < 0.25 * results['disc 0,0'].mi);
   assert.ok(results['bars 1,0'].mi < 0.25 * results['bars 0,0'].mi);
+  // Exactly, for one cell in the middle of a row, with a 50/50 message:
+  const sub = Leak.oneCellInformation(VC, 1, 0, 0.5);
+  assert.ok(Math.abs(sub.count - 0.0366) < 5e-4, `one subpixel, count: ${sub.count}`);
+  assert.ok(Math.abs(sub.meanCountWhite - 19 / 6) < 1e-12 && Math.abs(sub.meanCountBlack - 17 / 6) < 1e-12, 'a faint negative: white cells darker');
+  assert.ok(Math.abs(sub.pattern - 0.2683) < 5e-4, `one subpixel, the cell's own 2x2 pattern: ${sub.pattern}`);
+  for (const [dx, dy] of [[2, 0], [0, 2], [14, 12]]) {
+    const r = Leak.oneCellInformation(VC, dx, dy, 0.5);
+    assert.ok(r.count < 1e-12 && r.pattern < 1e-12, `whole-cell slip ${dx},${dy}: a cell alone says nothing`);
+  }
+  console.log(`  one cell, 50/50 message, one-subpixel slip: count ${sub.count.toFixed(4)} bits, own 2x2 pattern ${sub.pattern.toFixed(4)} bits; whole-cell slip: 0 and 0`);
+});
+
+test('leak.js: the forward-algorithm estimate equals brute-force I(message; overlay) on short rows', () => {
+  // Every message and every key of a three-cell strip, every chain slip: the expected value of
+  // log2 P(O | M) - log2 P(O) computed by leak.js must equal the mutual information computed by
+  // enumerating the joint distribution of (message, overlay) directly.
+  for (const [dx, dy, w, h] of [[1, 0, 3, 1], [-1, 0, 3, 1], [0, 1, 1, 3], [2, 0, 3, 1], [-2, 0, 3, 1], [0, 2, 1, 3]]) {
+    const joint = new Map();
+    const pm = new Map();
+    const po = new Map();
+    let expected = 0;
+    const n = w * h;
+    const weight = 1 / (2 ** n * 6 ** n);
+    for (let mm = 0; mm < 2 ** n; mm++) {
+      const bits = Uint8Array.from({ length: n }, (_, i) => (mm >> i) & 1);
+      for (let kk = 0; kk < 6 ** n; kk++) {
+        const key = Uint8Array.from({ length: n }, (_, i) => Math.floor(kk / 6 ** i) % 6);
+        const [a, b] = VC.twoSheets(bits, key);
+        const over = VC.overlay([VC.rasterize(a, w, h), VC.rasterize(b, w, h)], [[0, 0], [dx, dy]], w, h);
+        const obs = Leak.cellPatterns(over, w, h);
+        const o = obs.join(',');
+        joint.set(`${mm}|${o}`, (joint.get(`${mm}|${o}`) || 0) + weight);
+        pm.set(mm, (pm.get(mm) || 0) + weight);
+        po.set(o, (po.get(o) || 0) + weight);
+        expected += weight * Leak.analyseObserved(VC, obs, w, h, dx, dy, { bits, p: 0.5 }).infoBits;
+      }
+    }
+    let brute = 0;
+    for (const [k, v] of joint) {
+      const [m, o] = k.split('|');
+      brute += v * Math.log2(v / (pm.get(Number(m)) * po.get(o)));
+    }
+    assert.ok(Math.abs(brute - expected) < 1e-9, `slip ${dx},${dy}: brute ${brute}, forward algorithm ${expected}`);
+  }
+});
+
+// Measured once, used by the next tests: the information a slipped two-sheet stack still carries
+// about a random 50/50 message (1 bit per cell), from the full subpixel pattern of the overlay.
+const slipped = (() => {
+  let memo = null;
+  return () => {
+    if (memo) return memo;
+    memo = {};
+    const runs = [
+      ['sideways one subpixel', 1, 0, 2000, 20],
+      ['up/down one subpixel', 0, 1, 20, 2000],
+      ['one cell sideways', 2, 0, 2000, 20],
+      ['one cell down', 0, 2, 20, 2000],
+      ['scattered layout (7 cells right, 6 down) on the page\'s 100x40 sheet', 14, 12, 100, 40],
+    ];
+    for (const [label, dx, dy, w, h] of runs) {
+      let info = 0;
+      let right = 0;
+      let cells = 0;
+      const reps = w * h > 10000 ? 2 : 20;
+      for (let r = 0; r < reps; r++) {
+        const bits = new Uint8Array(w * h);
+        const rnd = VC.mulberry32(500 + r);
+        for (let i = 0; i < bits.length; i++) bits[i] = rnd() < 0.5 ? 1 : 0;
+        const [a, b] = VC.twoSheets(bits, VC.seededKey(w * h, 900 + r));
+        const res = Leak.analyse(VC, a, b, w, h, dx, dy, { bits, p: 0.5 });
+        assert.equal(res.impossible, 0);
+        info += res.infoBits;
+        right += res.accuracy * res.cells;
+        cells += res.cells;
+      }
+      memo[`${dx},${dy}`] = { label, info: info / cells, acc: right / cells };
+    }
+    return memo;
+  };
+})();
+
+test('misregistration: the full overlay of a slipped pair still carries about half of a random message', () => {
+  const r = slipped();
+  for (const v of Object.values(r)) console.log(`  ${v.label.padEnd(64)} ${v.info.toFixed(3)} bits per cell of 1; best guess right ${(v.acc * 100).toFixed(1)}%`);
+  for (const k of ['1,0', '0,1']) {
+    assert.ok(r[k].info > 0.48 && r[k].info < 0.54, `one subpixel ${k}: ${r[k].info}`);
+    assert.ok(r[k].acc > 0.77 && r[k].acc < 0.82, `one subpixel ${k}: accuracy ${r[k].acc}`);
+  }
+  for (const k of ['2,0', '0,2']) {
+    assert.ok(r[k].info > 0.52 && r[k].info < 0.58, `one cell ${k}: ${r[k].info}`);
+    assert.ok(r[k].acc > 0.71 && r[k].acc < 0.77, `one cell ${k}: accuracy ${r[k].acc}`);
+  }
+  // The scattered layout: whole cells, short chains, and only sheet A's frame counted (B's
+  // overhang, which a photo of the table would also show, is left out), so this is a floor.
+  assert.ok(r['14,12'].info > 0.47, `scattered: ${r['14,12'].info}`);
+  assert.ok(r['14,12'].acc > 0.68, `scattered: accuracy ${r['14,12'].acc}`);
+  // A sparse message, like lettering (13% black cells), loses a similar or larger share of its entropy.
+  for (const [dx, lo, hi] of [[1, 0.48, 0.57], [2, 0.54, 0.64]]) {
+    const w = 2000;
+    const h = 20;
+    const rnd = VC.mulberry32(77);
+    const bits = Uint8Array.from({ length: w * h }, () => (rnd() < 0.134 ? 1 : 0));
+    const [a, b] = VC.twoSheets(bits, VC.seededKey(w * h, 99));
+    const res = Leak.analyse(VC, a, b, w, h, dx, 0, { bits, p: 0.134 });
+    const share = res.infoPerCell / res.entropyPerCell;
+    console.log(`  sparse message (13% black), slip ${dx},0: ${res.infoPerCell.toFixed(3)} of ${res.entropyPerCell.toFixed(3)} bits per cell (${(share * 100).toFixed(1)}%)`);
+    assert.ok(share > lo && share < hi, `sparse share at ${dx},0: ${share}`);
+  }
+});
+
+test('misregistration: a diagonal one-subpixel slip still carries at least 0.43 bits per cell', () => {
+  // (1,1) couples four cells, so it is not a chain. First pin the geometry: each overlay cell is its
+  // own A plus one subpixel from each of four B cells.
+  const w = 30;
+  const h = 20;
+  const rnd = VC.mulberry32(4);
+  const bits = Uint8Array.from({ length: w * h }, () => (rnd() < 0.5 ? 1 : 0));
+  const [A, B] = VC.twoSheets(bits, VC.seededKey(w * h, 6));
+  const obs = Leak.cellPatterns(VC.overlay([VC.rasterize(A, w, h), VC.rasterize(B, w, h)], [[0, 0], [1, 1]], w, h), w, h);
+  const Bat = (x, y) => (x < 0 || y < 0 ? 0 : B[y * w + x]);
+  const rule = (a, bUL, bU, bL, bHere) => a | ((bUL >> 3) & 1) | (((bU >> 2) & 1) << 1) | (((bL >> 1) & 1) << 2) | ((bHere & 1) << 3);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    assert.equal(obs[y * w + x], rule(A[y * w + x], Bat(x - 1, y - 1), Bat(x, y - 1), Bat(x - 1, y), Bat(x, y)), `cell ${x},${y}`);
+  }
+  // Then enumerate exactly: the four overlay cells c, right, down, down-right hold all of A(c) and
+  // B(c). Their states (key and message bit, 12 each) are enumerated; the five B cells around them
+  // whose A is not in the window are uniform two-of-four patterns whatever their message (single-
+  // sheet secrecy); three of them show one subpixel each (a fair bit), two show two subpixels.
+  const joint = [new Float64Array(65536), new Float64Array(65536)];
+  const pairOf = TWO; // B(0,-1) and B(-1,0): uniform over the six patterns
+  for (let c = 0; c < 12; c++) for (let rr = 0; rr < 12; rr++) for (let d = 0; d < 12; d++) for (let rd = 0; rd < 12; rd++) {
+    const [Ac, Bc] = VC.cellTwo(c & 1, c >> 1);
+    const [Ar, Br] = VC.cellTwo(rr & 1, rr >> 1);
+    const [Ad, Bd] = VC.cellTwo(d & 1, d >> 1);
+    const [Ard, Brd] = VC.cellTwo(rd & 1, rd >> 1);
+    const wInner = 0.5 ** 4 / 6 ** 4;
+    for (const P1 of pairOf) for (const P2 of pairOf) for (let u = 0; u < 8; u++) {
+      const u1 = (u & 1) << 3; // B(-1,-1): its BR subpixel
+      const u2 = ((u >> 1) & 1) << 2; // B(1,-1): its BL subpixel
+      const u3 = ((u >> 2) & 1) << 1; // B(-1,1): its TR subpixel
+      const oc = rule(Ac, u1, P1, P2, Bc);
+      const or = rule(Ar, P1 & 8 ? 8 : 0, u2, Bc, Br);
+      const od = rule(Ad, P2 & 8 ? 8 : 0, Bc, u3, Bd);
+      const ord = rule(Ard, Bc, Br, Bd, Brd);
+      joint[c & 1][oc | (or << 4) | (od << 8) | (ord << 12)] += wInner / 36 / 8;
+    }
+  }
+  let mi = 0;
+  for (let o = 0; o < 65536; o++) {
+    const po = joint[0][o] + joint[1][o];
+    for (const m of [0, 1]) if (joint[m][o] > 0) mi += joint[m][o] * Math.log2(joint[m][o] / (0.5 * po));
+  }
+  console.log(`  diagonal one-subpixel slip: four-cell window carries ${mi.toFixed(4)} bits per cell (a lower bound)`);
+  assert.ok(Math.abs(mi - 0.4316) < 5e-4, `diagonal window: ${mi}`);
+  slipped().diag = { info: mi };
+});
+
+test('the README and the page quote the measured misregistration figures, and not the old ones', () => {
+  const r = slipped();
+  // (the Revision note at the end quotes the old claims on purpose, so it is left out)
+  const readme = fs.readFileSync(path.join(HERE, 'README.md'), 'utf8').split('## Revision note')[0];
+  const page = fs.readFileSync(path.join(HERE, 'index.html'), 'utf8');
+  const sub = ((r['1,0'].info + r['0,1'].info) / 2).toFixed(2);
+  const cell = ((r['2,0'].info + r['0,2'].info) / 2).toFixed(2);
+  const subAcc = `${Math.round(((r['1,0'].acc + r['0,1'].acc) / 2) * 100)}%`;
+  const cellAcc = `${Math.round(((r['2,0'].acc + r['0,2'].acc) / 2) * 100)}%`;
+  const scattered = (Math.floor(r['14,12'].info * 100) / 100).toFixed(2);
+  const diag = (Math.floor((r.diag ? r.diag.info : 0.4316) * 100) / 100).toFixed(2);
+  for (const [name, text] of [['README.md', readme], ['index.html', page]]) {
+    for (const want of [`${sub} bits`, `${cell} bits`, `at least ${diag}`, `at least ${scattered}`, subAcc, cellAcc]) {
+      assert.ok(text.includes(want), `${name} should say "${want}"`);
+    }
+    for (const gone of ['no measurable information', 'Nothing to read', 'about 3% of the mutual information survives', 'gone again']) {
+      assert.ok(!text.includes(gone), `${name} still says "${gone}"`);
+    }
+  }
+});
+
+test('plug-in bias: the stated noise floor matches simulation in two-sheet and two-pictures modes', () => {
+  // The page prints the bias of its plug-in estimates next to them. Draw many fresh keys for one
+  // message and check that the mean estimate (whose true value is zero) is that bias.
+  const w = 100;
+  const h = 40;
+  const n = w * h;
+  const secret = new Uint8Array(n);
+  const cA = new Uint8Array(n);
+  const cB = new Uint8Array(n);
+  const rnd = VC.mulberry32(5);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    secret[i] = (x - 50) ** 2 + (y - 20) ** 2 < 14 ** 2 ? 1 : 0;
+    cA[i] = (x >> 3) % 3 === 0 && y > 6 && y < 34 ? 1 : 0;
+    cB[i] = rnd() < 0.3 ? 1 : 0;
+  }
+  const reps = 160;
+  const cover = [0, 0];
+  let two = 0;
+  for (let r = 0; r < reps; r++) {
+    const key = VC.seededKey(n, 3000 + r);
+    const sheets = VC.coverSheets(secret, cA, cB, key);
+    [cA, cB].forEach((cov, i) => {
+      const joint = new Uint16Array(n);
+      for (let t = 0; t < n; t++) joint[t] = sheets[i][t] + 16 * cov[t];
+      cover[i] += (VC.mutualInformation(secret, joint).bits - VC.mutualInformation(secret, cov).bits) / reps;
+    });
+    two += VC.mutualInformation(secret, VC.twoSheets(secret, key)[0]).bits / reps;
+  }
+  const sheetsNow = VC.coverSheets(secret, cA, cB, VC.seededKey(n, 1));
+  const biasCover = [0, 1].map((i) => VC.plugInBias(secret, sheetsNow[i], [cA, cB][i]));
+  const biasTwo = VC.plugInBias(secret, VC.twoSheets(secret, VC.seededKey(n, 1))[0]);
+  console.log(`  two pictures: simulated ${cover.map((v) => v.toFixed(5)).join(', ')}, stated ${biasCover.map((v) => v.toFixed(5)).join(', ')} (the old formula said ${(18 / (2 * n * Math.LN2)).toFixed(5)})`);
+  console.log(`  two sheets:   simulated ${two.toFixed(5)}, stated ${biasTwo.toFixed(5)}`);
+  for (const i of [0, 1]) {
+    assert.ok(Math.abs(biasCover[i] - 8 / (2 * n * Math.LN2)) < 1e-12, '(2-1)(6-1) + (2-1)(4-1) = 8 degrees of freedom');
+    assert.ok(Math.abs(cover[i] - biasCover[i]) < 0.0003, `cover sheet ${i}: simulated ${cover[i]} vs stated ${biasCover[i]}`);
+  }
+  assert.ok(Math.abs(two - biasTwo) < 0.0003, `two sheets: simulated ${two} vs stated ${biasTwo}`);
+});
+
+test('key reuse: why the page draws a fresh key when the scheme changes and after printing', () => {
+  // Exact, per cell, over all 144 keys and a 50/50 message bit: two non-key sheets made from ONE
+  // key for the SAME message, in two schemes or under two cover pictures, give the message away.
+  function mi(obsOf) {
+    const joint = new Map();
+    const po = new Map();
+    for (const m of [0, 1]) for (let k = 0; k < KEY_RANGE; k++) {
+      const o = obsOf(m, k);
+      joint.set(`${m}|${o}`, (joint.get(`${m}|${o}`) || 0) + 0.5 / KEY_RANGE);
+      po.set(o, (po.get(o) || 0) + 0.5 / KEY_RANGE);
+    }
+    let s = 0;
+    for (const [key, v] of joint) s += v * Math.log2(v / (0.5 * po.get(key.split('|')[1])));
+    return s;
+  }
+  const twoThenThree = mi((m, k) => `${VC.cellTwo(m, k)[1]},${VC.cellThree(m, k)[1]}`);
+  const coverBEdited = mi((m, k) => `${VC.cellCover(m, 1, 0, k)[1]},${VC.cellCover(m, 1, 1, k)[1]}`);
+  const coverAEdited = mi((m, k) => `${VC.cellCover(m, 0, 1, k)[1]},${VC.cellCover(m, 1, 1, k)[1]}`);
+  console.log(`  same message, same key: B(two sheets)+B(three sheets) ${twoThenThree.toFixed(3)} bits; B before/after editing cover B (cover A black) ${coverBEdited.toFixed(3)}; B before/after editing cover A ${coverAEdited.toFixed(3)}`);
+  assert.ok(twoThenThree > 0.5);
+  assert.ok(Math.abs(coverBEdited - 1) < 1e-12);
+  assert.ok(coverAEdited > 0.05);
+  // ...while one B sheet alone, in any scheme, says nothing (checked exhaustively above).
 });
 
 test('three sheets: any two read back the picture exactly; one sheet carries nothing measurable', () => {

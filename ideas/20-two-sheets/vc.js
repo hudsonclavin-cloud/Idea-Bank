@@ -275,6 +275,26 @@
     return { bits: mi, xStates: px.size, yStates: py.size, n };
   }
 
+  // The upward bias, in bits, that a plug-in mutual-information estimate has when the true value
+  // is zero (the Miller–Madow term): (|X| − 1)(|Y| − 1) / (2 N ln 2), counting the values that
+  // actually occur. With a third sequence cs it is the bias of the conditional estimate
+  // I(X; Y | C) = I(X; Y, C) − I(X; C), which is the same term summed over the values of C:
+  // Σ_c (|X_c| − 1)(|Y_c| − 1) / (2 N ln 2).
+  function plugInBias(xs, ys, cs) {
+    const n = xs.length;
+    const groups = new Map();
+    for (let i = 0; i < n; i++) {
+      const c = cs ? cs[i] : 0;
+      let g = groups.get(c);
+      if (!g) groups.set(c, (g = { x: new Set(), y: new Set() }));
+      g.x.add(xs[i]);
+      g.y.add(ys[i]);
+    }
+    let dof = 0;
+    for (const g of groups.values()) dof += (g.x.size - 1) * (g.y.size - 1);
+    return dof / (2 * n * Math.LN2);
+  }
+
   // 64-bit FNV-1a style fingerprint of a sheet, as 16 hex digits. For "did this sheet change?",
   // not for security.
   function fingerprint(masks) {
@@ -316,6 +336,7 @@
     orMasks,
     histogram,
     mutualInformation,
+    plugInBias,
     fingerprint,
     sameMasks,
   };
