@@ -554,6 +554,25 @@ test('the README gives the random-play figure exactly and names its model', asyn
   assert.ok(!/needs 397\.5 moves/.test(readme), 'bare 397.5 still presented as exact');
 });
 
+test('the README names every button that makes the pocket\'s choice for the reader', async () => {
+  const fs = await import('node:fs');
+  const readme = fs.readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+  const app = fs.readFileSync(new URL('./app.js', import.meta.url), 'utf8');
+  // the buttons in app.js wired to the two handlers that unfold a cushion without the reader choosing it
+  const labels = new Set();
+  for (const m of app.matchAll(/click: (hintCushion|unfoldAll) \} \}, ([^\n]*?)\)\)?;?\n/g)) {
+    for (const q of m[2].matchAll(/'([^']+)'/g)) labels.add(q[1]);
+  }
+  assert.deepEqual([...labels].sort(), ['Hint', 'Unfold it for me', 'Unfold the rest']);
+  const whatItIs = readme.split('## What it is')[1].split('\n\n')[1];
+  const choice = readme.split('\n').find((l) => l.startsWith("- [Likely] The pocket's choice"));
+  assert.ok(choice, 'honest-assessment line about the pocket\'s choice is missing');
+  for (const text of [whatItIs, choice]) {
+    assert.match(text, /[Hh]int/);
+    assert.ok(text.includes('Unfold the rest'), `README leaves out "Unfold the rest": ${text.slice(0, 80)}`);
+  }
+});
+
 test('string crossings: 16 on the board, none once the squares are laid round a circle in ring order', () => {
   const R = 24;
   const board = Knights.SQUARES.map((s) => ({ x: s.c * 100 + 50, y: (2 - s.r) * 100 + 50 }));

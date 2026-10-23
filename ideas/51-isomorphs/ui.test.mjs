@@ -265,7 +265,7 @@ async function pocketRoom(page, io) {
     await rest(k + 1);
   }
   await page.waitForFunction(() => document.getElementById('p-stage').dataset.complete === '1');
-  assert.match(await page.locator('#p-status').innerText(), /copy of pocket B\. On the real table that is 5 bounces.* You chose every cushion yourself\./);
+  assert.match(await page.locator('#p-status').innerText(), /copy of pocket B\. On the real table that is 5 bounces.* You chose every cushion yourself \(after 2 wrong tries\)\./);
   // the 7 x 5 table: one cushion by hand, one with the hint lit, one unfolded by the hint, then the rest at once
   await io.tap(await centre(page, '#p-controls .ptabs button:has-text("7×5")'));
   await rest(0);
@@ -292,10 +292,14 @@ async function pocketRoom(page, io) {
   assert.doesNotMatch(before, /odd|even/);
   await io.tap(await centre(page, '#p-controls button[aria-label="Wide: less"]'));
   assert.match(await page.locator('#p-status').innerText(), /A 6\s×\s4 table, unfolded\. .*Pocket D, 3 bounces/);
+  // the ledger's "after" cell for the pocket, which must not give a verdict away before the third call either
+  const pocketAfter = () => page.locator('#ledger tbody tr').nth(2).locator('td').nth(1).innerText();
+  assert.equal(await pocketAfter(), 'not played yet');
   for (const [q, lab] of [[0, 'C'], [1, 'D'], [2, 'B']]) {
     const shown = (await page.locator('#p-controls .verdict').allInnerTexts()).filter((t) => t.trim()).length;
     assert.equal(shown, 0, 'no verdict before all three are called');
     assert.equal(await page.locator('#p-after').isVisible(), false);
+    if (q > 0) assert.equal(await pocketAfter(), `${q} of 3 answered (scored after the last)`, 'the ledger scores no call before the third');
     await io.tap(await centre(page, `#p-controls .qrow[data-q="${q}"] .pkey.${lab}`));
   }
   const verdicts = await page.locator('#p-controls .verdict').allInnerTexts();
@@ -395,13 +399,21 @@ test('the whole piece, played through', { skip: playwright ? false : 'Playwright
     await t.test('keyboard: the pocket\'s cushions can be chosen without a pointer', async () => {
       const { ctx, page, errors } = await open(browser, { viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
       const key = async (sel, k = 'Enter') => { await page.locator(sel).first().focus(); await page.keyboard.press(k); };
-      for (let t = 0; t < 2; t++) {
-        await key('#p-controls .pkey.A');
-        await page.waitForFunction(() => /dropped into/.test(document.getElementById('p-status').innerText));
-        if (t === 0) await key('#p-controls button:has-text("Next table")');
-      }
+      const focused = () => page.evaluate(() => document.activeElement.getAttribute('data-ctl') || document.activeElement.getAttribute('data-wall'));
+      const dropped = () => page.waitForFunction(() => /dropped into/.test(document.getElementById('p-status').innerText));
+      // the buttons are rebuilt on every render, but focus stays with the reader: after the shot it waits on
+      // Next table, and after Next table it is back on the pocket keys
+      await key('#p-controls .pkey.A');
+      await dropped();
+      assert.equal(await focused(), 'next');
+      await page.keyboard.press('Enter');
+      assert.equal(await focused(), 'pA');
+      await page.keyboard.press('Enter');
+      await dropped();
       await key('#p-controls .btn.primary');
       await page.waitForFunction(() => document.getElementById('p-stage').dataset.phase === 'redraw');
+      // arriving in the redraw step, focus is on a cushion
+      assert.equal(await focused(), 'left');
       // Enter on a wrong cushion folds out a wrong copy; Space on the right one unfolds it
       await key('#p-svg [data-wall="right"]');
       await page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '1');
@@ -409,7 +421,100 @@ test('the whole piece, played through', { skip: playwright ? false : 'Playwright
       await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '1' && document.querySelector('#p-svg [data-wall]'));
       // focus comes back to the cushions, so the next choice is one key away
       assert.ok(await page.evaluate(() => !!document.activeElement.closest('#p-svg [data-wall]')));
+      // Hint, pressed twice on the keyboard: the first press lights the right cushion and leaves focus on the
+      // button (not on the last cushion chosen by key, which is the wrong one here), the second unfolds it
+      const next1 = Pocket.unfoldSteps(4, 3)[1].wall === 'v' ? 'right' : 'top';
+      assert.equal(await focused(), 'top');
+      assert.notEqual(next1, 'top');
+      await key('#p-controls [data-ctl="hint"]');
+      assert.equal(await focused(), 'hint');
+      assert.equal(await page.locator(`#p-svg [data-wall="${next1}"] .wallhint`).count(), 1);
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '2' && document.querySelector('#p-svg [data-wall]'));
+      const d = await ds(page, 'p-stage');
+      assert.equal(d.wrong, '1', 'the second press of Hint is not a wrong choice');
+      assert.equal(d.miss, '0');
+      assert.equal(await focused(), 'hint');
       await page.keyboard.press('Tab');
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    });
+    await t.test('keyboard: a cushion chosen by key never pulls focus back once the reader has moved on', async () => {
+      // full motion, where the table is redrawn on every frame of a copy folding out and back
+      const { ctx, page, errors } = await open(browser, { viewport: { width: 1280, height: 900 }, reducedMotion: 'no-preference' });
+      const focused = () => page.evaluate(() => {
+        const a = document.activeElement;
+        return !a || a === document.body ? 'BODY' : a.getAttribute('data-ctl') || a.getAttribute('data-wall') || a.tagName;
+      });
+      const inProof = () => page.evaluate(() => !!document.activeElement.closest('#p-proof'));
+      const dropped = () => page.waitForFunction(() => /dropped into/.test(document.getElementById('p-status').innerText));
+      const settled = () => page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '0', null, { timeout: 8000 });
+      const crossed = () => page.waitForFunction(() => document.querySelector('#p-svg .missx'), null, { timeout: 4000 });
+      await page.locator('#p-controls .pkey.A').focus();
+      await page.keyboard.press('Enter');
+      await dropped();
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await dropped();
+      await page.locator('#p-controls [data-ctl="go-redraw"]').focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.phase === 'redraw' && document.querySelector('#p-svg [data-wall]'));
+      assert.equal(await focused(), 'left');
+      // a wrong cushion by Enter, then Tab (real key presses) to Hint while the wrong copy is out
+      await page.keyboard.press('Enter');
+      await crossed();
+      for (let i = 0; i < 12 && (await focused()) !== 'hint'; i++) await page.keyboard.press('Tab');
+      assert.equal(await focused(), 'hint');
+      // the wrong copy folds back; focus is still where the reader put it, so Enter means Hint
+      await settled();
+      await page.waitForTimeout(100);
+      assert.equal(await focused(), 'hint', 'focus was pulled back onto the wrong cushion');
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(100);
+      let d = await ds(page, 'p-stage');
+      assert.equal(d.wrong, '1', 'Enter on Hint was taken as a second wrong cushion');
+      assert.equal(await page.locator('#p-svg .wallhint').count(), 1);
+      // a wrong cushion by Enter, then Tab out of the room to the proof
+      await page.locator('#p-svg [data-wall="right"]').focus();
+      await page.keyboard.press('Enter');
+      await crossed();
+      for (let i = 0; i < 20 && !(await inProof()); i++) await page.keyboard.press('Tab');
+      assert.ok(await inProof());
+      await settled();
+      await page.waitForTimeout(100);
+      assert.ok(await inProof(), `focus was pulled back to ${await focused()}`);
+      // the right cushion by Enter, then Tab out while the copy turns over
+      await page.locator('#p-svg [data-wall="top"]').focus();
+      await page.keyboard.press('Enter');
+      for (let i = 0; i < 20 && !(await inProof()); i++) await page.keyboard.press('Tab');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '1' && document.querySelector('#p-svg [data-wall]'));
+      await page.waitForTimeout(100);
+      assert.ok(await inProof(), `focus was pulled back to ${await focused()}`);
+      // a reader who stays put keeps the memory: the right cushion by Enter, and focus comes back to the cushions
+      const next1 = Pocket.unfoldSteps(4, 3)[1].wall === 'v' ? 'right' : 'top';
+      await page.locator(`#p-svg [data-wall="${next1}"]`).focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '2' && document.querySelector('#p-svg [data-wall]'));
+      await page.waitForTimeout(100);
+      assert.equal(await focused(), next1);
+      // the right cushion by Enter, then focus goes to another room and falls from there to the page
+      const next2 = Pocket.unfoldSteps(4, 3)[2].wall === 'v' ? 'right' : 'top';
+      await page.locator(`#p-svg [data-wall="${next2}"]`).focus();
+      await page.keyboard.press('Enter');
+      await page.evaluate(() => { const b = [...document.querySelectorAll('#k-controls button')].find((x) => !x.disabled); b.focus(); b.blur(); });
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '3' && document.querySelector('#p-svg [data-wall]'));
+      await page.waitForTimeout(100);
+      assert.equal(await focused(), 'BODY');
+      // the right cushion by Enter, then a click on bare page: the reader has left the keyboard
+      const next3 = Pocket.unfoldSteps(4, 3)[3].wall === 'v' ? 'right' : 'top';
+      await page.locator(`#p-svg [data-wall="${next3}"]`).focus();
+      await page.keyboard.press('Enter');
+      await page.mouse.click(4, 4);
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '4' && document.querySelector('#p-svg [data-wall]'));
+      await page.waitForTimeout(100);
+      assert.ok(!(await page.evaluate(() => !!document.activeElement.closest('#p-svg'))), `focus was pulled back to ${await focused()}`);
+      d = await ds(page, 'p-stage');
+      assert.equal(d.wrong, '2');
       assert.deepEqual(errors, []);
       await ctx.close();
     });

@@ -28,6 +28,10 @@
     if (parent) parent.appendChild(e);
     return e;
   }
+  // Is the reader on the keyboard? Focus is only moved for them (a pointer user's focus is left alone).
+  let onKeys = false;
+  document.addEventListener('keydown', (e) => { if (!e.ctrlKey && !e.metaKey && !e.altKey) onKeys = true; }, true);
+  document.addEventListener('pointerdown', () => { onKeys = false; }, true);
   const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const reduced = () => mq.matches;
   // Runs step(p) for p from 0 to 1, then done(). Always finishes asynchronously, so the usual
@@ -109,7 +113,7 @@
   const record = {
     f: { before: { w: 0, d: 0, l: 0 }, after: { w: 0, d: 0, l: 0 } },
     k: { before: null, beforeTries: 0, after: null, afterTries: 0 },
-    p: { before: { right: 0, total: 0 }, after: { right: 0, total: 0 } },
+    p: { before: { right: 0, total: 0 }, after: { right: 0, total: 0, of: 0 } }, // of: how many calls the after-quiz has (set below)
   };
   function wdl(t) {
     const n = t.w + t.d + t.l;
@@ -121,8 +125,10 @@
     if (tries) return `not swapped yet (${tries} moves tried)`;
     return null;
   }
+  // The "after" calls are scored only once all three are in (t.of), so the ledger can't give a verdict away early.
   function pocketCell(t) {
     if (!t.total) return null;
+    if (t.of && t.total < t.of) return `${t.total} of ${t.of} answered (scored after the last)`;
     return `called ${t.right} of ${t.total} pockets`;
   }
   function renderLedger() {
@@ -940,8 +946,16 @@
       { m: 64, n: 48, answer: null },
     ],
     anim: null,
+    lostCtl: null, // a control that had keyboard focus and vanished, to land on at the next render
   };
   rooms.p = P;
+  record.p.after.of = P.quiz.length;
+  // uf.kbd remembers the cushion last chosen by key, only to bridge the moments when the cushions are off the
+  // table (the ball running, a copy turning over) and focus has fallen to the page. Focus going anywhere
+  // outside the table forgets it, so it can never pull the reader back from where they went.
+  document.addEventListener('focusin', (e) => {
+    if (!(e.target && e.target.closest && e.target.closest('#p-svg'))) P.uf.kbd = null;
+  });
 
   P.go = function (phase) {
     if (P.anim) P.anim.finish();
@@ -1127,19 +1141,19 @@
     const keys = h('div', { class: 'pocket-keys', role: 'group', 'aria-label': 'Guess a pocket' });
     for (const lab of ['A', 'B', 'C', 'D']) {
       keys.append(h('button', {
-        class: 'pkey ' + lab, 'aria-label': `Pocket ${lab}`, 'aria-pressed': (res ? res.guess : P.guess) === lab && (res || P.shot) ? 'true' : 'false',
+        class: 'pkey ' + lab, 'data-ctl': 'p' + lab, 'aria-label': `Pocket ${lab}`, 'aria-pressed': (res ? res.guess : P.guess) === lab && (res || P.shot) ? 'true' : 'false',
         disabled: !!res || !!P.shot, on: { click: () => guessPocket(lab) },
       }, lab));
     }
     controls.append(keys);
     controls.append(h('button', {
-      class: 'btn', disabled: !res || P.idx >= TABLES.length - 1,
+      class: 'btn', 'data-ctl': 'next', disabled: !res || P.idx >= TABLES.length - 1,
       on: { click: () => { P.idx++; P.guess = null; renderPocket(); } },
     }, 'Next table'));
     controls.append(h('span', { class: 'spacer' }));
     const ok = P.unlocked.has('redraw');
     controls.append(h('button', {
-      class: 'btn' + (ok ? ' primary' : ''), disabled: !ok,
+      class: 'btn' + (ok ? ' primary' : ''), 'data-ctl': 'go-redraw', disabled: !ok,
       on: { click: () => P.go('redraw') },
     }, ok ? 'Unfold the table →' : 'Redraw it (try two tables first)'));
   }
@@ -1267,7 +1281,10 @@
         if (uf.hint && side === next) s('line', { class: 'wallhint', x1: ax, y1: Y(ay), x2: bx, y2: Y(by), 'stroke-width': px * 6, 'stroke-dasharray': `${px * 10} ${px * 7}` }, gp);
         else s('line', { class: 'cue', x1: ax, y1: Y(ay), x2: bx, y2: Y(by), 'stroke-width': px * 3.4 }, gp);
       }
-      const want = hadFocus || uf.kbd;
+      // focus already on a cushion stays on that cushion; the remembered one is used only when focus was lost
+      // (the svg was rebuilt under it) and the reader is still on the keyboard, never to take it from elsewhere
+      const lost = !act || act === document.body;
+      const want = hadFocus || (lost && onKeys ? uf.kbd : null);
       if (want) {
         const f = picks.querySelector(`[data-wall="${want}"]`);
         if (f) f.focus({ preventScroll: true });
@@ -1376,6 +1393,7 @@
   // The hint: first press lights the right cushion; a second press unfolds it for the reader.
   function hintCushion() {
     const uf = P.uf;
+    uf.kbd = null; // a control button, not a cushion: focus stays on the button (see renderPocket)
     if (uf.anim) { uf.anim.finish(); return; }
     const [m, n] = ufTable();
     const steps = PK.unfoldSteps(m, n);
@@ -1386,6 +1404,7 @@
   }
   function unfoldAll() {
     const uf = P.uf;
+    uf.kbd = null;
     if (uf.anim) uf.anim.finish();
     stopMiss();
     const [m, n] = ufTable();
@@ -1400,6 +1419,7 @@
   }
   function foldUp(t) {
     const uf = P.uf;
+    uf.kbd = null;
     if (uf.anim) uf.anim.cancel();
     if (uf.viewAnim) uf.viewAnim.cancel();
     stopMiss();
@@ -1424,7 +1444,8 @@
     const pr = PK.predict(m, n);
     if (complete) {
       if (!P.done.has('redraw')) { P.done.add('redraw'); P.unlocked.add('again'); renderSteps('p'); }
-      const own = uf.own === steps.length ? ' You chose every cushion yourself.' : ` You chose ${uf.own} of the ${steps.length} cushions yourself.`;
+      const tries = uf.wrong ? ` (after ${uf.wrong} wrong ${uf.wrong === 1 ? 'try' : 'tries'})` : '';
+      const own = (uf.own === steps.length ? ' You chose every cushion yourself' : ` You chose ${uf.own} of the ${steps.length} cushions yourself`) + tries + '.';
       setStatus('p-status', `<span class="good">A straight line, into a copy of pocket ${pr.pocket}.</span> On the real table that is ${pr.bounces} bounces, and you never had to follow one. It crossed ${pr.across} tables across and ${pr.up} up.` + (steps.length ? own : ''));
     } else {
       let msg = '';
@@ -1444,15 +1465,15 @@
     const controls = $('p-controls');
     controls.textContent = '';
     const tabs = h('div', { class: 'ptabs', role: 'group', 'aria-label': 'Table' });
-    TABLES.forEach(([a, b], t) => tabs.append(h('button', { 'aria-pressed': t === uf.t ? 'true' : 'false', on: { click: () => foldUp(t) } }, `${a}×${b}`)));
+    TABLES.forEach(([a, b], t) => tabs.append(h('button', { 'data-ctl': `table${t}`, 'aria-pressed': t === uf.t ? 'true' : 'false', on: { click: () => foldUp(t) } }, `${a}×${b}`)));
     controls.append(tabs,
-      h('button', { class: 'btn', disabled: complete, on: { click: hintCushion } }, uf.hint ? 'Unfold it for me' : 'Hint'));
-    if (uf.k >= 3 && !complete) controls.append(h('button', { class: 'btn', on: { click: unfoldAll } }, 'Unfold the rest'));
+      h('button', { class: 'btn', 'data-ctl': 'hint', disabled: complete, on: { click: hintCushion } }, uf.hint ? 'Unfold it for me' : 'Hint'));
+    if (uf.k >= 3 && !complete) controls.append(h('button', { class: 'btn', 'data-ctl': 'rest', on: { click: unfoldAll } }, 'Unfold the rest'));
     controls.append(
-      h('button', { class: 'btn', disabled: uf.k === 0, on: { click: () => foldUp() } }, 'Fold up'),
+      h('button', { class: 'btn', 'data-ctl': 'fold', disabled: uf.k === 0, on: { click: () => foldUp() } }, 'Fold up'),
       h('span', { class: 'spacer' }),
       h('button', {
-        class: 'btn' + (P.unlocked.has('again') ? ' primary' : ''), disabled: !P.unlocked.has('again'),
+        class: 'btn' + (P.unlocked.has('again') ? ' primary' : ''), 'data-ctl': 'go-again', disabled: !P.unlocked.has('again'),
         on: { click: () => P.go('again') },
       }, P.unlocked.has('again') ? 'Any table →' : 'Play again (unfold one first)'));
   }
@@ -1486,9 +1507,9 @@
     const set = (d) => { P.free[key] = Math.max(1, Math.min(12, P.free[key] + d)); renderPocket(); };
     return h('span', { class: 'stepper', role: 'group', 'aria-label': label },
       h('span', { class: 'lbl' }, label),
-      h('button', { 'aria-label': `${label}: less`, on: { click: () => set(-1) } }, '−'),
+      h('button', { 'data-ctl': `${key}-less`, 'aria-label': `${label}: less`, on: { click: () => set(-1) } }, '−'),
       out,
-      h('button', { 'aria-label': `${label}: more`, on: { click: () => set(1) } }, '+'));
+      h('button', { 'data-ctl': `${key}-more`, 'aria-label': `${label}: more`, on: { click: () => set(1) } }, '+'));
   }
 
   function quizVerdict(q) {
@@ -1502,8 +1523,8 @@
       shape + `The line crosses ${pr.across.toLocaleString('en')} tables across (${pr.across % 2 ? 'odd' : 'even'}, so ${lr}) and ${pr.up.toLocaleString('en')} up (${pr.up % 2 ? 'odd' : 'even'}, so ${tb}), after ${pr.bounces.toLocaleString('en')} bounces.`;
   }
 
-  // The odd-and-even rule is held back until the reader has called the three big tables, so that the
-  // ledger's "after" column is the reader's own reading of the unfolded picture, not a rule the page told them.
+  // The odd-and-even rule, the verdicts and the ledger's score are all held back until the reader has called
+  // the three big tables, so that the "after" column is the reader's own reading of the unfolded picture.
   const quizDone = () => P.quiz.every((x) => x.answer != null);
   function renderPocketAgain() {
     drawLattice();
@@ -1524,14 +1545,18 @@
       const keys = h('div', { class: 'pocket-keys', role: 'group', 'aria-label': `Pocket for the ${q.m} by ${q.n} table` });
       for (const lab of ['A', 'B', 'C', 'D']) {
         keys.append(h('button', {
-          class: 'pkey ' + lab, 'aria-pressed': q.answer === lab ? 'true' : 'false', disabled: q.answer != null,
+          class: 'pkey ' + lab, 'data-ctl': `q${qi}${lab}`, 'aria-pressed': q.answer === lab ? 'true' : 'false', disabled: q.answer != null,
           'aria-label': `Pocket ${lab}`,
           on: { click: () => {
             if (q.answer != null) return;
             q.answer = lab;
             record.p.after.total++;
-            if (lab === PK.predict(q.m, q.n).pocket) record.p.after.right++;
-            if (quizDone()) { P.done.add('again'); reveal('p-after'); }
+            // nothing is scored until the last call, so no verdict leaks out through the ledger
+            if (quizDone()) {
+              record.p.after.right = P.quiz.filter((x) => x.answer === PK.predict(x.m, x.n).pocket).length;
+              P.done.add('again');
+              reveal('p-after');
+            }
             renderLedger();
             renderPocket();
           } },
@@ -1540,18 +1565,43 @@
       quiz.append(h('div', { class: 'qrow', 'data-q': qi },
         h('span', { class: 'q' }, `${q.m.toLocaleString('en')} wide, ${q.n.toLocaleString('en')} high`),
         keys,
-        h('div', { class: 'verdict', html: q.answer != null && done ? quizVerdict(q) : '' })));
+        h('div', { class: 'verdict', tabindex: done ? -1 : null, html: q.answer != null && done ? quizVerdict(q) : '' })));
     });
     controls.append(quiz);
   }
 
+  // The pocket's controls are rebuilt on every render, which would drop keyboard focus onto the page (or,
+  // through the cushions' own focus memory, onto a cushion nobody chose). So a reader on the keyboard stays
+  // on the control they pressed, which lets Hint be pressed twice in a row. If that control has gone or
+  // been disabled, focus moves to the next sensible one; if there is none yet (a shot is still rolling),
+  // it lands on the next render.
   function renderPocket() {
+    const act = document.activeElement;
+    const from = act && act.closest ? act.closest('#p-controls [data-ctl]') : null;
+    let ctl = from ? from.getAttribute('data-ctl') : null;
+    if (!ctl && P.lostCtl && (!act || act === document.body)) ctl = P.lostCtl;
+    P.lostCtl = null;
     renderSteps('p');
     $('p-stage').dataset.phase = P.phase;
     pocketSvg();
     if (P.phase === 'play') renderPocketPlay();
     else if (P.phase === 'redraw') renderPocketRedraw();
     else renderPocketAgain();
+    if (ctl && onKeys) refocusPocket(ctl);
+  }
+  function refocusPocket(ctl) {
+    const c = (sel) => `#p-controls ${sel}`;
+    let order;
+    if (P.phase === 'play') order = [c('[data-ctl="next"]'), c('.pkey:not([disabled])'), c('[data-ctl="go-redraw"]')];
+    // arriving in the redraw step, the first thing to do is choose a cushion
+    else if (P.phase === 'redraw') order = (/^(hint|rest|fold|table)/.test(ctl) ? [] : ['#p-svg [data-wall]']).concat([c('[data-ctl="hint"]'), c('[data-ctl="go-again"]')]);
+    // after the last call, the first verdict (they appear beside the keys just pressed)
+    else order = (/^q\d/.test(ctl) ? [c('.qrow .pkey:not([disabled])'), c('.verdict[tabindex]')] : []).concat([c('[data-ctl="m-less"]')]);
+    for (const sel of [c(`[data-ctl="${ctl}"]`)].concat(order)) {
+      const el = document.querySelector(sel);
+      if (el && !el.disabled) { el.focus({ preventScroll: true }); return; }
+    }
+    P.lostCtl = ctl;
   }
 
   /* ================================================================== */
