@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import M from './model.js';
+function permutations(a){if(a.length===0)return[[]];return a.flatMap((v,i)=>permutations(a.filter((_,j)=>j!==i)).map(p=>[v,...p]));}
+test('exact formula matches all possible orders through n=7',()=>{for(let n=1;n<=7;n++){const p=permutations(Array.from({length:n},(_,i)=>i));for(let r=0;r<n;r++){const wins=p.filter(order=>M.choose(order,r)===n-1).length;assert.ok(Math.abs(wins/p.length-M.success(n,r))<1e-12);}}});
+test('known optimal threshold and 37 percent asymptote',()=>{assert.equal(M.optimum(12),4);assert.ok(Math.abs(M.optimum(500)/500-1/Math.E)<.003);assert.equal(M.success(1,0),1);});
+test('seeded game is a permutation and reproducible',()=>{const a=M.game(20,7);assert.deepEqual(a,M.game(20,7));assert.notDeepEqual(a.order,M.game(20,8).order);assert.deepEqual([...a.order].sort((a,b)=>a-b),Array.from({length:20},(_,i)=>i));});
+test('relative-rank view does not reveal unseen ranks',()=>{const a={order:[3,1,4,0,2],index:1,selected:null};assert.deepEqual(M.view(a),{number:2,total:5,rank:2,record:false,finished:false,won:false});const b={...a,order:[3,1,0,2,4]};assert.deepEqual(M.view(a),M.view(b));});
+test('passing is irreversible, choosing ends the walk',()=>{let g=M.game(6,3);const start=g;g=M.pass(g);assert.equal(g.index,1);assert.equal(start.index,0);g=M.accept(g);assert.equal(g.selected,1);assert.throws(()=>M.pass(g),RangeError);assert.throws(()=>M.accept(g),RangeError);});
+test('last lantern remains selectable but cannot be passed',()=>{let g=M.game(3,4);g=M.pass(M.pass(g));assert.throws(()=>M.pass(g),RangeError);assert.equal(M.accept(g).selected,2);});
+test('invalid dimensions, skips and numbers fail clearly',()=>{for(const a of [[0,0],[5,5],[2.5,1],[501,0],[3,-1]])assert.throws(()=>M.success(...a),RangeError);assert.throws(()=>M.choose([NaN],0),RangeError);});

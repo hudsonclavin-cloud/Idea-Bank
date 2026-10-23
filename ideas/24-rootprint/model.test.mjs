@@ -1,0 +1,9 @@
+import {createRequire} from 'node:module';import test from 'node:test';import assert from 'node:assert/strict';const require=createRequire(import.meta.url),M=require('./model.js');
+test('indicator fraction is half at pKa, approaches correct acid/base limits',()=>{assert.equal(M.fraction(6.8),.5);assert.ok(M.fraction(0)<1e-6);assert.ok(M.fraction(14)>.999999);assert.ok(M.fraction(7)>M.fraction(6));});
+test('all water is accounted for every hourly step',()=>{for(const wick of [0,20,140,240]){const r=M.simulate({wick});for(const s of r.records){assert.ok(Math.abs(r.initialWater-s.reserve-s.soil-s.uptake-s.evaporated)<1e-7);assert.ok(s.reserve>=0);assert.ok(s.soil>=0&&s.soil<=180);assert.ok(Math.abs(s.uptake+s.unmet-55*s.day)<1e-7);}}});
+test('no demand or evaporation means no water leaves the system',()=>{const r=M.simulate({demand:0,evaporation:0});assert.equal(r.firstGap,null);assert.equal(r.records.at(-1).uptake,0);assert.equal(r.records.at(-1).evaporated,0);});
+test('a severed wick cannot move reservoir water',()=>{const r=M.simulate({wick:0});assert.equal(r.records.at(-1).reserve,700);assert.ok(r.firstGap<3);});
+test('zero initial water produces a gap immediately',()=>{const r=M.simulate({reserve:0,initialSoil:0});assert.equal(r.firstGap,0);assert.equal(r.records.at(-1).uptake,0);});
+test('larger reservoir cannot cause earlier supply gap',()=>{const a=M.simulate({reserve:200}),b=M.simulate({reserve:1200});assert.ok((b.firstGap??Infinity)>=(a.firstGap??Infinity));});
+test('non-integer time horizon preserves accounting',()=>{const r=M.simulate({days:1.1,dt:.3}),s=r.records.at(-1);assert.ok(Math.abs(s.day-1.1)<1e-12);assert.ok(Math.abs(r.initialWater-s.reserve-s.soil-s.uptake-s.evaporated)<1e-8);});
+test('invalid model inputs are rejected',()=>{for(const o of [{dt:0},{soilCapacity:0},{initialSoil:181},{reserve:-1},{days:Infinity},{days:366}])assert.throws(()=>M.simulate(o));assert.throws(()=>M.fraction(NaN));});

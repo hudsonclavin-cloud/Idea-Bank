@@ -122,6 +122,12 @@ function main() {
     if (r.status !== 0) failed++;
   }
 
+  if (smoke && !args.some((a) => !a.startsWith('--'))) {
+    console.log('\nchecking every gallery image over HTTP and file://…');
+    const r = spawnSync('node', [path.join(ROOT, 'tools', 'gallery-check.mjs')], { stdio: 'inherit' });
+    if (r.status !== 0) failed++;
+  }
+
   console.log(failed ? `\ncheck failed (${failed} problem area${failed > 1 ? 's' : ''})` : '\nall ideas pass');
   process.exit(failed ? 1 : 0);
 }

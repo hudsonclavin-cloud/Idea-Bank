@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the gallery from the ideas themselves: reads each ideas/NN-slug/README.md header,
-// captures preview.jpg for browser ideas that lack one, writes index.html, and refreshes
+// captures preview.jpg for every idea that lacks one, writes index.html, and refreshes
 // the table between the gallery markers in README.md.
 //
 // Usage: node tools/gallery.mjs [--no-thumbs] [--force-thumbs]
@@ -49,8 +49,11 @@ function readIdeas() {
     .sort()
     .map((name) => {
       const dir = path.join(IDEAS, name);
-      const md = fs.existsSync(path.join(dir, 'README.md')) ? fs.readFileSync(path.join(dir, 'README.md'), 'utf8') : '';
-      const preview = ['preview.jpg', 'preview.png'].find((f) => fs.existsSync(path.join(dir, f)));
+      const readme = path.join(dir, 'README.md');
+      if (!fs.existsSync(readme)) throw new Error(`${name} has no README.md; finish the deposit before building the gallery.`);
+      const md = fs.readFileSync(readme, 'utf8');
+      // A placeholder or truncated image must not permanently suppress regeneration.
+      const preview = ['preview.jpg', 'preview.png'].find((f) => validPreview(path.join(dir, f)));
       return {
         name,
         dir,
@@ -62,8 +65,32 @@ function readIdeas() {
         by: field(md, 'Made by') || 'anonymous agent',
         web: fs.existsSync(path.join(dir, 'index.html')),
         preview,
+        sample: ['example.svg', 'example.txt'].find((f) => fs.existsSync(path.join(dir, f))),
       };
     });
+}
+
+function validPreview(file) {
+  if (!fs.existsSync(file)) return false;
+  const data = fs.readFileSync(file);
+  return data.length > 512 && (data.subarray(0, 3).equals(Buffer.from([255, 216, 255])) ||
+    data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])));
+}
+
+// Render actual saved output for command-line deposits, without running their code.
+function samplePage(idea, origin) {
+  const art = idea.sample?.endsWith('.svg');
+  const sample = art ? `<img src="${origin}/ideas/${idea.name}/${idea.sample}" alt="Generated output">`
+    : `<pre>${esc(idea.sample ? fs.readFileSync(path.join(idea.dir, idea.sample), 'utf8').slice(0, 2200) : `$ ${idea.run}`)}</pre>`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><title>${esc(idea.title)}</title>
+  <style>*{box-sizing:border-box}body{margin:0;background:#eee9dc;color:#213c3a;font-family:system-ui}
+  main{height:600px;padding:30px 38px;display:grid;grid-template-rows:26px 66px 1fr 30px;gap:10px}
+  .label,footer{font:12px monospace;letter-spacing:.12em;text-transform:uppercase}h1{font:46px Georgia;margin:0}
+  section{min-height:0;overflow:hidden;border:1px solid #c5c1b2;background:${art ? '#faf5e9' : '#173432'};padding:18px}
+  img{display:block;width:100%;height:100%;object-fit:contain}pre{margin:0;color:#dbe7d8;white-space:pre-wrap;font:19px/1.6 monospace}
+  footer{display:flex;justify-content:space-between;align-items:end}</style><main>
+  <div class="label">Idea Bank / No. ${esc(idea.no)} / ${esc(idea.kind)}</div><h1>${esc(idea.title)}</h1>
+  <section>${sample}</section><footer><span>Actual generated output</span><span>Offline · Python standard library</span></footer></main></html>`;
 }
 
 function loadPlaywright() {
@@ -77,16 +104,16 @@ function loadPlaywright() {
 }
 
 async function captureThumbs(ideas, force) {
-  const todo = ideas.filter((i) => i.web && (force || !i.preview));
+  const todo = ideas.filter((i) => force || !i.preview);
   if (!todo.length) return;
   const { chromium } = loadPlaywright();
   const server = http.createServer((req, res) => {
     let p = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname));
-    if (!p.startsWith(ROOT)) return res.writeHead(403).end();
+    if (p !== ROOT && !p.startsWith(ROOT + path.sep)) return res.writeHead(403).end();
     if (fs.existsSync(p) && fs.statSync(p).isDirectory()) p = path.join(p, 'index.html');
     fs.readFile(p, (err, data) => {
       if (err) return res.writeHead(404).end();
-      const type = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' }[path.extname(p)];
+      const type = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png' }[path.extname(p)];
       res.writeHead(200, type ? { 'content-type': type } : {});
       res.end(data);
     });
@@ -97,8 +124,17 @@ async function captureThumbs(ideas, force) {
     for (const idea of todo) {
       const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
       await page.emulateMedia({ colorScheme: 'dark' });
-      await page.goto(`http://127.0.0.1:${server.address().port}/ideas/${idea.name}/index.html`, { waitUntil: 'load' });
-      await page.waitForTimeout(2500);
+      const origin = `http://127.0.0.1:${server.address().port}`;
+      if (idea.web) {
+        await page.goto(`${origin}/ideas/${idea.name}/index.html`, { waitUntil: 'load' });
+        await page.waitForTimeout(2500);
+      } else {
+        await page.setContent(samplePage(idea, origin), { waitUntil: 'load' });
+      }
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all([...document.images].map((img) => img.decode()));
+      });
       await page.screenshot({ path: path.join(idea.dir, 'preview.jpg'), type: 'jpeg', quality: 72 });
       await page.close();
       idea.preview = 'preview.jpg';
@@ -122,13 +158,13 @@ function readmeTable(ideas, repo) {
 function card(i, repo) {
   const open = `ideas/${i.name}/index.html`;
   const notes = repo ? `${repo}/blob/main/ideas/${i.name}/README.md` : `ideas/${i.name}/README.md`;
-  const img = i.preview ? `<img src="ideas/${i.name}/${i.preview}" alt="" loading="lazy" width="960" height="600">` : '';
+  const img = i.preview ? `<img src="ideas/${i.name}/${i.preview}" alt="${esc(i.title)} preview" loading="lazy" width="960" height="600">` : '';
   const thumb = i.web || img
     ? `<a class="thumb" href="${i.web ? open : notes}" tabindex="-1" aria-hidden="true">${img}</a>`
     : `<div class="thumb term" aria-hidden="true"><code><span>$</span> ${esc(i.run)}</code></div>`;
   const primary = i.web
     ? `<a class="btn primary" href="${open}">Open</a>`
-    : `<a class="btn primary" href="${notes}">How to run</a>`;
+    : `<a class="btn primary" href="${notes}">Run in terminal</a>`;
   return `      <article class="slip">
         ${thumb}
         <div class="meta"><span class="no">No. ${esc(i.no)}</span><span class="kind">${esc(i.kind)}</span></div>

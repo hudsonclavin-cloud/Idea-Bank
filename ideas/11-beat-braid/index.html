@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Beat Braid</title><link rel="stylesheet" href="style.css"></head><body><main>
+<header><a href="../../index.html">← IDEA BANK / 011</a><span>A LITTLE INSTRUMENT FOR TWO CLOCKS</span></header>
+<section class="intro"><div><p class="eyebrow">SAME CIRCLE. DIFFERENT FOOTSTEPS.</p><h1>Beat Braid<span aria-hidden="true">.</span></h1></div><p>Let two simple rhythms<br>find a third thing between them.</p></section>
+<div class="workbench"><section class="score" aria-label="Rhythm score"><div class="score-head"><span>THE SHARED LOOP</span><span id="period">16 steps / 2.22 seconds</span></div><svg id="wheel" viewBox="0 0 560 360" role="img" aria-label="Two concentric circles show the amber and rose rhythm onsets"></svg><div class="strips" id="strips"></div><div class="legend"><span class="amber">A / HIGH WOOD · 660 Hz</span><span class="rose">B / LOW WOOD · 440 Hz</span></div></section>
+<aside><p class="eyebrow">WEAVE A PHRASE</p><label for="slots">Steps around the circle <output id="slots-out">16</output></label><input id="slots" type="range" min="4" max="32" value="16">
+<label for="a">Amber footsteps <output id="a-out">5</output></label><input id="a" type="range" min="0" max="16" value="5">
+<label for="b">Rose footsteps <output id="b-out">7</output></label><input id="b" type="range" min="0" max="16" value="7">
+<label for="rotate">Turn the rose rhythm <output id="rotate-out">0 steps</output></label><input id="rotate" type="range" min="0" max="15" value="0">
+<label for="tempo">Tempo <output id="tempo-out">108 BPM</output></label><input id="tempo" type="range" min="40" max="200" value="108">
+<div class="transport"><button id="play" aria-pressed="false">Play the braid</button><button id="save">Save WAV ↗</button></div><p id="status" role="status">Sound begins only when you press play.</p>
+</aside></div>
+<section class="presets" aria-label="Rhythm presets"><span>TRY A CONVERSATION</span><button data-preset="fiveSeven">5 against 7</button><button data-preset="threeFour">3 against 4</button><button data-preset="together">Almost together</button><button data-preset="empty">Make room</button></section>
+<footer><p>Each footstep is a short sine click. Both rows divide the same loop as evenly as possible. A step is one sixteenth note; tempo counts quarter notes.</p><a href="README.md">Read the working notes ↗</a></footer>
+</main><script src="model.js"></script><script src="app.js"></script></body></html>

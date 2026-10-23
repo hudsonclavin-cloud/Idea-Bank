@@ -1,0 +1,4 @@
+Skip 18 of 50, then take the first new record (otherwise the last).
+Exact chance of best: 37.4275%
+Simulated: 38.0200% over 10000 trials
+Assumptions: random order, known pool size, no recall, best-only objective.

@@ -1,0 +1,6 @@
+A vs B: win 5/9, tie 0, lose 4/9  -> advantage
+A vs C: win 4/9, tie 0, lose 5/9
+B vs A: win 4/9, tie 0, lose 5/9
+B vs C: win 5/9, tie 0, lose 4/9  -> advantage
+C vs A: win 5/9, tie 0, lose 4/9  -> advantage
+C vs B: win 4/9, tie 0, lose 5/9
