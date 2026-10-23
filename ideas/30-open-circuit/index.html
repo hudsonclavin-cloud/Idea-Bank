@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Circuit</title>
+<meta name="description" content="A museum of switches. Every exhibit may be handled, every mechanism is real, and each one is wired to nothing, with two exceptions noted on the plaques.">
+<style>
+  :root {
+    color-scheme: light;
+    --wall: #ebe5d8;
+    --wall-2: #e2dbcb;
+    --card: #f6f2e9;
+    --card-edge: #d6cdbb;
+    --plaque: #fbf8f1;
+    --vitrine: radial-gradient(120% 90% at 50% 20%, #fdfbf5 0%, #efeadf 70%, #e6dfd0 100%);
+    --ink: #27231f;
+    --ink-soft: #6c655c;
+    --legend: #534c44;
+    --rule: #d6cdbb;
+    --focus: #2b6cb0;
+    --metal-hi: #f5f5f3; --metal: #b9bbbe; --metal-lo: #6b6e73;
+    --brass-hi: #f6de95; --brass: #cfa64b; --brass-lo: #7c5e1f;
+    --plastic-hi: #fdfcfa; --plastic: #ebe8e0; --plastic-lo: #b4aea1;
+    --red-hi: #ee6f5f; --red: #c8382b; --red-lo: #7b1c13;
+    --yellow-hi: #ffe46e; --yellow: #f1bf1e; --yellow-lo: #9a7906;
+    --copper-hi: #e9a673; --copper: #b96c3b; --copper-lo: #6b391a;
+    --wood-hi: #c99b63; --wood: #a5733f; --wood-lo: #5a3a1b;
+    --ivory-hi: #fffdf6; --ivory: #efe7cf; --ivory-lo: #b6aa86;
+    --panel: #30333a; --panel-edge: #15171a;
+    --slate: #4b5057; --slate-edge: #2a2d31;
+    --dip: #2f4ea8; --dip-edge: #1b306e; --dip-ink: #e9edf8;
+    --key-hi: #f2eee4; --key: #dcd7ca; --key-edge: #a39d8e; --key-front: #b5afa0; --key-side: #a09a8b;
+    --lamp-off: #6e7e56;
+    --glass-hi: rgba(255,255,255,0.35);
+  }
+  html.dark {
+    color-scheme: dark;
+    --wall: #1b1a19;
+    --wall-2: #161514;
+    --card: #262423;
+    --card-edge: #3a3632;
+    --plaque: #2c2927;
+    --vitrine: radial-gradient(120% 90% at 50% 15%, #3a3733 0%, #262423 65%, #1f1d1c 100%);
+    --ink: #ece6da;
+    --ink-soft: #a39b8f;
+    --legend: #d2cabc;
+    --rule: #3a3632;
+    --focus: #8ab4f8;
+    --metal-hi: #d8d8d6; --metal: #8f9195; --metal-lo: #43464b;
+    --brass-hi: #dec57e; --brass: #a9863b; --brass-lo: #564013;
+    --plastic-hi: #e8e4da; --plastic: #cfcac0; --plastic-lo: #8a8478;
+    --red-hi: #e0604f; --red: #b5301f; --red-lo: #5e130c;
+    --yellow-hi: #f0d55a; --yellow: #d8a90f; --yellow-lo: #7a5f04;
+    --copper-hi: #d48f5c; --copper: #a35b2c; --copper-lo: #522a10;
+    --wood-hi: #a97e4d; --wood: #7f5631; --wood-lo: #3a2411;
+    --ivory-hi: #f0ebdc; --ivory: #d8cfb5; --ivory-lo: #8f8564;
+    --panel: #26282d; --panel-edge: #0f1012;
+    --slate: #3b3f45; --slate-edge: #1d1f22;
+    --dip: #27428b; --dip-edge: #15265a; --dip-ink: #dfe5f5;
+    --key-hi: #dad5c8; --key: #bcb6a8; --key-edge: #7c776b; --key-front: #8c877a; --key-side: #777266;
+    --lamp-off: #55623e;
+    --glass-hi: rgba(255,255,255,0.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--wall);
+    background-image: linear-gradient(var(--wall), var(--wall-2));
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif;
+    line-height: 1.45;
+    -webkit-text-size-adjust: 100%;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 0 16px 48px; }
+  .entrance { text-align: center; padding: 44px 0 28px; border-bottom: 1px solid var(--rule); margin-bottom: 26px; }
+  .eyebrow { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--ink-soft); }
+  h1 { margin: 0; font-weight: 500; font-size: clamp(38px, 7vw, 64px); letter-spacing: 0.06em; line-height: 1.05; }
+  .lede { max-width: 56ch; margin: 18px auto 0; font-size: 16px; }
+  .notice { max-width: 56ch; margin: 10px auto 0; font-size: 14px; font-style: italic; color: var(--ink-soft); }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 282px), 1fr)); gap: 18px; }
+  .case {
+    display: flex; flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -16px rgba(0,0,0,0.25);
+  }
+  .vitrine { background: var(--vitrine); padding: 4px; }
+  .vitrine svg { display: block; width: 100%; height: auto; outline: none; border-radius: 4px; }
+  .vitrine svg:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
+  .zone { touch-action: none; }
+  .zone.grab { cursor: grab; }
+  .zone.press { cursor: pointer; }
+  svg.held .zone.grab { cursor: grabbing; }
+  .plaque { flex: 1; padding: 12px 14px 13px; border-top: 1px solid var(--card-edge); background: var(--plaque); }
+  .plaque-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .plaque h2 { margin: 0; font-size: 14px; font-weight: 700; font-variant: small-caps; letter-spacing: 0.04em; }
+  .acc { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 10px; color: var(--ink-soft); white-space: nowrap; }
+  .meta { margin: 3px 0 7px; font-size: 12.5px; font-style: italic; color: var(--ink-soft); }
+  .text { margin: 0; font-size: 13.5px; }
+  .note { margin: 6px 0 0; font-size: 13.5px; min-height: 0; }
+  .note:empty { display: none; }
+  .credit { margin: 9px 0 0; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--rule); text-align: center; font-size: 13px; color: var(--ink-soft); }
+  footer p { margin: 4px 0; }
+  footer a { color: inherit; }
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  /* lettering inside the vitrines */
+  .legend { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 8.5px; letter-spacing: 1.6px; fill: var(--legend); pointer-events: none; user-select: none; }
+  .legend.small { font-size: 7px; letter-spacing: 1.1px; }
+  .legend.tiny { font-size: 5.8px; letter-spacing: 0.9px; }
+  .legend.engraved { fill: #4a3508; fill-opacity: 0.75; }
+  .legend.onplastic { fill: #3d3934; }
+  .legend.onpanel { fill: #d9d5cb; }
+  .legend.ondip { fill: var(--dip-ink); }
+  .legend.oncollar { fill: #1a1400; font-weight: 700; }
+  .keylegend { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 15px; fill: #3a362f; pointer-events: none; user-select: none; }
+  .drum { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 19px; font-weight: 700; fill: #1b1b1b; pointer-events: none; user-select: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .case { transition: none; }
+  }
+</style>
+</head>
+<body>
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gMetal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--metal-hi)"/><stop offset="0.55" style="stop-color:var(--metal)"/><stop offset="1" style="stop-color:var(--metal-lo)"/>
+    </linearGradient>
+    <linearGradient id="gMetalDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--metal-lo)"/><stop offset="0.5" style="stop-color:var(--metal)"/><stop offset="1" style="stop-color:var(--metal-hi)"/>
+    </linearGradient>
+    <linearGradient id="gMetalH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" style="stop-color:var(--metal-hi)"/><stop offset="0.5" style="stop-color:var(--metal)"/><stop offset="1" style="stop-color:var(--metal-lo)"/>
+    </linearGradient>
+    <linearGradient id="gChrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--metal-hi)"/><stop offset="0.35" style="stop-color:var(--metal)"/><stop offset="0.5" style="stop-color:var(--metal-lo)"/><stop offset="0.62" style="stop-color:var(--metal)"/><stop offset="1" style="stop-color:var(--metal-lo)"/>
+    </linearGradient>
+    <linearGradient id="gBrass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--brass-hi)"/><stop offset="0.5" style="stop-color:var(--brass)"/><stop offset="1" style="stop-color:var(--brass-lo)"/>
+    </linearGradient>
+    <linearGradient id="gBrassDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--brass-lo)"/><stop offset="0.5" style="stop-color:var(--brass)"/><stop offset="1" style="stop-color:var(--brass-hi)"/>
+    </linearGradient>
+    <linearGradient id="gBrassH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" style="stop-color:var(--brass-hi)"/><stop offset="0.5" style="stop-color:var(--brass)"/><stop offset="1" style="stop-color:var(--brass-lo)"/>
+    </linearGradient>
+    <linearGradient id="gPlastic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--plastic-hi)"/><stop offset="0.6" style="stop-color:var(--plastic)"/><stop offset="1" style="stop-color:var(--plastic-lo)"/>
+    </linearGradient>
+    <linearGradient id="gRed" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" style="stop-color:var(--red-hi)"/><stop offset="0.5" style="stop-color:var(--red)"/><stop offset="1" style="stop-color:var(--red-lo)"/>
+    </linearGradient>
+    <linearGradient id="gYellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--yellow-hi)"/><stop offset="0.6" style="stop-color:var(--yellow)"/><stop offset="1" style="stop-color:var(--yellow-lo)"/>
+    </linearGradient>
+    <linearGradient id="gCopper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--copper-hi)"/><stop offset="0.55" style="stop-color:var(--copper)"/><stop offset="1" style="stop-color:var(--copper-lo)"/>
+    </linearGradient>
+    <linearGradient id="gWood" x1="0" y1="0" x2="1" y2="0.3">
+      <stop offset="0" style="stop-color:var(--wood-hi)"/><stop offset="0.3" style="stop-color:var(--wood)"/><stop offset="0.55" style="stop-color:var(--wood-hi)"/><stop offset="1" style="stop-color:var(--wood-lo)"/>
+    </linearGradient>
+    <linearGradient id="gKey" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--key-hi)"/><stop offset="1" style="stop-color:var(--key)"/>
+    </linearGradient>
+    <linearGradient id="gGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--glass-hi)"/><stop offset="0.45" stop-color="rgba(255,255,255,0)"/><stop offset="1" stop-color="rgba(0,0,0,0.12)"/>
+    </linearGradient>
+    <radialGradient id="rBall" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" style="stop-color:var(--metal-hi)"/><stop offset="0.5" style="stop-color:var(--metal)"/><stop offset="1" style="stop-color:var(--metal-lo)"/>
+    </radialGradient>
+    <radialGradient id="rBakelite" cx="0.35" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#5a5b60"/><stop offset="0.55" stop-color="#232428"/><stop offset="1" stop-color="#0d0d10"/>
+    </radialGradient>
+    <radialGradient id="rIvory" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0" style="stop-color:var(--ivory-hi)"/><stop offset="0.6" style="stop-color:var(--ivory)"/><stop offset="1" style="stop-color:var(--ivory-lo)"/>
+    </radialGradient>
+    <radialGradient id="rRed" cx="0.38" cy="0.3" r="0.8">
+      <stop offset="0" style="stop-color:var(--red-hi)"/><stop offset="0.55" style="stop-color:var(--red)"/><stop offset="1" style="stop-color:var(--red-lo)"/>
+    </radialGradient>
+    <filter id="fShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0.6" dy="1.6" stdDeviation="1.1" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="entrance">
+    <p class="eyebrow">A museum of switches</p>
+    <h1>Open Circuit</h1>
+    <p class="lede">Every exhibit may be handled. Drag a handle slowly to feel its mechanism; tap to work it quickly. Nothing here is connected to anything, with the exceptions noted on the plaques.</p>
+    <p class="notice">Please do not ask the staff what the switches are for.</p>
+  </header>
+  <main class="gallery" id="gallery" aria-label="The collection"></main>
+  <footer>
+    <p>The gift shop sells nothing. Open daily, including today.</p>
+    <p>Every click is synthesized in your browser; nothing is loaded from the network. <a href="README.md">Notes on the collection</a>.</p>
+  </footer>
+</div>
+
+<script src="switches.js"></script>
+<script src="sound.js"></script>
+<script src="exhibits.js"></script>
+<script>
+(function () {
+  'use strict';
+  const html = document.documentElement;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* a museum without a memory is still a museum */ } },
+  };
+
+  // Gallery lighting: remembered if a visitor has touched the switch, otherwise the system's.
+  const remembered = store.get('oc-lights');
+  let lightsTouched = remembered === 'on' || remembered === 'off';
+  const setLights = (on, remember) => {
+    html.classList.toggle('dark', !on);
+    if (remember) { lightsTouched = true; store.set('oc-lights', on ? 'on' : 'off'); }
+  };
+  setLights(lightsTouched ? remembered === 'on' : !prefersDark.matches, false);
+  prefersDark.addEventListener('change', (e) => { if (!lightsTouched) { setLights(!e.matches, false); const l = exhibits.find((x) => x.lighting); if (l) { l.model.set(!e.matches); l.model.step(Infinity); l.render(); } } });
+
+  const COUNTED = new Set(['snap', 'detent', 'down', 'click', 'tick', 'clunk', 'clack', 'open', 'trip', 'reset', 'thunk', 'pop', 'lift', 'drop']);
+  const gallery = document.getElementById('gallery');
+  const exhibits = [];
+  let tallyExhibit = null;
+
+  function h(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  window.Exhibits.collection.forEach((make, i) => {
+    const x = make();
+    x.index = i;
+    const card = h('article', 'case');
+    const vitrine = h('div', 'vitrine');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', `0 0 ${window.Exhibits.W} ${window.Exhibits.H}`);
+    svg.setAttribute('tabindex', '0');
+    svg.setAttribute('role', 'group');
+    svg.setAttribute('aria-label', x.title);
+    x.build(svg);
+    vitrine.append(svg);
+    const plaque = h('div', 'plaque');
+    const head = h('div', 'plaque-head');
+    head.append(h('h2', null, x.title), h('span', 'acc', `No. ${String(i + 1).padStart(2, '0')}`));
+    const note = h('p', 'note');
+    plaque.append(head, h('p', 'meta', x.meta), h('p', 'text', x.text), note, h('p', 'credit', x.credit));
+    card.append(vitrine, plaque);
+    gallery.append(card);
+    x.svg = svg;
+    x.noteEl = note;
+    if (x.tally) tallyExhibit = x;
+    if (x.lighting) { x.model.set(!html.classList.contains('dark')); x.model.step(Infinity); }
+    if (x.loudspeakers) {
+      const saved = store.get('oc-sound');
+      if (saved === '0' || saved === '1' || saved === '2') { x.model.index = Number(saved); x.model.step(Infinity); }
+      window.Sound.setLevel([0, 0.35, 1][x.model.index]);
+    }
+    if (x.model instanceof window.Switches.UselessBox) x.model.instant = reduced.matches;
+    x.render();
+    refreshPlaque(x);
+    bind(x);
+    exhibits.push(x);
+  });
+
+  function refreshPlaque(x) {
+    if (x.note) {
+      const n = x.note();
+      if (n !== x.noteEl.textContent) x.noteEl.textContent = n;
+    }
+    if (x.state) {
+      const s = x.state();
+      if (s !== x.lastState) { x.lastState = s; x.svg.setAttribute('aria-label', `${x.title}: ${s}`); }
+    }
+  }
+
+  // Mechanism events become sounds, tally counts and the two real connections.
+  function emit(x, events, source) {
+    source = source || x.model;
+    for (const e of events) {
+      if (x.onEvent) {
+        const more = x.onEvent(e, source);
+        if (more) emit(x, more, x.model);
+      }
+      const name = x.sounds && Object.prototype.hasOwnProperty.call(x.sounds, e) ? x.sounds[e] : e;
+      const silent = name === null || (source !== x.model && !(x.sounds && e in x.sounds));
+      if (!silent && window.Sound.has(name)) window.Sound.play(name, reduced.matches && (e === 'up' || e === 'seat') ? 0.08 : 0);
+      if (!silent && COUNTED.has(e) && tallyExhibit && x !== tallyExhibit) tallyExhibit.model.bump();
+      if (x.lighting && e === 'snap') setLights(x.model.on, true);
+      if (x.loudspeakers && e === 'detent') { window.Sound.setLevel([0, 0.35, 1][x.model.index]); store.set('oc-sound', String(x.model.index)); }
+    }
+    wake();
+  }
+
+  function bind(x) {
+    const svg = x.svg;
+    let active = null;
+    const toSvg = (ev) => {
+      const m = svg.getScreenCTM();
+      if (!m) return { x: 0, y: 0 };
+      const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m.inverse());
+      return { x: p.x, y: p.y };
+    };
+    svg.addEventListener('pointerdown', (ev) => {
+      if (active) return;
+      const z = ev.target.closest && ev.target.closest('[data-zone]');
+      if (!z) return;
+      const handler = x.zones[z.getAttribute('data-zone')];
+      if (!handler) return;
+      window.Sound.unlock();
+      ev.preventDefault();
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
+      try { svg.focus({ preventScroll: true }); } catch (e) { /* fine */ }
+      active = { handler, id: ev.pointerId, cx: ev.clientX, cy: ev.clientY, t0: performance.now(), moved: false };
+      svg.classList.add('held');
+      emit(x, handler.down ? handler.down(toSvg(ev)) : []);
+    });
+    svg.addEventListener('pointermove', (ev) => {
+      if (!active || ev.pointerId !== active.id) return;
+      if (!active.moved) {
+        if (Math.hypot(ev.clientX - active.cx, ev.clientY - active.cy) < 4) return;
+        active.moved = true;
+      }
+      if (active.handler.move) emit(x, active.handler.move(toSvg(ev)));
+    });
+    const end = (ev) => {
+      if (!active || ev.pointerId !== active.id) return;
+      const held = (performance.now() - active.t0) / 1000;
+      const info = { tap: !active.moved && held < 0.4 && ev.type !== 'pointercancel', held };
+      const handler = active.handler;
+      active = null;
+      svg.classList.remove('held');
+      emit(x, handler.up ? handler.up(toSvg(ev), info) : []);
+    };
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', end);
+    svg.addEventListener('touchstart', (ev) => { if (ev.target.closest && ev.target.closest('[data-zone]')) ev.preventDefault(); }, { passive: false });
+    svg.addEventListener('keydown', (ev) => {
+      const map = { Enter: 'activate', ' ': 'activate', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      const k = map[ev.key];
+      if (!k) return;
+      ev.preventDefault();
+      window.Sound.unlock();
+      emit(x, x.key(k));
+    });
+  }
+
+  // One animation loop for the whole museum; it sleeps when nothing is moving.
+  let running = false;
+  let last = 0;
+  function wake() {
+    if (running) return;
+    running = true;
+    last = performance.now();
+    requestAnimationFrame(frame);
+  }
+  function frame(now) {
+    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    last = now;
+    let busy = false;
+    for (const x of exhibits) {
+      const models = x.extra ? [x.model, ...x.extra] : [x.model];
+      for (const m of models) {
+        const instant = reduced.matches && !(m instanceof window.Switches.UselessBox);
+        const ev = m.step(instant ? Infinity : dt);
+        if (ev.length) emit(x, ev, m);
+        if (!m.idle()) busy = true;
+      }
+      x.render();
+      refreshPlaque(x);
+    }
+    if (tallyExhibit) { tallyExhibit.render(); refreshPlaque(tallyExhibit); }
+    if (busy) requestAnimationFrame(frame);
+    else running = false;
+  }
+  reduced.addEventListener('change', () => {
+    for (const x of exhibits) if (x.model instanceof window.Switches.UselessBox) x.model.instant = reduced.matches;
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { last = performance.now(); wake(); } });
+  wake();
+  // For the headless checks in the folder: a window on the collection.
+  window.OpenCircuit = { exhibits, running: () => running };
+})();
+</script>
+</body>
+</html>
