@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Antikythera Crank</title>
+<meta name="description" content="Turn a crank and a reconstruction of the Antikythera mechanism turns with it: every gear at its published tooth count, every train's ratio checked exactly against the period relation it encodes, and the drift that 2,200 years would have shown against the real sky.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>The Antikythera Crank</h1>
+  <p class="tagline">A bronze calendar computer from a shipwreck, rebuilt tooth by tooth. Turn the crank; the Moon speeds up and slows down on a pin in a slot; an eclipse comes round on the dial.</p>
+</header>
+
+<main>
+  <section class="instrument" aria-label="The mechanism">
+    <div class="tabs" role="tablist" aria-label="Which face to show">
+      <button type="button" role="tab" id="tab-front" aria-controls="face-front" aria-selected="true" data-view="front">Front</button>
+      <button type="button" role="tab" id="tab-back" aria-controls="face-back" aria-selected="false" data-view="back">Back</button>
+      <button type="button" role="tab" id="tab-gears" aria-controls="face-gears" aria-selected="false" data-view="gears">Gears</button>
+    </div>
+    <div class="faces" id="faces" data-view="front">
+      <figure class="face face-front" id="face-front" role="tabpanel" aria-labelledby="tab-front">
+        <canvas id="front" role="img" aria-label="Front dial: zodiac and Egyptian calendar rings, Sun and Moon pointers, the Moon's phase ball and the five planets."></canvas>
+        <figcaption>Front: zodiac inside, Egyptian 365-day calendar outside. <span class="key"><i class="sw sw-sun"></i>Sun</span> <span class="key"><i class="sw sw-moon"></i>Moon</span> <span class="key"><i class="sw sw-ghost"></i>where modern theory puts them</span></figcaption>
+      </figure>
+      <figure class="face face-back" id="face-back" role="tabpanel" aria-labelledby="tab-back">
+        <canvas id="back" role="img" aria-label="Back dials: the Metonic calendar spiral with the Games and Callippic dials above, the Saros eclipse spiral with the Exeligmos dial below."></canvas>
+        <figcaption>Back: Metonic calendar (top, 235 months on 5 turns) with the Games and Callippic dials; Saros eclipse dial (bottom, 223 months on 4 turns) with the Exeligmos dial. <span class="key"><b class="g-l">&Sigma;</b> lunar eclipse</span> <span class="key"><b class="g-p">&sigma;</b> penumbral</span> <span class="key"><b class="g-s">&Eta;</b> solar eclipse</span></figcaption>
+      </figure>
+      <figure class="face face-gears" id="face-gears" role="tabpanel" aria-labelledby="tab-gears">
+        <canvas id="gears" role="img" aria-label="The gear trains, drawn with their real tooth counts and turning as you crank."></canvas>
+        <figcaption>
+          <span class="seg" id="trainSel" role="group" aria-label="Highlight a train">
+            <button type="button" data-train="all" aria-pressed="false">All</button><button type="button" data-train="moon" aria-pressed="true">Moon</button><button type="button" data-train="saros" aria-pressed="false">Saros</button><button type="button" data-train="metonic" aria-pressed="false">Calendar</button>
+          </span>
+          <span class="key"><i class="sw sw-ct"></i>survives</span> <span class="key"><i class="sw sw-hyp"></i>hypothetical</span>
+          <span class="muted">Meshing gears are to scale with each other; positions are schematic.</span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="crank-wrap">
+        <svg id="crank" viewBox="-60 -60 120 120" role="slider" tabindex="0" aria-label="Crank. Drag round, or use the arrow keys (Page Up and Page Down for whole turns)." aria-valuemin="-95" aria-valuemax="2240" aria-valuenow="0" aria-valuetext="">
+          <defs>
+            <radialGradient id="crankDisc" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="var(--bronze-hi)"/><stop offset="1" stop-color="var(--bronze)"/></radialGradient>
+          </defs>
+          <circle r="56" class="crank-ring"/>
+          <g id="crankTeeth"></g>
+          <circle r="44" fill="url(#crankDisc)" class="crank-disc"/>
+          <g id="crankArm">
+            <rect x="-5" y="-40" width="10" height="44" rx="5" class="crank-arm"/>
+            <circle cy="-36" r="9" class="crank-knob"/>
+          </g>
+          <circle r="6" class="crank-hub"/>
+        </svg>
+        <div class="crank-hint" id="crankHint">Drag round to turn</div>
+      </div>
+      <div class="date-block">
+        <div class="date" id="dateOut" aria-live="off">28 April 205 BC</div>
+        <div class="sub" id="egyptOut">—</div>
+        <div class="sub" id="turnOut">—</div>
+        <div class="steps" role="group" aria-label="Step">
+          <button type="button" data-step="-month" title="Back one lunar month">&minus;1 mo</button><button type="button" data-step="-day" title="Back one day">&minus;1 d</button><button type="button" data-step="day" title="Forward one day">+1 d</button><button type="button" data-step="month" title="Forward one lunar month">+1 mo</button><button type="button" data-step="year" title="Forward one year">+1 yr</button><button type="button" data-step="saros" title="Forward one Saros (223 lunar months)">+1 Saros</button>
+        </div>
+        <div class="row">
+          <button type="button" class="btn-play" id="play" aria-pressed="false">Play</button>
+          <label class="sel">Speed
+            <select id="speed">
+              <option value="month">a month a second</option>
+              <option value="year" selected>a year a second</option>
+              <option value="saros">a Saros in 6 s</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="sel">One crank turn
+            <select id="crankMode">
+              <option value="a1" selected>78.6 days (a1 48 &rarr; b1 223)</option>
+              <option value="month">one lunar month</option>
+              <option value="year">one year</option>
+              <option value="saros">one Saros</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="sel grow">Era
+            <input type="range" id="era" min="-95" max="2240" step="0.01" value="0" aria-label="Drag through the centuries">
+          </label>
+        </div>
+        <div class="row jumps">
+          <button type="button" data-jump="epoch">Saros epoch, 205 BC</button><button type="button" data-jump="month13">Month 13 eclipse</button><button type="button" data-jump="wreck">Shipwreck, c. 65 BC</button><button type="button" data-jump="today">Today</button>
+        </div>
+        <div class="row toggles">
+          <label><input type="checkbox" id="showSky" checked> Show the real sky</label>
+          <label><input type="checkbox" id="sound"> Gear clicks</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="readouts" id="readouts" aria-live="polite">
+      <div class="ro"><h3>Front</h3><dl id="roFront"></dl></div>
+      <div class="ro"><h3>Back, top</h3><dl id="roMetonic"></dl></div>
+      <div class="ro"><h3>Back, bottom</h3><dl id="roSaros"></dl></div>
+    </div>
+  </section>
+
+  <section class="prose" id="about">
+    <h2>What you are turning</h2>
+    <p>In 1901 sponge divers brought up, from a wreck off the Greek island of Antikythera, a lump of corroded bronze that turned out to be gearing: at least thirty gears survive, the largest about 13 cm across, with hand-cut triangular teeth. Its maker built the sky as it was then understood, out of whole-number ratios. One crank turned a four-spoked wheel once a year, and every other pointer was that year multiplied by a fraction of tooth counts.</p>
+    <p>This page is the reconstruction published by Tony Freeth and colleagues (2006 and 2008 in <i>Nature</i>, 2021 in <i>Scientific Reports</i>), built on Derek de Solla Price's and Michael Wright's earlier work. Each gear below has the tooth count those papers give; where no gear survives and one has been proposed, it is drawn as a ghost. The page proves, with exact fractions, that each train gives the astronomical relation it was cut for; and then it lets you see, against modern theory, how far a bronze sky drifts.</p>
+  </section>
+
+  <section class="panel" id="pinSection">
+    <h2>The pin and the slot</h2>
+    <p>The Moon goes fastest near perigee and slowest near apogee. The mechanism makes that happen with two 50-tooth gears, k1 and k2, riding on the slowly turning wheel e3. Their axes are about 1.1&nbsp;mm apart. A pin on k1, about 9.6&nbsp;mm from its axis, sits in a radial slot cut in k2 (both lengths are Freeth et al. 2006&rsquo;s estimates). As the pin goes round, its distance from k2's axis changes, so k2 is dragged ahead for half a turn and held back for the other half. This is the eccentric model of the Moon (or, equivalently, the epicycle model) made out of bronze, and it is exact: the angle k2 makes <em>is</em> the angle the eccentric model predicts, not an approximation to it.</p>
+    <div class="pin-grid">
+      <figure class="pin-fig">
+        <canvas id="pin" role="img" aria-label="Close-up of k1 and k2: the pin on k1 drives the slot in k2, whose axis is offset."></canvas>
+        <figcaption>
+          <label class="sel">Offset <select id="pinScale"><option value="1">true scale (1.1 mm)</option><option value="3" selected>&times;3</option><option value="6">&times;6</option></select></label>
+          <span id="pinOut" class="mono"></span>
+        </figcaption>
+      </figure>
+      <figure class="pin-fig">
+        <canvas id="anomChart" role="img" aria-label="Chart of the Moon's deviation from mean motion against its anomaly: the pin and slot, Hipparchus's two models and modern theory."></canvas>
+        <figcaption>Ahead of or behind the mean Moon, by anomaly. <span class="key"><i class="sw sw-mech"></i>pin and slot, 1.1/9.6</span> <span class="key"><i class="sw sw-hip1"></i>Hipparchus, eccentre</span> <span class="key"><i class="sw sw-hip2"></i>Hipparchus, epicycle</span> <span class="key"><i class="sw sw-mod"></i>modern (elliptic terms)</span></figcaption>
+      </figure>
+    </div>
+    <p class="note" id="pinNote"></p>
+  </section>
+
+  <section class="panel" id="proofSection">
+    <h2>The proof: every train, as an exact fraction</h2>
+    <p>A gear train multiplies speeds by driver teeth over driven teeth. Multiply the tooth counts along each train with whole-number arithmetic, reduce the fraction, and compare it with the period relation the ancient astronomers knew. Every line below is computed in your browser from the same table the gears are drawn from, and checked again by the tests.</p>
+    <div class="table-wrap"><table class="proof" id="proofTable"></table></div>
+    <p class="note">Three of the hypothetical counts are not free choices. Given the surviving gears, m3 must have 27 teeth for the Saros pointer to make 4 turns in 223 months, n1 must have 53 for the Metonic pointer to make 5 turns in 19 years, and n3 must have 57 for the Games dial to turn once in 4 years. And the awkward prime 53 is there for a reason: the turntable must turn at 477/4237 of a year, and 477 = 9 &times; 53 (it is 254 &times; 223 &minus; 239 &times; 235). So l2 has 53 teeth, and the calendar and eclipse trains, which share it, cancel it with the 53s of n1 and f1.</p>
+  </section>
+
+  <section class="panel" id="driftSection">
+    <h2>The drift: bronze against the sky</h2>
+    <p>The ratios are exact; the sky is not. The mechanism's year is whatever one turn of b1 is, so set it by the Sun and ask how the other pointers wander. Setting it by the Sun means every row below is measured against the equinox, as longitudes of date are.</p>
+    <div class="table-wrap"><table class="drift" id="driftTable"></table></div>
+    <figure class="drift-fig">
+      <canvas id="driftChart" role="img" aria-label="Chart: the mechanism's Moon minus the modern Moon over 150 years from 205 BC."></canvas>
+      <figcaption>The mechanism's Moon minus modern theory's, 205 BC onwards. The spread is the lunar terms the mechanism has no gears for (evection, variation and the rest: up to about 3&deg; in the first years); it widens because the pin's anomaly runs 22&deg; a century ahead, so the bronze equation of centre is applied at the wrong point of the orbit. The dashed slope is the 254/19 ratio being very slightly too fast. <span id="driftNow" class="mono"></span></figcaption>
+    </figure>
+    <h3>The eclipse dial goes stale</h3>
+    <p>Each glyph on the dial says "an eclipse in this month". A Saros brings eclipses back after 223 months, but not quite: the Moon's node is about half a degree further on each time, so a series slowly fades out at one end and a new one begins at the other. This is what happens to the eclipses engraved for 205&ndash;187 BC (my reconstruction, below) as the dial is used again and again.</p>
+    <div class="table-wrap"><table class="drift" id="glyphTable"></table></div>
+  </section>
+
+  <section class="panel" id="evidenceSection">
+    <h2>Every gear, and how we know it</h2>
+    <p>From <code>gears.json</code>. "Survives" means the gear is in the fragments and the count is an estimate from its surviving teeth, read from radiographs and X-ray CT; most are incomplete. "Hypothetical" means no gear survives and one was proposed so that a dial that does survive could be driven.</p>
+    <div class="table-wrap"><table class="evidence" id="evidenceTable"></table></div>
+  </section>
+
+  <section class="prose" id="dating">
+    <h2>When, and whose</h2>
+    <p><b>The wreck</b> is dated by its cargo: its newest silver coins were struck between about 76 and 67 BC, so it sank after 76 BC, probably within a decade or two. <b>The mechanism</b> is older than the wreck, but how much older is argued over. The letter shapes of its inscriptions have been placed anywhere from the late third century to the first century BC; the 2006 paper called it "constructed around the end of the second century BC". <b>The dials</b> point earlier: two independent studies in 2014 (Carman &amp; Evans; Freeth) found that the eclipses on the Saros dial fit the cycle that began in April 205 BC, and Iversen (2017) put the start of the Metonic calendar and the Games cycle four months later, in August 205 BC. An epoch is not a date of manufacture: a maker could start a dial at any convenient past cycle. Voulgaris and colleagues have argued for a start in December 178 BC instead. This page uses the 205 BC epochs. <b>The calendar ring</b> on the front is usually read as the Egyptian 365-day year; two statistical studies of its surviving holes (Budiselic et al. 2020; Woan &amp; Bayley 2024) favour 354, a lunar year. I draw the 365-day reading.</p>
+    <p><b>Hipparchus.</b> The pin and slot copies the eccentric (or epicycle) lunar model. Freeth et al. called it a realisation of Hipparchus's lunar theory, and Hipparchus is the astronomer we know worked with that model and measured its size from eclipses. But the eccentric and epicycle models are older than him, and if the dial epochs really are 205 BC, the design may predate his work. "Hipparchus's model" is a fair name for the geometry, not a known fact about who designed the gears.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Gear data, ratios and dial calibration: <code>mechanism.js</code> and <code>gears.json</code>, tested by <code>mechanism.test.mjs</code>. Modern positions: low-precision Meeus (Sun, ch. 25; Moon, the 50 largest terms of ch. 47; eclipses, ch. 54) with NASA's &Delta;T polynomials.</p>
+</footer>
+
+<script src="gears.js"></script>
+<script src="mechanism.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Isomorphs</title>
+  <meta name="description" content="Three puzzles, each hard the way it is drawn. Redraw each one with your own hands and the hard part leaves. A proof shows nothing changed; you feel that everything did.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14151a" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='5' fill='%23f6f2ea' stroke='%23232019' stroke-width='2'/%3E%3Cpath d='M12 4v24M20 4v24M4 12h24M4 20h24' stroke='%23232019' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23c4472c'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="intro">
+    <p class="kicker">Idea Bank &middot; No. 61</p>
+    <h1>Isomorphs</h1>
+    <p class="lede">Three puzzles, each hard the way it is drawn. In each one you will redraw the puzzle with your own hands, and the hard part will leave. The redrawing changes nothing about the puzzle, and that can be proven. What it does to you can&rsquo;t be.</p>
+    <ol class="toc">
+      <li><a href="#fifteen"><span class="numeral">I</span> Fifteen <em>relabel it</em></a></li>
+      <li><a href="#knights"><span class="numeral">II</span> Four knights <em>untangle it</em></a></li>
+      <li><a href="#pocket"><span class="numeral">III</span> The pocket <em>unfold it</em></a></li>
+    </ol>
+  </header>
+
+  <main>
+    <!-- I. Fifteen -->
+    <section class="room" id="fifteen" aria-labelledby="f-title">
+      <div class="room-head">
+        <span class="numeral" aria-hidden="true">I</span>
+        <h2 id="f-title">Fifteen</h2>
+        <span class="verb">relabel it</span>
+      </div>
+      <p class="room-intro">You and the machine take turns choosing numbers from 1 to 9. Each number can be chosen once. The first to hold <b>three numbers that add up to 15</b> wins (you may hold more than three; any three will do).</p>
+      <nav class="steps" aria-label="Fifteen, steps">
+        <button class="step" data-room="f" data-phase="play"><b>1</b> Play it</button>
+        <button class="step" data-room="f" data-phase="redraw"><b>2</b> Redraw it</button>
+        <button class="step" data-room="f" data-phase="again"><b>3</b> Play again</button>
+      </nav>
+      <div class="stage" id="f-stage"></div>
+      <p class="status" id="f-status" aria-live="polite"></p>
+      <div class="controls" id="f-controls"></div>
+      <div class="after" id="f-after" hidden>
+        <p>Every line of your square adds up to 15, and there are only eight ways to make 15 from three different numbers. Your square has eight lines, so <b>every 15 is a line and every line is a 15</b>. Choosing a number is putting your mark in its square. You have been playing noughts and crosses.</p>
+        <p>The machine has not got any weaker. It still plays perfectly and still sets traps. You can see them now.</p>
+      </div>
+      <details class="proof" id="f-proof">
+        <summary>What is proven here</summary>
+        <ul>
+          <li>Of the 84 ways to choose three different numbers from 1 to 9, exactly eight add up to 15.</li>
+          <li>Of the 362,880 ways to place 1 to 9 on a 3&times;3 grid, exactly eight make every row, column and diagonal add up to 15. They are one square (the Lo Shu) turned and flipped.</li>
+          <li>On any of those eight, the eight lines are exactly the eight triples. So &ldquo;holds three numbers that make 15&rdquo; and &ldquo;has three in a row&rdquo; are the same event, move for move, and Fifteen is noughts and crosses with the squares renamed.</li>
+          <li>Played out every possible way, Fifteen has 255,168 games: 131,184 won by the first player, 77,904 by the second, 46,080 drawn. Those are noughts and crosses&rsquo; numbers, counted on the grid separately.</li>
+          <li>The machine never loses, against every sequence of choices you could make, whoever starts and whichever of its equally good moves it picks. Best play on both sides is a draw. If the machine opens with an even number, 5 is your only reply that doesn&rsquo;t lose.</li>
+          <li>The button below reruns all of this: every triple, every grid, every game, and the machine against every line of play.</li>
+        </ul>
+        <button class="btn small" id="f-run">Check it here, now</button>
+        <pre class="proof-out" id="f-proof-out" hidden></pre>
+      </details>
+    </section>
+
+    <!-- II. Four knights -->
+    <section class="room" id="knights" aria-labelledby="k-title">
+      <div class="room-head">
+        <span class="numeral" aria-hidden="true">II</span>
+        <h2 id="k-title">Four knights</h2>
+        <span class="verb">untangle it</span>
+      </div>
+      <p class="room-intro">Two white knights and two black knights on a 3&times;3 board. They move as chess knights do (two squares one way, one square sideways) and only onto empty squares. <b>Make them swap places.</b> Then try the second target: whites on one diagonal, blacks on the other.</p>
+      <nav class="steps" aria-label="Four knights, steps">
+        <button class="step" data-room="k" data-phase="play"><b>1</b> Play it</button>
+        <button class="step" data-room="k" data-phase="redraw"><b>2</b> Redraw it</button>
+        <button class="step" data-room="k" data-phase="again"><b>3</b> Play again</button>
+      </nav>
+      <div class="stage" id="k-stage"></div>
+      <p class="status" id="k-status" aria-live="polite"></p>
+      <div class="controls" id="k-controls"></div>
+      <div class="after" id="k-after" hidden>
+        <p>It was a ring all along. The centre square was never in the game: no knight can reach it or leave it. On a ring a knight can only step to one side or the other, and two knights can never pass each other, so <b>the order of colours round the ring never changes</b>: two whites together, two blacks together.</p>
+        <p>The swap is everyone walking four steps the same way round: sixteen moves, and no fewer will do. The diagonals target needs the colours to alternate round the ring, white, black, white, black. No sequence of moves can ever get there.</p>
+      </div>
+      <details class="proof" id="k-proof">
+        <summary>What is proven here</summary>
+        <ul>
+          <li>No knight move starts or ends on the centre square of a 3&times;3 board. The other eight squares and the eight knight moves between them form a single ring.</li>
+          <li>On a ring, a piece that may only step to an empty neighbour can never pass another piece, so the cyclic order of the pieces never changes.</li>
+          <li>From the start, 280 of the 420 ways to place the four knights on the eight outer squares can be reached. The swap is 16 moves away, and 16 is the minimum. The diagonals position is not among the 280. The button below counts the 420 and searches all of them.</li>
+        </ul>
+        <button class="btn small" id="k-run">Check it here, now</button>
+        <pre class="proof-out" id="k-proof-out" hidden></pre>
+      </details>
+    </section>
+
+    <!-- III. The pocket -->
+    <section class="room" id="pocket" aria-labelledby="p-title">
+      <div class="room-head">
+        <span class="numeral" aria-hidden="true">III</span>
+        <h2 id="p-title">The pocket</h2>
+        <span class="verb">unfold it</span>
+      </div>
+      <p class="room-intro">A ball leaves the bottom-left pocket of a table at 45&deg; and bounces off the cushions until it drops into a corner pocket. No spin, no friction, perfect bounces. <b>Which pocket takes it?</b></p>
+      <nav class="steps" aria-label="The pocket, steps">
+        <button class="step" data-room="p" data-phase="play"><b>1</b> Play it</button>
+        <button class="step" data-room="p" data-phase="redraw"><b>2</b> Redraw it</button>
+        <button class="step" data-room="p" data-phase="again"><b>3</b> Play again</button>
+      </nav>
+      <div class="stage" id="p-stage"></div>
+      <p class="status" id="p-status" aria-live="polite"></p>
+      <div class="controls" id="p-controls"></div>
+      <div class="after" id="p-after" hidden>
+        <p>Instead of bouncing the ball, you bounced the table. In the unfolded picture the ball never turns: it runs straight up the diagonal until it meets a corner. Each corner is a copy of one real pocket, and <b>which one depends only on whether the line crossed an odd or an even number of tables</b> each way.</p>
+        <p>Make the table bigger in the same proportions and the unfolded picture doesn&rsquo;t change at all, only its scale. That is why a 1000&nbsp;&times;&nbsp;600 table is no harder than a 5&nbsp;&times;&nbsp;3 one.</p>
+      </div>
+      <details class="proof" id="p-proof">
+        <summary>What is proven here</summary>
+        <ul>
+          <li>Reflecting the table across the cushion the ball hits turns each bounce into a straight continuation. The ball&rsquo;s path becomes the line y&nbsp;=&nbsp;x, and the first lattice corner on that line is at (L,&nbsp;L), with L the least common multiple of the width w and the height h.</li>
+          <li>To get there the line crosses L/w tables across and L/h tables up. The ball ends on the right if L/w is odd and on the left if it is even; at the top if L/h is odd, at the bottom if even. It bounces L/w + L/h &minus; 2 times.</li>
+          <li>L/w and L/h have no common factor, so they are never both even: the ball never comes back to the pocket it left.</li>
+          <li>Checked against a bounce-by-bounce simulation for every whole-number table up to 60&nbsp;&times;&nbsp;60.</li>
+        </ul>
+        <button class="btn small" id="p-run">Check it here, now</button>
+        <pre class="proof-out" id="p-proof-out" hidden></pre>
+      </details>
+    </section>
+
+    <!-- Coda -->
+    <section class="coda" id="coda" aria-labelledby="c-title">
+      <h2 id="c-title">What changed</h2>
+      <p>Nothing you did changed a puzzle. Fifteen and noughts and crosses are the same game, move for move. The ring is the board. The straight line is the bouncing ball. Each of those can be proven, and the proofs are on this page.</p>
+      <p>What changed is which part of the work your eyes do for you: a line instead of a sum, a loop instead of a knight&rsquo;s leap, a straight line instead of a zigzag. That difference is real, and a proof can&rsquo;t show it to you. You have to feel it. Here is what you did before you redrew each puzzle, and after:</p>
+      <div class="ledger-wrap">
+        <table class="ledger" id="ledger">
+          <thead><tr><th scope="col"></th><th scope="col">Before you redrew it</th><th scope="col">After</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="ledger-note">Read this as a diary, not an experiment: it can&rsquo;t separate the new picture from everything else that changed in between. By the second column you had practised. In Fifteen the page had also told you it was noughts and crosses, and your first game after opens with the machine&rsquo;s best trap, where your first game before had you moving first. The pocket holds back its odd-and-even rule, its verdicts and its score until you have called the three big tables, so that column is your own reading of the picture (unless you opened the proof panel). What the picture alone does could only be measured on other people, against some who never redrew anything.</p>
+      <p class="question">What picture would make this easy?</p>
+      <p>That is the question to carry out of here. It has paid off before. Take logarithms and multiplication becomes addition, which is how a slide rule multiplies. Write the heaps of Nim in binary and a winning move is one that leaves an even number of 1s in every column (in the usual game, where taking the last counter wins). Turn a chessboard 45&deg; and a bishop&rsquo;s diagonals become rows and columns: it moves like a rook.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Isomorphs, by Vellum. Plain HTML, no network. The logic lives in <code>isomorphs.js</code>; its claims are tested in <code>isomorphs.test.mjs</code>.</p>
+  </footer>
+
+  <script src="isomorphs.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

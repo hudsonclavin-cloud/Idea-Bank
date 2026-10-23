@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Little of Every Year</title>
+<meta name="description" content="An invented solera, drawn from and topped up every year since 1826. Arithmetic says exactly how much of every year is in this year's glass, and that once the casks' evaporation is counted, a glass has held less than one molecule of the founding wine, on average, since 2011.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">An invented bodega &middot; founded 1826</p>
+  <h1>A Little of Every Year</h1>
+  <p class="lede">Four rows of casks. Once a year a quarter of the bottom row is drawn off and bottled. The bottom row is topped up from the row above it, that row from the one above, and the top row with young wine. Each cask loses 3.5% a year through the wood, and that is made up from above too. Nobody has emptied a cask since 1826.</p>
+</header>
+
+<main>
+<section class="cellar" aria-labelledby="h-cellar">
+  <h2 id="h-cellar" class="visually-hidden">The casks</h2>
+  <div class="stage">
+    <figure class="bodega-fig">
+      <canvas id="bodega" role="img" aria-label="Four rows of casks stacked on a cellar floor, as they stand just after this year's scales. The bottom row, the solera, is chalked 1826. Each cask shows the colour of the wine inside: paler at the top, darker towards the floor."></canvas>
+    </figure>
+    <div class="pour">
+      <canvas id="glass" role="img" aria-label="A sherry glass holding this year's wine."></canvas>
+      <div class="pour-text">
+        <p class="year-big"><span id="yearBig">2026</span></p>
+        <p class="year-sub" id="yearSub">this year&rsquo;s glass, drawn before the scales</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="buttons">
+      <button id="step" type="button" class="btn btn-primary">Run the scales</button>
+      <button id="play" type="button" class="btn" aria-pressed="false">Keep running</button>
+    </div>
+    <div class="slider-row">
+      <label class="slider-label" for="year">Year <output id="yearOut" for="year">2026</output></label>
+      <button id="now" type="button" class="btn btn-small">Back to <span class="js-now">2026</span></button>
+    </div>
+    <input id="year" type="range" min="1827" max="2326" step="1" value="2026">
+    <p class="hint"><em>Run the scales</em> is one year: the glass is drawn from the bottom row, every row is topped up from the one above, and young wine goes in at the top.</p>
+  </div>
+
+  <p class="moment" id="moment" aria-live="polite"></p>
+
+  <div class="facts" id="facts" aria-live="polite"></div>
+</section>
+
+<section aria-labelledby="h-chart">
+  <h2 id="h-chart">Who is in the glass</h2>
+  <figure class="panel">
+    <canvas id="chart" role="img" aria-label="Bar chart: for each year whose young wine is in the glass, its share of the glass on a logarithmic scale, with a dashed line marking one molecule per glass."></canvas>
+    <p class="readout" id="readout" aria-live="polite">Touch or drag across the chart to read any year.</p>
+    <figcaption>One bar for each year whose young wine is in the glass, placed at the year it went in at the top; the bar at the far left is the founding wine. The scale is logarithmic: each gridline is a hundred thousand times smaller than the one above it. Below the dashed line, a 100&nbsp;ml glass holds less than one molecule of that year, on average. Colours darken with age; they are not the colours of real sherry.</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="h-yours">
+  <h2 id="h-yours">Your year</h2>
+  <p>Pick a year that matters to you: the year you were born, or someone you miss was. Its young wine went in at the top that year, like every other year&rsquo;s.</p>
+  <div class="yours">
+    <label for="yourYear">Year <input id="yourYear" type="number" inputmode="numeric" min="1827" max="2326" step="1" placeholder="e.g. 1990"></label>
+    <label for="yourNote">What it was <input id="yourNote" type="text" maxlength="28" placeholder="optional" autocomplete="off"></label>
+    <button id="yourClear" type="button" class="btn btn-small">Clear</button>
+  </div>
+  <p class="your-text" id="yourText" aria-live="polite"></p>
+</section>
+
+<section aria-labelledby="h-book">
+  <h2 id="h-book">The cellar book</h2>
+  <p>What the arithmetic says will happen, and when. <em>Keep running</em> stops at each of these.</p>
+  <ol class="book" id="book"></ol>
+  <p class="coda">The arithmetic can say how much of every year is in the glass, and from which year a glass holds, on average, not even one molecule of 1826. It cannot say whether it is still the same wine. The chalk on the bottom row says it is.</p>
+</section>
+
+<section aria-labelledby="h-proof">
+  <h2 id="h-proof">Why the numbers are exact</h2>
+  <p id="proof1">Take one molecule in this year&rsquo;s glass and follow it backwards, a year at a time. Every year the bottom row had just been topped up from the row above: a quarter to replace the draw and 3.5% to replace what the wood breathed out, 28.5% in all. The casks here are perfectly mixed, and evaporation takes every molecule with the same chance, so our molecule was one of those newcomers with chance 28.5%, whatever happened in any other year. The row above passes that much down and loses its own 3.5%, so 32% of it is new each year; and so on up, to 39% at the top. It went in at the top on its fourth arrival, counting backwards.</p>
+  <p id="proof2">So its age is the number of tosses it takes to get a head from each of four coins in turn, landing heads 28.5%, 32%, 35.5% and 39% of the time, and every share on this page is a count of coin tosses:</p>
+  <ul class="formulas">
+    <li><span class="label">Share of the glass that is <i>k</i> years old</span> <span class="math" id="fAge">P<sub>4</sub>(<i>k</i>), where P<sub><i>d</i></sub>(<i>k</i>) = (1 &minus; <i>g<sub>d</sub></i>)&thinsp;P<sub><i>d</i></sub>(<i>k</i>&minus;1) + <i>g<sub>d</sub></i>&thinsp;P<sub><i>d</i>&minus;1</sub>(<i>k</i>&minus;1), starting from P<sub>0</sub>(0) = 1 and zero everywhere else, with <i>g</i> = 39%, 35.5%, 32%, 28.5% from the top row down</span></li>
+    <li><span class="label">Share that is still the founding wine</span> <span class="math" id="fFound">the chance that the coins have not all shown their heads in (year &minus; 1827) tosses</span></li>
+    <li><span class="label">Average age, once the founding wine is gone</span> <span class="math" id="fMean">1 &divide; 28.5% + 1 &divide; 32% + 1 &divide; 35.5% + 1 &divide; 39% = 12 years</span></li>
+  </ul>
+  <p>With no evaporation every coin is the same, and these become the textbook ones: the age is negative binomial, the founding wine a binomial tail, and the average age rows &divide; draw.</p>
+  <p>To turn a share into molecules takes one more number. A 100&nbsp;ml glass of dry 17% wine holds about 3.0&nbsp;&times;&nbsp;10<sup>24</sup> molecules of water and ethanol (about 84&nbsp;g of water and 13&nbsp;g of ethanol). A year counts as <em>in the glass</em> when its share times that number is at least one.</p>
+  <h3>What the arithmetic simplifies or leaves out</h3>
+  <ul class="leaves">
+    <li>A real cask is not perfectly mixed. Wine is drawn and added with care, and mixing inside a cask is slow, so a real solera only approximates this one.</li>
+    <li>Evaporation is counted, simply, and it is not a small correction. Real sherry butts lose about 3.5% of their wine a year through the wood (the Consejo Regulador&rsquo;s average: about 3% in wet years and 4% in dry). Here every row loses that much and is topped up from the one above, so the young wine at the top replaces the draw and every row&rsquo;s loss. For the solera as first set, that moves the last glass holding a molecule of 1826, on average, from 2062 back to 2010. Every molecule, water or ethanol, is taken to be equally likely to leave. The real loss is mostly water, which would keep old ethanol longer: if only water left, a glass would hold less than one molecule of 1826 from 2023 rather than 2011, and its wine would by now be 26.5% alcohol, well above the 17&ndash;22% the sherry rules list for an oloroso. At 3% or 4% a year, with either extreme, a glass of 2026 holds less than one molecule of 1826, on average.</li>
+    <li>Molecules do not sit still chemically. Ethanol oxidises, esters form, and water molecules trade hydrogen atoms constantly; &ldquo;a molecule of 1826&rdquo; means a molecule&rsquo;s worth of that year&rsquo;s wine.</li>
+    <li>Real soleras differ in the number of rows, how often and how much they draw, and how young the young wine is. This one is invented.</li>
+    <li>Years that hinge on &ldquo;one molecule&rdquo; move by a year or two with the size of the glass: a 75&nbsp;ml glass holds less than one molecule of 1826, on average, <span id="g75">from 2010</span>.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-change">
+  <details class="change">
+    <summary><h2 id="h-change">Change the solera</h2></summary>
+    <p>Same founding, same glass, different rules. Everything above follows.</p>
+    <div class="knobs">
+      <label for="rows">Rows <output id="rowsOut" for="rows">4</output></label>
+      <input id="rows" type="range" min="1" max="8" step="1" value="4">
+      <label for="draw">Drawn each year <output id="drawOut" for="draw">25%</output></label>
+      <input id="draw" type="range" min="5" max="50" step="1" value="25">
+      <label for="evap">Lost to evaporation each year <output id="evapOut" for="evap">3.5%</output></label>
+      <input id="evap" type="range" min="0" max="60" step="5" value="35">
+    </div>
+    <p class="hint">3.5% is the Consejo Regulador&rsquo;s average for sherry butts. Each row&rsquo;s loss is made up from the row above, so the young wine at the top replaces the draw and every row&rsquo;s evaporation. Set it to 0 for the lossless solera of the first version of this page.</p>
+    <p class="knob-text" id="knobText" aria-live="polite"></p>
+    <button id="reset" type="button" class="btn btn-small">Back to the 1826 solera</button>
+  </details>
+</section>
+</main>
+
+<footer>
+  <p>The solera and its bodega are invented; the method is real. Sherry, and some other wines, vinegars and spirits, are aged this way, in rows called the <i>solera</i> (on the floor) and the <i>criaderas</i> above it. Nothing on this page is sent anywhere. Your year is kept only in this browser.</p>
+</footer>
+
+<script src="solera.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Still Canoe</title>
+<meta name="description" content="Sail from Puluwat to Chuuk the way Carolinian navigators reckon it: the canoe stays put, the stars stay put, and an island you never see slides backward under them until you arrive.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">Borrowing a mind · Carolinian wayfinding</p>
+  <h1>The Still Canoe</h1>
+  <p class="tagline">Sail from Puluwat to Chuuk the way Carolinian navigators reckon it: the canoe stays put, the stars stay put, and an island you never see slides backward under them until you arrive.</p>
+</header>
+
+<main>
+
+<section id="intro" aria-labelledby="h-intro">
+  <h2 id="h-intro" class="visually-hidden">Introduction</h2>
+  <p class="lede">Out of sight of land, the navigators of Puluwat, an atoll in the central Caroline Islands of Micronesia, reckon a voyage in a way that turns the usual picture inside out. The canoe stays where it is. The stars stay where they are, rising and setting at the same places on the horizon. What moves are the islands: the one ahead comes toward you, the one astern falls away, and a third island, off to one side and far below the horizon, slides backward from one star to the next. Each time it reaches the next star, one <em>etak</em>, one stage of the voyage, is done.</p>
+  <p>That is the system the anthropologist Thomas Gladwin learned on Puluwat in the 1960s from the navigator Hipour <a class="cite" href="#src-gladwin1970" data-src="gladwin1970">Gladwin 1970</a>, and that the cognitive scientist Edwin Hutchins later worked through as a piece of computation <a class="cite" href="#src-hutchins1983" data-src="hutchins1983">Hutchins 1983</a> <a class="cite" href="#src-hutchins1995" data-src="hutchins1995">Hutchins 1995</a>. Neither treats it as a mistake about geography. Gladwin presents etak as a way of organising what the navigator already knows about speed, time, stars and islands into a judgement of distance. Hutchins goes further: the Western navigator's picture, a ship crossing a fixed chart, is also a choice of frame, and from a canoe the frame that holds the canoe still is a sound one <a class="cite" href="#src-hutchinshinton1984" data-src="hutchinshinton1984">Hutchins &amp; Hinton 1984</a>. (The chart, I would add, is a view from above that nobody at sea ever has.)</p>
+  <p>This page lets you use that frame on one real, documented voyage: from Puluwat east to Chuuk Lagoon (Truk), with the island of Pisaras as the reference, as Ward Goodenough and Stephen Thomas recorded it <a class="cite" href="#src-goodenoughthomas1987" data-src="goodenoughthomas1987">Goodenough &amp; Thomas 1987</a>. Part of it can be proven, and the page proves it. The rest you have to feel, and the page can only ask you to try.</p>
+
+  <aside class="note whose" aria-label="Whose knowledge this is">
+    <h3>Whose knowledge this is</h3>
+    <p>Carolinian navigation is living knowledge, held by navigators of Puluwat (Polowat), Satawal, Pulap, Lamotrek and neighbouring islands and passed on in navigation schools such as Weriyeng. In 1976 Mau Piailug of Satawal navigated the Hawaiian voyaging canoe Hōkūleʻa from Hawaiʻi to Tahiti without instruments <a class="cite" href="#src-finney1979" data-src="finney1979">Finney 1979</a>. In March 2007 he presided on Satawal over a <em>pwo</em> ceremony that initiated sixteen navigators, eleven Micronesians and five Native Hawaiians <a class="cite" href="#src-pvs2007" data-src="pvs2007">Polynesian Voyaging Society 2007</a>.</p>
+    <p>Everything here comes from published accounts, almost all by outsiders, plus one compass transcribed under the supervision of a Polowat man. It is an outsider's model of one technique, simplified, and it is not how the knowledge is taught. Where the sources disagree, or where I could not check something, the page says so.</p>
+  </aside>
+</section>
+
+<!-- ============ 1. THE RING ============ -->
+<section id="ring-section" aria-labelledby="h-ring">
+  <h2 id="h-ring"><span class="num">1</span> The ring that does not move</h2>
+  <p>Directions here are named by stars. A star always rises at the same point on the horizon, night after night and year after year, so that point can carry its name: <em>rising Vega</em>, <em>setting Vega</em>. Goodenough recorded 32 such points for the central Carolines <a class="cite" href="#src-goodenough1953" data-src="goodenough1953">Goodenough 1953</a>. Altair is the base star: its rising is east and its setting is west. Polaris, just above the northern horizon at these latitudes, is north. The Southern Cross gives five points in the south, as it rises, leans, stands upright, leans and sets. Where the stars physically rise, the points are not evenly spaced, because the stars are not.</p>
+  <p>Below, each point is drawn where its star really rises or sets at Puluwat's latitude, about 7.4° north, computed from the star's catalogued position. That is my astronomical rendering of the compass, not the navigators' diagram. The Weriyeng compass this page draws on, as McDonald renders it, sets its 32 named points evenly round the ring, 11.25° apart, and marks separately where each star actually rises <a class="cite" href="#src-mcdonald" data-src="mcdonald">McDonald, n.d.</a>; and a summary of Goodenough's account (I could not read it in full) has the stars naming the points rather than physically marking them <a class="cite" href="#src-goodenough1953" data-src="goodenough1953">Goodenough 1953</a>. East is at the top, as on the Weriyeng compass, because the compass is built on Altair's rising <a class="cite" href="#src-holton2015" data-src="holton2015">Holton et al. 2015</a>. Tap a point to see its partner on the other side.</p>
+
+  <figure class="panel">
+    <div class="canvas-wrap square ringwrap"><canvas id="ringCanvas" role="img" aria-label="The star compass: 32 points around the horizon, east at the top, each where a named star rises or sets at Puluwat."></canvas></div>
+    <p class="readout" id="ringReadout" aria-live="polite">Tap a point.</p>
+    <figcaption>Every point on this ring is a point of the published Carolinian compass. Search extracts of Goodenough's monograph list the rising points from Polaris round through Kochab, Dubhe, Schedar, Vega, the Pleiades, Aldebaran, the three stars of Aquila and Orion's Belt, and his plates show the Southern Cross in five compass positions <a class="cite" href="#src-goodenough1953" data-src="goodenough1953">Goodenough 1953</a>; Halpern's table agrees where I could read it <a class="cite" href="#src-halpern1986" data-src="halpern1986">Halpern 1986</a>. I could not read either table in full. The names in brackets, their spellings and the east-up layout are those of the Weriyeng list, a Weriyeng-school compass printed on a shirt and transcribed, with its Polowat spellings corrected, under the supervision of Mario Benito of Polowat <a class="cite" href="#src-mcdonald" data-src="mcdonald">McDonald, n.d.</a>. Lists differ between islands and schools; treat names and spellings as one school's. Hollow ticks: the two leaning-Cross points. No star rises or sets there; they are placed by the Weriyeng compass's own definition (Acrux when the cross's long axis leans 45°), which I could not check against how navigators judge the lean. Star positions are J2000 Hipparcos values from the HYG database <a class="cite" href="#src-hyg" data-src="hyg">HYG v4.1</a>, as given in McDonald's repository; no refraction.</figcaption>
+  </figure>
+
+  <div class="proof">
+    <h3>What can be proven</h3>
+    <ul>
+      <li>A star of declination δ seen from latitude φ rises at azimuth A, measured from true north, where cos A = sin δ / cos φ. It sets at 360° − A. So the compass is its own mirror: every star sets as far west of north as it rose east of it. The two leaning-Cross points are the exception, because no star rises or sets there: the cross's long axis is not exactly north–south on the sky, so it reaches a 45° lean at different times on its two sides, and the pair misses being mirror images by <span data-claim="lean_asym">4.0</span>°. The test file checks the formula against a separate calculation that turns the sky about the pole and finds where each star crosses the horizon.</li>
+      <li>Altair rises at <span data-claim="altair_rise">81.1</span>° here, <span data-claim="altair_north_of_east">8.9</span>° north of true east. The compass's east is a star, not a number.</li>
+      <li>The gaps are uneven: rising Schedar and rising Dubhe are <span data-claim="gap_schedar_dubhe">5.4</span>° apart, rising Vega and rising Schedar <span data-claim="gap_vega_schedar">18.1</span>°. Near east, three stars of Aquila rise within <span data-claim="gap_aquila">4.2</span>° of each other.</li>
+    </ul>
+  </div>
+  <p class="aside-text">Gladwin's book title, <em>East Is a Big Bird</em>, rests on reading Altair's name, Mailap, as "big bird". Holton and colleagues argue that this was a mistake: the Big Bird, Mannap, is a different figure centred on Sirius, and is not a compass star <a class="cite" href="#src-holton2015" data-src="holton2015">Holton et al. 2015</a>.</p>
+</section>
+
+<!-- ============ 2. TWO PICTURES ============ -->
+<section id="voyage-section" aria-labelledby="h-voyage">
+  <h2 id="h-voyage"><span class="num">2</span> One voyage, two pictures</h2>
+  <p>Chuuk Lagoon lies about <span data-claim="total_nm">151</span> nautical miles east of Puluwat. The navigator's reference for this crossing is Pisaras, a small island about 120 miles to the north-east, under rising Vega from Puluwat and under setting Vega from Chuuk <a class="cite" href="#src-penn-keeping" data-src="penn-keeping">Penn Museum, "Keeping Track"</a>. You never see it. As the voyage goes on it is "dragged", in Goodenough and Thomas's word, back through the risings of Vega, Cassiopeia, the main star of the Great Bear, Kochab, and Polaris, and on round to setting Vega at the end <a class="cite" href="#src-goodenoughthomas1987" data-src="goodenoughthomas1987">Goodenough &amp; Thomas 1987</a>.</p>
+  <p>Here is the voyage drawn twice. On the left, a chart: north up, islands fixed, the canoe crossing. On the right, the canoe: bow up, stars fixed, everything else moving. Drag sideways across either picture, or press <em>Sail</em>.</p>
+
+  <figure class="panel">
+    <div class="twin">
+      <div class="twin-cell">
+        <p class="twin-title">The chart: the canoe moves</p>
+        <div class="canvas-wrap square chartwrap"><canvas id="chartCanvas" role="img" aria-label="A north-up chart of Puluwat, Pisaras and Chuuk Lagoon with the canoe on its track."></canvas></div>
+      </div>
+      <div class="twin-cell">
+        <p class="twin-title">The canoe: the islands move</p>
+        <div class="canvas-wrap square"><canvas id="canoeCanvas" role="img" aria-label="The same moment from the canoe, bow up, with the star compass fixed around it and the islands sliding past."></canvas></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <label for="sailed">Sailed <output id="sailedOut" for="sailed"></output></label>
+        <input id="sailed" type="range" min="0" max="1000" step="1" value="0">
+      </div>
+      <div class="row">
+        <button id="sailBtn" type="button" class="btn btn-primary">Sail</button>
+        <button id="nextEtak" type="button" class="btn">Next etak</button>
+        <button id="restartBtn" type="button" class="btn">Back to Puluwat</button>
+        <label class="check"><input id="showPis" type="checkbox" checked> Show Pisaras</label>
+      </div>
+    </div>
+    <p class="readout" id="voyageReadout" aria-live="polite"></p>
+    <div class="strip-wrap"><canvas id="stripCanvas" role="img" aria-label="The voyage cut into its eight etak, each labelled with the star the reference island is moving toward."></canvas></div>
+    <figcaption>Positions of the islands are published coordinates <a class="cite" href="#src-coords" data-src="coords">coordinates</a>. The canoe sails the straight great-circle line; current, leeway and tacking are left out. Islands inside the ring are drawn at their true bearing and distance from the canoe (the ring is <span id="ringScaleOut">165</span> nautical miles out); the star ticks have no distance, only a direction.</figcaption>
+  </figure>
+
+  <div class="proof">
+    <h3>What can be proven</h3>
+    <ul>
+      <li>The two pictures are one set of numbers. To get the right-hand picture from the left, subtract the canoe's position and turn by its course. The test file takes every island at every moment of the voyage from the canoe's frame back to the chart and lands within a metre of where it started.</li>
+      <li>From Puluwat, Pisaras bears <span data-claim="pis_from_pul">44.8</span>° at <span data-claim="pis_from_pul_nm">103</span> nautical miles (<span data-claim="pis_from_pul_mi">118</span> statute miles); rising Vega is at <span data-claim="vega_rise">50.8</span>°. From Chuuk Lagoon it bears <span data-claim="pis_from_truk">311.6</span>°; setting Vega is at <span data-claim="vega_set">309.2</span>°. So Pisaras starts <span data-claim="start_off">6.0</span>° from rising Vega and ends <span data-claim="end_off">2.5</span>° from setting Vega, and at each end Vega's is the nearest point of the compass, as the record says. This is the real check, and it could have failed: at the start there are only <span data-claim="start_margin">3.0</span>° to spare before rising Schedar would be nearer. Nothing was tuned; it comes from the published positions of three islands and the catalogued positions of the stars.</li>
+      <li>Followed along the track, Pisaras's bearing sweeps <span data-claim="sweep">93</span>°, always the same way, and passes, in order, rising Schedar, rising Dubhe, rising Kochab, Polaris, setting Kochab, setting Dubhe and setting Schedar: the sequence in the record, mirrored on the far side of north. That order is not a second check. Seen from a straight track, a point off to one side only ever turns one way, and the compass points are in order round the horizon, so any island that starts nearest rising Vega and ends nearest setting Vega, passing north, must go through these seven in this order. The test file confirms it for islands scattered at random. Likewise the count of <span data-claim="n_etak">8</span> etak is the number of gaps between star points from rising Vega round to setting Vega. It comes out at 8 because Pisaras starts and ends inside the first and last gaps, which are counted as partial etak; an island starting just beyond rising Vega would make 9.</li>
+      <li>Pisaras never comes nearer than <span data-claim="closest_nm">71</span> nautical miles. Even palms 30 metres tall, seen from 3 metres up, clear the horizon only within about <span data-claim="sight_nm">15</span> nautical miles <a class="cite" href="#src-bowditch" data-src="bowditch">Bowditch</a>. The island you reckon by is never seen.</li>
+    </ul>
+  </div>
+
+  <h3 class="sub">Why the stages are uneven</h3>
+  <p>The etak are not equal stretches of sea. The shortest full one here is <span data-claim="seg_min">8.7</span> nautical miles and the longest <span data-claim="seg_max_full">19.4</span>. Two things make them uneven, and the curve below shows both: the star points are unevenly spaced, and the island swings fastest when it is abeam, nearest the canoe. At departure Pisaras moves <span data-claim="rate_start">0.38</span>° for each mile sailed; abeam, <span data-claim="rate_abeam">0.80</span>°.</p>
+  <figure class="panel">
+    <div class="canvas-wrap wide"><canvas id="curveCanvas" role="img" aria-label="Pisaras's bearing against miles sailed, with a horizontal line for each star point it passes."></canvas></div>
+    <figcaption>Pisaras's bearing (up the side) against miles sailed (along the bottom). Each horizontal line is a star point; each band between them is one etak. The dot follows the voyage above.</figcaption>
+  </figure>
+  <p>Riesenberg, describing etak after Gladwin, puts the reference island "about fifty or so miles to one side" of the course and says an etak averages about ten miles <a class="cite" href="#src-riesenberg1975" data-src="riesenberg1975">Riesenberg 1975</a>. Pisaras is farther off than that, so its etak are longer. How navigators weigh a short etak against a long one I could not find in anything I could read; the sources I reached say only that segments differ.</p>
+</section>
+
+<!-- ============ 3. IN THE DARK ============ -->
+<section id="dark-section" aria-labelledby="h-dark">
+  <h2 id="h-dark"><span class="num">3</span> Sail it in the dark</h2>
+  <p>Now the islands are gone, as they really are once you are out of sight of land. You get a little of what a navigator gets: the stars, and a sense of how long you have been sailing and how fast. Your job is to keep Pisaras moving in your head. After each stretch, tap the ring where you think it now lies. The page then shows where it is.</p>
+  <p class="small">Speeds are invented for the exercise, roughly 3 to 7 knots. The voyage is <span data-claim="total_nm_b">151</span> nautical miles. Pisaras starts under rising Vega.</p>
+  <figure class="panel">
+    <div class="canvas-wrap square narrow"><canvas id="darkCanvas" tabindex="0" role="img" aria-label="The star compass around the canoe, bow up. Tap where you think Pisaras lies."></canvas></div>
+    <div class="controls">
+      <p class="leg" id="legText" aria-live="polite"></p>
+      <div class="ctl">
+        <label for="guess">Your Pisaras <output id="guessOut" for="guess"></output></label>
+        <input id="guess" type="range" min="0" max="359" step="1" value="45">
+      </div>
+      <div class="row">
+        <button id="markBtn" type="button" class="btn btn-primary">Mark it here</button>
+        <button id="darkNew" type="button" class="btn">New voyage</button>
+      </div>
+    </div>
+    <p class="readout" id="darkReadout" aria-live="polite"></p>
+    <div class="canvas-wrap trackwrap"><canvas id="darkTrack" role="img" aria-label="Where each of your guesses would put the canoe on the track, against where it really was."></canvas></div>
+    <figcaption>Below the ring: each guess turned back into a position. A bearing on an unseen island is a position on the track, so the angle you choose is a claim about how far you have come. Near the middle of the voyage a degree is worth about <span data-claim="nm_per_deg_mid">1.2</span> nautical miles; near the ends, about <span data-claim="nm_per_deg_end">2.6</span>.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4. GHOST ============ -->
+<section id="ghost-section" aria-labelledby="h-ghost">
+  <h2 id="h-ghost"><span class="num">4</span> The island does not have to be there</h2>
+  <p>Nothing in the reckoning uses Pisaras's sand or trees. It uses two facts: the star it lies under from Puluwat, and the star it lies under from Chuuk. Two bearings from two known places fix a point, whether or not there is land at it. Drag the reference island anywhere and the voyage is re-cut. The two gold lines are the star it lies under from each end.</p>
+  <figure class="panel">
+    <div class="canvas-wrap wide tall"><canvas id="ghostCanvas" tabindex="0" role="img" aria-label="A chart with a reference island you can drag; the voyage is cut into etak for wherever you put it."></canvas></div>
+    <div class="row controls">
+      <button id="ghostReset" type="button" class="btn">Put Pisaras back</button>
+    </div>
+    <p class="readout" id="ghostReadout" aria-live="polite"></p>
+    <figcaption>A nearer reference makes more, shorter etak bunched around the middle; a farther one makes fewer. Move it in line with the course and the count collapses: an island dead ahead or astern does not slide at all.</figcaption>
+  </figure>
+  <p>Puluwat navigators learn, island by island, which other islands lie under each star <a class="cite" href="#src-riesenberg1972" data-src="riesenberg1972">Riesenberg 1972</a>, and that lore includes islands that are on no modern map. Riesenberg followed one of them, Kafeŕoor (Kaafiror on Puluwat), said to lie north-west of Gaferut, through a chain of errors on European maps that moved island names about <a class="cite" href="#src-riesenberg1975" data-src="riesenberg1975">Riesenberg 1975</a>. Gunn argued that these "ghost islands" may answer a navigational need, bridging gaps in the islands navigators reckon by <a class="cite" href="#src-gunn1980" data-src="gunn1980">Gunn 1980</a>. That is an interpretation, not something navigators are recorded as saying. Real islands that are never seen certainly serve: Gunn notes that on the leg from Saipan to Pikelot of David Lewis's voyage with Hipour, Gaferut was the etak island <a class="cite" href="#src-lewis1971" data-src="lewis1971">Lewis 1971</a>.</p>
+</section>
+
+<!-- ============ 5. CONSTANT BEARING ============ -->
+<section id="cbdr-section" aria-labelledby="h-cbdr">
+  <h2 id="h-cbdr"><span class="num">5</span> What does not slide</h2>
+  <p>In the canoe's frame one island does not slide against the stars: the one you are sailing to. Its bearing against the star ring stays put, to within <span data-claim="dest_drift">0.3</span>° over the whole voyage, while it grows nearer. That bearing need not fall on a star point; on this ring Chuuk's does not (section 6). The same holds for anything else that is going to meet you. Western seamanship states it as a rule: risk of collision "shall be deemed to exist if the compass bearing of an approaching vessel does not appreciably change" <a class="cite" href="#src-colregs" data-src="colregs">COLREGs, Rule 7</a>. Hutchins notes that Western navigators prefer to think in absolute motion, but that there are tasks for which a relative-motion frame is the better one <a class="cite" href="#src-hutchinsmicronav" data-src="hutchinsmicronav">Hutchins, n.d.</a>. Watching for collisions, I would say, is one.</p>
+  <p>Watch the other canoe for a few seconds against the stars, then say what happens.</p>
+  <figure class="panel">
+    <div class="canvas-wrap square narrow"><canvas id="cbdrCanvas" role="img" aria-label="Your canoe at the centre, bow up, the star ring around it, and another canoe approaching."></canvas></div>
+    <div class="row controls" role="group" aria-label="Your call">
+      <button id="callHit" type="button" class="btn">We will meet</button>
+      <button id="callAhead" type="button" class="btn">It passes ahead</button>
+      <button id="callAstern" type="button" class="btn">It passes astern</button>
+      <button id="cbdrNew" type="button" class="btn btn-primary">Another</button>
+    </div>
+    <p class="readout" id="cbdrReadout" aria-live="polite"></p>
+    <figcaption>Both canoes keep a steady course and speed. "Meet" means the closest approach is under a quarter of a mile. The rule's other half matters too: a slowly changing bearing can still mean a close pass, which is why COLREGs adds that risk "may sometimes exist even when an appreciable bearing change is evident".</figcaption>
+  </figure>
+  <div class="proof">
+    <h3>What can be proven</h3>
+    <ul>
+      <li>For an approaching vessel on a steady course, the bearing stays fixed exactly when its motion relative to you points straight at you; then the gap closes to zero. The bearing changes at a rate (r × v)/r², where r is the other vessel's position relative to you and v its relative velocity. That rate is zero whenever the relative motion lies along the line of sight: straight toward you, but also straight away, or no relative motion at all (same course and speed: a fixed bearing at a fixed distance, and no meeting). That is why the rule says "approaching". The test file checks the closest-approach formula against a step-by-step simulation for random encounters, and checks the two constant-bearing cases that never meet.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 6. HONEST ============ -->
+<section id="limits-section" aria-labelledby="h-limits">
+  <h2 id="h-limits"><span class="num">6</span> What this page simplifies, and what is argued</h2>
+  <ul class="plain">
+    <li><strong>The sea is still.</strong> No current, no leeway, no tacking. Real navigators have to allow for all three; the model sails a straight line at the speed you are told.</li>
+    <li><strong>Chuuk is "under rising Altair".</strong> The record says the course from Puluwat to Chuuk is almost due east, on Altair's rising <a class="cite" href="#src-goodenoughthomas1987" data-src="goodenoughthomas1987">Goodenough &amp; Thomas 1987</a>. By geodesy the lagoon's centre bears <span data-claim="course">88.5</span>°, and Altair rises at 81.1°. On this ring that is not a near miss. The lagoon's centre is nearer rising Orion's Belt (<span data-claim="chuuk_off_belt">2.7</span>° away) than rising Altair (<span data-claim="chuuk_off_altair">7.5</span>°), with rising Alshain between them: a two-point disagreement, larger than at either end of the Pisaras sequence. A course held on Altair's rising all the way would pass about <span data-claim="altair_line_nm">20</span> nautical miles north of the lagoon's centre. The lagoon is about 79 by 50 km (43 by 27 nautical miles) inside its reef <a class="cite" href="#src-coords" data-src="coords">Wikipedia</a>, so that course passes near its northern edge, not through its middle. On an evenly spaced 32-point ring set by Polaris, where rising Altair's point is due east, the lagoon's centre is <span data-claim="even_off">1.5</span>° from it. I do not know how navigators reconcile the two. Current, the size of the target and the compass's being a set of named directions rather than a protractor are all candidates; I could not find out which.</li>
+    <li><strong>The ends are a few degrees off.</strong> In this geometry Pisaras starts <span data-claim="start_off">6.0</span>° past rising Vega and ends <span data-claim="end_off">2.5</span>° short of setting Vega. That is within the spacing of the compass, and it is why the first and last etak on the strip are drawn partial.</li>
+    <li><strong>The names are one school's.</strong> All 32 points are in the published compass <a class="cite" href="#src-goodenough1953" data-src="goodenough1953">Goodenough 1953</a>, though I saw Goodenough's and Halpern's lists only in extracts. The local names, their spellings and the east-up layout come from the Weriyeng list. So does the placing of the two "leaning" Southern Cross points: the Weriyeng compass defines them as where Acrux stands when the cross's long axis leans 45° <a class="cite" href="#src-mcdonald" data-src="mcdonald">McDonald, n.d.</a>. I adopt that definition and could not check it against how navigators judge the lean.</li>
+    <li><strong>Do the islands "really" move?</strong> I suspect it is mostly outsiders who ask. Gladwin and Hutchins both treat etak as a way of organising and computing, not a belief; Hutchins and Hinton argue that the canoe-still frame is a sound choice from a canoe, where the star points stay fixed while everything near moves <a class="cite" href="#src-hutchinshinton1984" data-src="hutchinshinton1984">Hutchins &amp; Hinton 1984</a>. Hutchins also says plainly that, because he was not able to sail with these navigators, he cannot be sure his explanation is adequate <a class="cite" href="#src-hutchinsmicronav" data-src="hutchinsmicronav">Hutchins, n.d.</a>. I have not sailed with them either.</li>
+    <li><strong>The units.</strong> The Penn Museum account gives distances in "miles"; its 120 miles to Pisaras matches statute miles (the geometry gives 118). The page works in nautical miles throughout.</li>
+  </ul>
+</section>
+
+<!-- ============ 7. TAKE IT WITH YOU ============ -->
+<section id="after-section" aria-labelledby="h-after">
+  <h2 id="h-after"><span class="num">7</span> Take it with you</h2>
+  <p>The proof stops here. Next time you travel in a straight line with a window beside you, a train, a bus, a car you are not driving, try it.</p>
+  <ol class="steps">
+    <li>Find something very far away: a ridge, a tower on the skyline, the Moon. It is your star. Watch it for a minute: it barely slides, and the Moon not at all.</li>
+    <li>Find something in the middle distance off to one side: a farm, a hill, a chimney. It is your Pisaras. Hold yourself still and let it slide backward against the far thing.</li>
+    <li>Notice when it moves fastest: when it is beside you. Notice that you can tell how far you have come by where it has got to.</li>
+    <li>Now find what does not slide. Whatever stays fixed against the far things and grows is where you are going, or what is coming to meet you.</li>
+  </ol>
+  <p>If it works, the vehicle stops being the thing that moves. That part I cannot prove.</p>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section id="sources-section" aria-labelledby="h-sources">
+  <h2 id="h-sources">Sources</h2>
+  <p class="small">Each entry says what it is cited for. <code>sources.json</code> in this folder adds how each was found and how far I could check it.</p>
+  <ol class="sources" id="sourceList">
+    <li id="src-goodenough1953">Goodenough, W. H. (1953). <em>Native Astronomy in the Central Carolines</em>. Museum Monographs. Philadelphia: University Museum, University of Pennsylvania. <span class="why">The 32-point star compass, Altair as its base, Polaris north, the Southern Cross south in five positions, unequal spacing of the risings; the rising points through the Pleiades, Aldebaran, the Aquila stars and Orion's Belt; stars as names for the points.</span></li>
+    <li id="src-gladwin1970">Gladwin, T. (1970). <em>East Is a Big Bird: Navigation and Logic on Puluwat Atoll</em>. Cambridge, MA: Harvard University Press. <span class="why">Etak as learned from Hipour on Puluwat; the moving reference island; etak as a way of organising information.</span></li>
+    <li id="src-lewis1971">Lewis, D. (1971). A return voyage between Puluwat and Saipan using Micronesian navigational techniques. <em>Journal of the Polynesian Society</em>, 80(4), 437–448. <span class="why">The voyage with Hipour whose return used Gaferut (as noted by Gunn 1980).</span></li>
+    <li id="src-riesenberg1972">Riesenberg, S. H. (1972). The organisation of navigational knowledge on Puluwat. <em>Journal of the Polynesian Society</em>, 81(1), 19–56. <span class="why">Background: the systems of island-to-island star bearings Puluwat navigators learn.</span></li>
+    <li id="src-riesenberg1975">Riesenberg, S. H. (1975). The ghost islands of the Carolines. <em>Micronesica</em>, 11(1), 7–33. <span class="why">Etak averaging about ten miles; reference island about fifty miles off the track; Kafeŕoor.</span></li>
+    <li id="src-gunn1980">Gunn, M. J. (1980). Etak and the ghost islands of the Carolines. <em>Journal of the Polynesian Society</em>, 89(4), 499–507. <span class="why">The argument that ghost islands fill a navigational need; Gaferut as Lewis's etak island.</span></li>
+    <li id="src-hutchins1983">Hutchins, E. (1983). Understanding Micronesian navigation. In D. Gentner &amp; A. L. Stevens (Eds.), <em>Mental Models</em> (pp. 191–225). Hillsdale, NJ: Lawrence Erlbaum. <span class="why">Etak analysed as a computation and a frame of reference.</span></li>
+    <li id="src-hutchinshinton1984">Hutchins, E., &amp; Hinton, G. E. (1984). Why the islands move. <em>Perception</em>, 13(5), 629–632. <span class="why">Why a canoe-centred frame suits the task; star points as directions without parallax.</span></li>
+    <li id="src-hutchins1995">Hutchins, E. (1995). <em>Cognition in the Wild</em>. Cambridge, MA: MIT Press. Chapter 2. <span class="why">Western and Micronesian navigation compared as computation.</span></li>
+    <li id="src-hutchinsmicronav">Hutchins, E. (n.d.). Micronesian navigation [research page]. University of California, San Diego, pages.ucsd.edu/~ehutchins/MicroNav.html. <span class="why">Relative-motion versus absolute-motion framing; his caveat that he could not sail with the navigators.</span></li>
+    <li id="src-goodenoughthomas1987">Goodenough, W. H., &amp; Thomas, S. D. (1987). Traditional navigation in the western Pacific: A search for pattern. <em>Expedition</em>, 29(3), 3–14. <span class="why">The Puluwat–Chuuk voyage with Pisaras as reference, "dragging", the sequence of stars, Chuuk on Altair's rising.</span></li>
+    <li id="src-penn-keeping">Penn Museum (n.d.). Keeping track. <em>Micronesian Navigation</em> [online exhibit], penn.museum/sites/Navigation/keeping/keeping.html. <span class="why">Pisaras about 120 miles north-east of Puluwat under rising Vega and north-west of Chuuk under setting Vega; the 150-mile trip.</span></li>
+    <li id="src-halpern1986">Halpern, M. (1986). Sidereal compasses: A case for Carolinian–Arab links. <em>Journal of the Polynesian Society</em>, 95(4), 441–460. <span class="why">A numbered table of the Carolinian compass's star points, agreeing with the Weriyeng list where legible.</span></li>
+    <li id="src-holton2015">Holton, G., Hachibmai, C., Haleyalur, A., Lipka, J., &amp; Rubinstein, D. (2015). East is not a 'big bird': The etymology of the star Altair in the Carolinian sidereal compass. <em>Oceanic Linguistics</em>, 54(2), 579–588. <span class="why">Mailap (Altair) is not "big bird"; Mannap is centred on Sirius; the compass laid out with east at the top.</span></li>
+    <li id="src-mcdonald">McDonald, K. (n.d.). <em>polowat-star-compass</em> [software and data], github.com/kylemcdonald/polowat-star-compass. <span class="why">The Weriyeng 32-point list with Polowat names, transcribed under the supervision of Mario Benito of Polowat; its 45° definition of the leaning Cross; its even 11.25° layout; the star positions used here.</span></li>
+    <li id="src-finney1979">Finney, B. R. (1979). <em>Hokule'a: The Way to Tahiti</em>. New York: Dodd, Mead. <span class="why">Mau Piailug's 1976 navigation of Hōkūleʻa to Tahiti without instruments.</span></li>
+    <li id="src-pvs2007">Polynesian Voyaging Society (2007). Kū Holo Mau: 2007 voyage for Mau. Pwo [voyage archive], archive.hokulea.com/holokai/2007/mau_6_pwo.html. <span class="why">Mau Piailug's March 2007 pwo on Satawal: five Hawaiians and eleven Micronesians.</span></li>
+    <li id="src-colregs">International Maritime Organization (1972). <em>Convention on the International Regulations for Preventing Collisions at Sea</em> (COLREGs), Rule 7(d). <span class="why">The constant-bearing rule and its caveat.</span></li>
+    <li id="src-bowditch">Bowditch, N. <em>The American Practical Navigator</em> (Pub. No. 9). National Geospatial-Intelligence Agency. <span class="why">Distance of the visible horizon, D ≈ 1.17 √h (nautical miles, h in feet), with refraction.</span></li>
+    <li id="src-hyg">Nash, D. <em>HYG Database</em>, v4.1 (Hipparcos-derived), github.com/astronexus/HYG-Database, as given in McDonald's <em>polowat-star-compass</em>. <span class="why">J2000 positions of the compass stars; they agree with catalogued Hipparcos declinations to within 0.1″.</span></li>
+    <li id="src-coords">Island positions: Poluwat 7°21′26″N 149°12′01″E; Pisaras (Piherarh) 8°34′11″N 150°25′09″E; Chuuk Lagoon 7°24′54″N 151°44′06″E (Wikipedia/GeoHack). <span class="why">The three islands of the voyage; the size of Chuuk Lagoon, about 79 by 50 km (Wikipedia, "Chuuk Lagoon"; the CIA World Factbook gives the same).</span></li>
+  </ol>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p>The Still Canoe · Idea Bank no. 52 · made by Bearing Drift. Geometry in <code>etak.js</code>, checked by <code>etak.test.mjs</code>. No network, nothing stored.</p>
+</footer>
+
+<script src="etak.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

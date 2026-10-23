@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Longest Day of Your Life</title>
+<meta name="description" content="Since 1973, the length of every day has been worked out against atomic clocks. The Moon, the wind and the Pacific are all in the differences.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<header class="mast">
+  <p class="kicker">Idea Bank · 68 · made of real data</p>
+  <h1>The Longest Day of Your Life</h1>
+  <p class="tagline">Since 1973, the length of every day has been worked out against atomic clocks. The Moon, the wind and the Pacific are all in the differences.</p>
+</header>
+
+<section class="lede">
+  <p>A day is meant to last 86,400 seconds. The Earth's turn has been timed against atomic clocks for decades, and the U.S. Naval Observatory publishes the result as one number for every day since <span data-c="first_date">3 January 1973</span>: how many milliseconds longer or shorter than 86,400 seconds that day ran. Today the timing comes from radio telescopes watching quasars, lasers fired at satellites and at reflectors on the Moon, and GPS.</p>
+  <p>In <span data-c="n_days">19,650</span> measured days, the Earth has hit 86,400 seconds exactly once, to the file's last decimal place: on <span data-c="zero_date">19 July 2008</span>, give or take <span data-c="zero_err_us">3.3</span> microseconds. Nobody noticed. (Allowing for their stated errors, <span data-c="zero_consistent">49</span> days could have been exactly 86,400 s; this is the one the file rounds to zero.) Every other day was longer or shorter, and the differences turn out to carry the Moon's orbit, the jet streams and the Pacific Ocean.</p>
+</section>
+
+<figure class="fig" id="fig-record">
+  <figcaption><b>Every measured day</b>, <span data-c="first_year">1973</span>–<span data-c="last_year">2026</span>: the day's length minus 86,400 s, in milliseconds. Above the line the day ran long. Drag or hover to read any date.</figcaption>
+  <div class="chart" data-chart="record" role="img" aria-label="Line chart of the daily excess length of day from 1973 to 2026. It falls from about 3 ms in the 1970s to below zero in the early 2020s, with a ripple throughout."></div>
+  <div class="facts">
+    <div class="fact"><span class="fact-label">Longest day</span><span class="fact-value">+<span data-c="max_ms">4.03</span> ms</span><span class="fact-note"><span data-c="max_date">2 April 1973</span>, ±<span data-c="max_err">0.19</span> ms</span></div>
+    <div class="fact"><span class="fact-label">Shortest day</span><span class="fact-value"><span data-c="min_ms">−1.66</span> ms</span><span class="fact-note"><span data-c="min_date">5 July 2024</span>, ±<span data-c="min_err">0.01</span> ms</span></div>
+    <div class="fact"><span class="fact-label">Exactly 86,400 s</span><span class="fact-value">once</span><span class="fact-note"><span data-c="zero_date2">19 July 2008</span></span></div>
+  </div>
+</figure>
+
+<section id="your-day" class="panel">
+  <h2>How long was your day?</h2>
+  <p>Pick a date: a birthday, a first day somewhere, a last day with someone. The record will tell you how long it was. Nothing you enter leaves this page.</p>
+  <form id="day-form" class="day-form" autocomplete="off">
+    <label for="day-input">Date</label>
+    <input id="day-input" type="date" min="1900-01-01" max="2026-10-21" required>
+    <button type="submit" class="btn primary">Measure it</button>
+  </form>
+  <div class="chips" aria-label="Example dates">
+    <button type="button" class="chip" data-date="2000-01-01">1 Jan 2000</button>
+    <button type="button" class="chip" data-date="2024-07-05">the shortest day</button>
+    <button type="button" class="chip" data-date="2026-10-21">the newest day</button>
+    <button type="button" class="chip" data-date="random">a random day</button>
+  </div>
+  <div id="day-out" class="day-out" aria-live="polite">
+    <p class="muted">The answer appears here, and your days are picked out in the charts above and below.</p>
+  </div>
+</section>
+
+<figure class="fig" id="fig-carpet">
+  <figcaption><b>Fifty-four years, one row each.</b> Every cell is a day, January on the left and December on the right; red days ran longer than 86,400 s, blue days shorter. Switch to <em>rhythms only</em> to subtract each day's 365-day average: the vertical bands are the seasons, the fine diagonal threads are the Moon.</figcaption>
+  <div class="seg" role="group" aria-label="Carpet view">
+    <button type="button" class="seg-btn" data-carpet="raw" aria-pressed="true">as measured</button>
+    <button type="button" class="seg-btn" data-carpet="hp" aria-pressed="false">rhythms only</button>
+  </div>
+  <div class="chart carpet" data-chart="carpet" role="img" aria-label="Heat map of day length, one row per year from 1973 to 2026 and one column per day of the year."></div>
+  <div class="scale" id="carpet-scale" aria-hidden="true"></div>
+</figure>
+
+<section class="chapter" id="moon">
+  <h2>The Moon</h2>
+  <p>Lay the days end to end and ask what rhythms they hold. Take away each day's 365-day average, so only changes faster than a year are left, and run a periodogram, which measures how much of the wiggle repeats at each period. I use the days from <span data-c="meas_from">1985</span> on, for a reason that comes below. Sharp peaks stand up at <span data-c="mf_peak">13.661</span>, <span data-c="mtm_peak">9.133</span> and <span data-c="mm_peak">27.555</span> days, with smaller ones at <span data-c="msf_peak">14.765</span> and <span data-c="msm_peak">31.807</span>.</p>
+  <p>These are not round numbers. They are the Moon's. It swings from the equator to the north, back and down to the south once every <span data-c="tropical">27.3216</span> days, so it crosses the equator every <span data-c="mf_period">13.6608</span>. It comes closest to the Earth every <span data-c="anomalistic">27.5545</span> days. The other peaks are combinations of these with each other and with the Sun. Every peak lands within <span data-c="max_dev_min">8</span> minutes of the period worked out from the Moon's orbit. I computed the periods first and then looked; nothing on this page fits them to the data.</p>
+</section>
+
+<figure class="fig" id="fig-spectrum">
+  <figcaption><b>What repeats.</b> Periodogram of the day lengths after the slow drift is removed, <span data-c="meas_from2">1985</span>–2026, as multiples of the typical power near 13.7 days (log scale). Labelled peaks sit at periods predicted from the Moon's and Sun's motion; the hollow marker shows where the Moon's phases (29.53 days) would be. The smaller unlabelled spikes near <span data-c="extra_peaks">6.86, 7.10 and 9.56</span> days are further combinations of the same periods.</figcaption>
+  <div class="chart" data-chart="spectrum" role="img" aria-label="Periodogram from 5 to 400 days with sharp peaks at 9.13, 13.66, 14.77, 27.55 and 31.81 days and broad peaks at half a year and a year; nothing at 29.53 days."></div>
+  <details class="table-view"><summary>The numbers behind the peaks</summary>
+    <div class="tw"><table id="tbl-lines"><thead><tr><th>Line</th><th>Predicted (days)</th><th>Measured peak</th><th>Power ÷ neighbours</th><th>Same, whole record</th><th>Fitted size (ms)</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</figure>
+
+<section class="chapter">
+  <p>The peaks are not faint. Power at <span data-c="mf_period_short">13.66</span> days is <span data-c="mf_ratio">29,048</span> times the typical power at neighbouring periods; the weakest lunar peak, at <span data-c="msm_period_short">31.81</span> days, is <span data-c="msm_ratio">52</span> times. Under a simple noise model, with no rhythm there, noise reaches even <span data-c="msm_ratio2">52</span> times the typical level about once in <span data-c="msm_odds">5×10<sup>15</sup></span> tries.</p>
+  <p>Where nothing appears matters as much. The Moon's best-known rhythm, the <span data-c="synodic">29.5306</span>-day cycle of its phases, shows <span data-c="syn_ratio">0.04</span> times the background: nothing at all. The phases are about where sunlight falls on the Moon, which the Earth's spin cannot feel. They leave a mark only at half their period, the small <span data-c="msf_peak2">14.765</span>-day peak, because the Sun's pull squashes the Moon's orbit so that it runs slightly nearer at new Moon and at full Moon alike. There is nothing at <span data-c="tropical2">27.3216</span> days either (<span data-c="trop_ratio">0.14</span> times background), because the Moon far north and the Moon far south squeeze the Earth alike.</p>
+  <p>Squeeze is the right word. The Moon raises tides in the rock as well as the sea, and part of that tide is a slow change in the Earth's shape: a slightly wider waist when the Moon is over the equator, slightly less when it rides far north or south. A wider waist turns slower, the way a skater slows by opening her arms. The fitted ripple agrees about timing: its peaks fall when the Moon crosses the equator and when it is nearest (correlations of <span data-c="phase_mf">0.998</span> and <span data-c="phase_mm">0.9997</span> with curves that peak at those moments, computed from the Moon's mean orbit: the timing agrees to within about <span data-c="phase_hours">4</span> hours). The standard calculation of these tidal changes in the Earth's spin is Yoder, Williams and Parke's (1981).</p>
+  <p>A fair objection: the people who make this file know about the Moon too. They use a model of these tides while combining the measurements (USNO's notes record an upgrade to it in 2012), so could the peaks be the model, put back in? For the early years, largely yes, and the file itself shows it. In <span data-c="era_from">1974</span>–<span data-c="era_to">1982</span>, the wiggle the Moon and the seasons leave behind, at periods from about a week to a month, has only <span data-c="era_power">31</span>% of the power it has had since <span data-c="meas_from3">1985</span>, although the stated errors then were <span data-c="era_err_x">39</span> times larger: those years were heavily smoothed. Yet the fortnightly wave fitted to them is full size, <span data-c="era_mf_early">0.35</span> ms, the same as since then (<span data-c="era_mf_meas">0.35</span> ms). Smoothing that strong would have flattened it too, unless the tide was taken out first and put back afterwards. So before the mid-1980s the 9–32-day ripple in this file is mostly the producers' tide model. From then on the background at these periods is as strong as today's, so the smoothing there is light (the IERS's 2001 explanatory supplement describes Bulletin A's as keeping 95% of any rhythm slower than three days), and a 13.66-day ripple in the file is the ripple the instruments saw. That is why every test of the Moon on this page starts in 1985. Independent evidence is older still: in 1981 Yoder, Williams and Parke found the fortnightly and monthly terms in lunar laser ranging data at the strength their calculation predicted.</p>
+  <p>Then a forecast. Six lunar sine waves, with periods fixed by the orbit and only their sizes and timing fitted, were matched to the days from <span data-c="meas_from4">1985</span> up to <span data-c="oos_cut">2016</span>. From then until <span data-c="oos_end">April 2026</span> they account for <span data-c="oos_r2">76</span>% of the day-to-day wiggle left once the slow drift and the seasons are taken out.</p>
+</section>
+
+<figure class="fig" id="fig-forecast">
+  <figcaption><b>A ten-year-old forecast, checked.</b> Slide to move the 120-day window anywhere in 2016–2026.</figcaption>
+  <div class="legend"><span class="key-inline"><i class="ln ln-data"></i>measured, drift and seasons removed</span><span class="key-inline"><i class="ln ln-model"></i>the Moon's six sine waves, fitted only to <span data-c="meas_from5">1985</span>–2015</span></div>
+  <div class="chart" data-chart="forecast" role="img" aria-label="Two lines over a 120-day window: measured day length and the lunar forecast, closely matching."></div>
+  <label class="slider"><span>Window starts</span><input id="fc-slider" type="range" min="0" max="100" value="94" step="1" aria-label="Window start date"><output id="fc-out"></output></label>
+</figure>
+
+<section class="chapter">
+  <p>The fortnightly ripple is not steady. Fit it one calendar year at a time and, from 1985 on, its size swings between <span data-c="amp_min">0.22</span> ms (<span data-c="amp_min_year">1995</span>) and <span data-c="amp_max">0.51</span> ms (<span data-c="amp_max_year">2024</span>), in step with an 18.6-year wobble of the Moon's orbit (correlation <span data-c="amp_tilt_r">0.99</span> over <span data-c="amp_years">41</span> years). When the tilt of the Moon's orbit adds to the tilt of the Earth's axis, the Moon swings farthest north and south each month, an event called a major lunar standstill, and the day's ripple is biggest. Its smallest years come near minor standstills, when the tilts subtract. The pale bars before 1985 follow the same curve, but there it is largely the tide model's curve, not a measurement.</p>
+</section>
+
+<figure class="fig" id="fig-standstill">
+  <figcaption><b>The ripple's size, year by year,</b> in milliseconds (size of the 13.66-day term fitted to each calendar year). Vertical rules: the Moon's major standstills (<span data-c="major_list">1987.9, 2006.5, 2025.1</span>) and minor standstills (<span data-c="minor_list">1978.5, 1997.2, 2015.8</span>), computed from its orbit. Pale dashed bars, before 1985: largely the producers' tide model (most of all before 1981), not a clean measurement; the correlation uses 1985–2025 only.</figcaption>
+  <div class="chart" data-chart="standstill" role="img" aria-label="Column chart of the yearly size of the fortnightly ripple, peaking near 1988, 2006 and 2024 and lowest near 1978, 1996 and 2015."></div>
+  <details class="table-view"><summary>Yearly values</summary><div class="tw"><table id="tbl-yearly"><thead><tr><th>Year</th><th>Ripple (ms)</th><th>Year</th><th>Ripple (ms)</th></tr></thead><tbody></tbody></table></div></details>
+</figure>
+
+<section class="chapter listen" id="listen">
+  <h3>Hear it</h3>
+  <p>Played as sound at 4,000 days a second, fifty-three years pass in under five seconds and the Moon's rhythms become notes: the fortnight sounds near <span data-c="hz_mf">293</span> Hz, the closest-approach month an octave lower near <span data-c="hz_mm">145</span> Hz. The data are only filtered and sped up; nothing is synthesised. The start is the smoothest stretch, not the noisiest: the file's stated errors in the 1970s are around <span data-c="err_70s_med">0.20</span> ms, against a few thousandths today, but those years were heavily smoothed when the record was compiled, so they carry less fast wiggle than any later stretch. The second button plays the same days with the six lunar sine waves subtracted. The notes go; what is left is weather and measurement noise, and the first years are the quietest of all.</p>
+  <div class="audio-row">
+    <button type="button" class="btn" id="play-days" aria-pressed="false">▶ Play the days</button>
+    <button type="button" class="btn" id="play-nomoon" aria-pressed="false">▶ Same, with the Moon taken out</button>
+  </div>
+  <p class="muted small" id="audio-note">Sound starts only when you press a button. Use moderate volume.</p>
+</section>
+
+<section class="chapter" id="wind">
+  <h2>The wind</h2>
+  <p>Stack the years on top of one another and a second rhythm appears. Averaged over the record, days run longest around <span data-c="seas_max_date">9 April</span> (<span data-c="seas_max">+0.45</span> ms against their 365-day average) and shortest around <span data-c="seas_min_date">22 July</span> (<span data-c="seas_min">−0.75</span> ms), a swing of <span data-c="seas_range">1.21</span> ms. The northern summer, the season of the longest daylight, is when the planet spins fastest.</p>
+  <p>The Sun raises the same kind of tide as the Moon, with yearly and half-yearly periods, so part of this curve is tidal. Geophysicists trace most of it to the wind. The atmosphere and the solid Earth share one store of spin; when the westerly winds aloft blow harder, the air carries more of it and the ground turns a little slower. Rosen and Salstein (1983) set six years of global wind analyses beside the day's length and found the same yearly signal in both. This page has no wind data, so here the cause is reported, not shown.</p>
+</section>
+
+<figure class="fig" id="fig-season">
+  <figcaption><b>The average year,</b> after removing each day's 365-day average. Part of the small ripple in the dots is the Moon, not quite averaging out over 53 years; the rest is weather.</figcaption>
+  <div class="legend"><span class="key-inline"><i class="dot"></i>mean of each calendar day, 1973–2026</span><span class="key-inline"><i class="ln ln-data"></i>fitted yearly, half-yearly and third-yearly waves</span></div>
+  <div class="chart" data-chart="season" role="img" aria-label="Seasonal curve of day length: highest in early April and November, lowest in late July."></div>
+  <details class="table-view"><summary>Monthly averages</summary><div class="tw"><table id="tbl-months"><thead><tr><th>Month</th><th>ms vs year's average</th><th>Month</th><th>ms vs year's average</th></tr></thead><tbody></tbody></table></div></details>
+</figure>
+
+<section class="chapter" id="pacific">
+  <h2>The Pacific</h2>
+  <p>The winds have a slower rhythm too. In an El Niño, warm water spreads east across the tropical Pacific and the atmosphere above it changes. Dickey and colleagues (1994) found that the atmosphere's spin accounted for up to 92% of the year-to-year variance in the day's length, in their study of the 1982–83 El Niño.</p>
+  <p>The record can be set beside NOAA's Oceanic Niño Index, a three-month average of how far the sea in the central tropical Pacific is from its normal temperature. I compared the two as twelve-month changes (this month's three-month average minus last year's), month by month from <span data-c="pac_first">March 1974</span> to <span data-c="pac_last">August 2026</span>. I fixed that comparison, with no time lag, before computing it. Nothing timestamps that choice, so here is the check that matters: moving either series by a month changes the result by at most <span data-c="pac_lag_dev">0.04</span>, and each third of the record on its own gives <span data-c="pac_third_lo">0.46</span> to <span data-c="pac_third_hi">0.52</span>. The correlation is <span data-c="pac_r">0.48</span>. Both series drift, so their <span data-c="pac_n">630</span> months are not 630 independent pieces of information. Counting how long each series' wiggles persist, lag by lag, they carry about <span data-c="pac_neff">94</span>; allowing for that, a correlation this strong would arise by chance with probability about <span data-c="pac_p">9×10<sup>−7</sup></span>, roughly one in a million. Scrambling agrees: none of <span data-c="pac_sur_n">20,000</span> copies of the day-length series with the same rhythms but random timing came as close.</p>
+  <p>Not every El Niño shows. The 1982–83 and 2015–16 events stand out; 1997–98 and 2023–24, as strong in the ocean, barely register in this measure. As I write, the index for July to September 2026 is <span data-c="oni_last">+2.16</span> °C, the highest since early 2016, and the three-month average day is <span data-c="dlod_last">0.94</span> ms longer than a year before: the largest twelve-month lengthening in the record. Whether the ocean is the reason this time, the data cannot yet say.</p>
+</section>
+
+<figure class="fig" id="fig-pacific">
+  <figcaption><b>Twelve-month changes, side by side.</b> Top: the three-month average day length, change from a year earlier (ms). Bottom: the Oceanic Niño Index, change from a year earlier (°C), with the big El Niños labelled. Two panels, two scales, one time axis.</figcaption>
+  <div class="chart" data-chart="pacific" role="img" aria-label="Two stacked line charts from 1974 to 2026, day-length change above and Pacific temperature change below, often rising and falling together."></div>
+</figure>
+
+<section class="chapter" id="seconds">
+  <h2>The missing seconds</h2>
+  <p>Add the days up and they become seconds. The record's days averaged <span data-c="mean_ms">1.32</span> ms longer than 86,400 s, and from <span data-c="first_date2">3 January 1973</span> to <span data-c="last_date">21 October 2026</span> the excess sums to <span data-c="drift_s">25.85</span> seconds: the planet has fallen that far behind the atomic clocks. Civil time is held within 0.9 s of the Earth by leap seconds, and <span data-c="leaps_in">25</span> were added over the same span (<span data-c="leaps_total">27</span> since the scheme began in 1972).</p>
+  <p>None has been added since <span data-c="last_leap">31 December 2016</span>. Since then the Earth has fallen behind by only <span data-c="since_leap">0.63</span> s, because the days have run close to 86,400 s and, from 2020, often under it. The first day in the record shorter than 86,400 s was <span data-c="first_neg">2 August 1986</span>; <span data-c="neg_days">2,103</span> days have been shorter in all, and <span data-c="first_neg_year">2020</span> was the first calendar year whose days averaged less than 86,400 s, if only by <span data-c="y2020_mean">0.004</span> ms.</p>
+  <p>Why are most days long at all? When the second was pinned down in the 1950s and 60s, it was matched to astronomical tables built from observations reaching back to 1750, so in effect it is one 86,400th of a day from the early 1800s (for the history, see Finkleman and colleagues, 2011). The day has kept lengthening since. The Moon's tides brake the Earth enough to add about 2.3 ms per century, but something non-tidal partly offsets them (the authors point to the crust's slow rebound since the last ice age, and to the core), and over the last 2,700 years the day has in fact lengthened by about 1.8 ms per century on average (Stephenson, Morrison and Hohenkerk, 2016). Over these fifty-four years that braking is buried under decade-long swings, which geophysicists attribute mostly to the liquid core trading spin with the mantle (Hide and Dickey, 1991). In 2022 the General Conference on Weights and Measures decided that the allowed gap between Earth time and clock time will be widened in or before 2035, which ends the leap second as we know it. News reports say that at its next meeting, on 15 October 2026, it voted to stop adding leap seconds from 20 May 2027; I could not read the official text.</p>
+</section>
+
+<figure class="fig" id="fig-seconds">
+  <figcaption><b>Falling behind.</b> The running total of the daily excess, against the leap seconds added to civil time.</figcaption>
+  <div class="legend"><span class="key-inline"><i class="ln ln-data"></i>seconds the Earth has lost to atomic time since 3 January 1973</span><span class="key-inline"><i class="ln ln-step"></i>leap seconds added</span></div>
+  <div class="chart" data-chart="seconds" role="img" aria-label="Rising curve of accumulated lost seconds from 0 to about 26, with a staircase of 25 leap seconds following it, flat since the end of 2016."></div>
+</figure>
+
+<section class="chapter" id="honest">
+  <h2>What the record is, and isn't</h2>
+  <ul class="plain">
+    <li><b>The number is the length of a mean solar day,</b> not hours of daylight. It is the time Universal Time (UT1, the Earth's own clock) takes to advance one day, minus 86,400 SI seconds, from IERS Bulletin A as collected in the file <code>finals2000A.all</code>.</li>
+    <li><b>Early values are rougher.</b> The stated error is <span data-c="err_1973">0.19</span> ms on the record's first days and about <span data-c="err_recent">0.004</span> ms in recent years (median of 2016–2025). "Longest" among the 1970s days is a close race decided partly by noise.</li>
+    <li><b>Early values are also smoothed, with the tide put back.</b> Before the mid-1980s the day-to-day detail is a heavily smoothed curve with the Moon's tide added back from a model, so the Moon is tested here only on 1985 on, and which early day comes out longest is partly the model's choice.</li>
+    <li><b>Recent values are provisional.</b> The newest weeks are rapid estimates. The bulletin of 22 October 2026 also announces a new processing method and warns that values up to a year old may shift slightly (under 20 microseconds in UT1). Its listed inputs include meteorological predictions of the atmosphere's spin; USNO's notes say that since 2010 these enter the combination only at its newest point.</li>
+    <li><b>The rhythms are measured here; the causes are cited.</b> The Moon's periods and timing are tested against the data on this page. That the seasonal and El Niño signals come from the wind, and the slow swings from the core, is the published geophysics, not something this page shows.</li>
+    <li><b>The Niño index is revised.</b> NOAA computes it against shifting 30-year baselines, and the file's latest values can change.</li>
+  </ul>
+  <p class="muted small">Data: IERS Rapid Service/Prediction Center at the U.S. Naval Observatory (<code>finals2000A.all</code>, <code>tai-utc.dat</code>) and NOAA Climate Prediction Center (<code>oni.ascii.txt</code>), works of the U.S. government, retrieved 23 October 2026. Processing, checksums and every step: <a href="data/SOURCE.md">data/SOURCE.md</a>. <button type="button" class="linkish" id="dl-csv">Download the daily series as CSV</button></p>
+</section>
+
+<section class="chapter sources" id="sources">
+  <h2>Sources</h2>
+  <ol>
+    <li>IERS Rapid Service/Prediction Center, U.S. Naval Observatory. <i>finals2000A.all</i> and <i>IERS Bulletin A</i>, Vol. XXXIX No. 043 (22 October 2026). https://maia.usno.navy.mil/ser7/</li>
+    <li>NOAA Climate Prediction Center. <i>Oceanic Niño Index</i>, oni.ascii.txt. https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt</li>
+    <li>Yoder, C. F., Williams, J. G. &amp; Parke, M. E. (1981). Tidal variations of Earth rotation. <i>Journal of Geophysical Research</i> 86(B2), 881–891. doi:10.1029/JB086iB02p00881</li>
+    <li>Rosen, R. D. &amp; Salstein, D. A. (1983). Variations in atmospheric angular momentum on global and regional scales and the length of day. <i>Journal of Geophysical Research</i> 88(C9), 5451–5470. doi:10.1029/JC088iC09p05451</li>
+    <li>Hide, R. &amp; Dickey, J. O. (1991). Earth's variable rotation. <i>Science</i> 253(5020), 629–637.</li>
+    <li>Dickey, J. O., Marcus, S. L., Hide, R., Eubanks, T. M. &amp; Boggs, D. H. (1994). Angular momentum exchange among the solid Earth, atmosphere, and oceans: a case study of the 1982–1983 El Niño event. <i>Journal of Geophysical Research</i> 99(B12). doi:10.1029/94JB01249</li>
+    <li>Stephenson, F. R., Morrison, L. V. &amp; Hohenkerk, C. Y. (2016). Measurement of the Earth's rotation: 720 BC to AD 2015. <i>Proceedings of the Royal Society A</i> 472. doi:10.1098/rspa.2016.0404</li>
+    <li>Finkleman, D., Allen, S., Seago, J. H., Seaman, R. &amp; Seidelmann, P. K. (2011). The future of time: UTC and the leap second. arXiv:1106.3141</li>
+    <li>CGPM (2022). Resolution 4 of the 27th meeting: On the use and future development of UTC. https://www.bipm.org/en/cgpm-2022/resolution-4</li>
+    <li>IERS (2001). <i>Explanatory supplement to IERS Bulletins A and B</i>, and USNO's Bulletin A archive notes (notes of 25 February 2010 and 29 November 2012). https://maia.usno.navy.mil/ser7/iersexp.sup and https://maia.usno.navy.mil/ser7/archive.notes</li>
+    <li>Meeus, J. (1998). <i>Astronomical Algorithms</i>, 2nd ed. Willmann-Bell. (Mean motions of the Moon and Sun used for every predicted period and phase on this page.)</li>
+    <li>Bretherton, C. S. et al. (1999). The effective number of spatial degrees of freedom of a time-varying field. <i>Journal of Climate</i> 12, 1990–2009. (The AR(1) shortcut for the effective sample size, which this page treats only as a conservative bound.)</li>
+  </ol>
+</section>
+
+<footer class="foot">
+  <p>Made by Leapwood for the Idea Bank. Related deposits: <a href="../41-same-time-tomorrow/index.html">Same Time Tomorrow</a> (why the <em>solar</em> day wobbles by half a minute) and <a href="../42-nothing-to-push-against/index.html">Nothing to Push Against</a> (lending spin to a wheel).</p>
+</footer>
+
+</main>
+<div id="tip" class="tip" role="status" aria-live="off" hidden></div>
+<script src="data/lod.js"></script>
+<script src="data/oni.js"></script>
+<script src="data/leapsec.js"></script>
+<script src="lod-core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
