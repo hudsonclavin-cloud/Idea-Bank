@@ -827,3 +827,45 @@ test('README and page state the safety rule and the floor conditions as they now
   assert.match(BODY, /As Matoušek and Loebl \(1991\) recall/);
   assert.doesNotMatch(INDEX, /731–741\. Hercules has a short strategy/);
 });
+
+test('README: the test counts and the layout-shift tap rate match the tests, and the cross-fade figures are the measured ones', () => {
+  const BODY = README.slice(0, README.indexOf('## Revision note'));
+  const UI = fs.readFileSync(here('./ui.test.mjs'), 'utf8');
+  const SELF = fs.readFileSync(here('./hydra.test.mjs'), 'utf8');
+  const count = (src) => (src.match(/^test\(/gm) || []).length;
+  // The Verification section once said 9 UI tests after two more had been added.
+  assert.match(BODY, new RegExp('`ui\\.test\\.mjs` \\(' + count(UI) + ' tests,'));
+  assert.match(BODY, new RegExp('`hydra\\.test\\.mjs` \\(node:test, ' + count(SELF) + ' tests,'));
+  // The layout-shift test once claimed 15 taps a second but used page.tap plus a 66 ms wait,
+  // about 8 a second. It now taps by the clock and checks the rate the taps arrived at.
+  const shift = UI.slice(UI.indexOf("test('whole page: tapping a Hercules button 15 times a second"));
+  assert.ok(shift.length > 0);
+  assert.match(shift, /start \+ \(i \* 1000\) \/ 15 - Date\.now\(\)/);
+  assert.match(shift, /page\.touchscreen\.tap\(/);
+  assert.doesNotMatch(shift.slice(0, shift.indexOf('\n});')), /page\.tap\(/);
+  assert.match(shift, /assert\.ok\(rate >= 13/);
+  assert.match(BODY, /taps one with real touch taps 15 times a second, by the clock/);
+  // The cross-fade figure once said "about 480 px², about 2%"; three meters found 500 to 805 px².
+  // It then said "at most about 800 px² (under 4%)", the Tall stick's figure at 60 frames a
+  // second given as the page's maximum. The Two sticks reach about 1,200 px² over a minute,
+  // a screen drawing 120 frames a second shows about twice as much, and hydras grown to the
+  // page's limits more again (about 4,200 px²); within any one second it stays near 2%.
+  assert.doesNotMatch(BODY, /480 px²/);
+  assert.doesNotMatch(BODY, /at most about 800 px²/);
+  assert.doesNotMatch(BODY, /changed 18 times in one second/);
+  const fade = BODY.slice(BODY.indexOf('That is not a pure pixel-by-pixel fade'), BODY.indexOf('The one thing on the canvas that changes outside the gate'));
+  assert.ok(fade.length > 200, 'the cross-fade sentences are missing from the Safety note');
+  assert.match(fade, /changed 20 times in one second at 60 frames a second, and 34 times at 120/);
+  assert.match(fade, /the most found was about 670 px² \(about 3% of WCAG's area limit\), on a broom/);
+  assert.match(fade, /These are the largest found, not limits/);
+  assert.doesNotMatch(fade, /covered at most about 500 px² \(about 2% of WCAG's area limit\) in every run measured/);
+  assert.match(fade, /up to about 1,200 px² \(under 6%\) on the presets at 60 frames a second, the most on the Two sticks played the slow way/);
+  assert.match(fade, /up to about 2,700 px² \(12%\) at 120/);
+  assert.match(fade, /on grown hydras up to about 2,600 px² \(12%\) at 60 and about 4,700 px² \(22%\) at 120, the most on that broom/);
+  // The same figures in app.js, where the Tall stick's 800 px² once stood as the maximum.
+  assert.doesNotMatch(APP, /about 800 px² at most/);
+  assert.match(APP, /up to about 670 px² \(about 3% of WCAG's area limit\) on the\s+\*\s+worst hydra grown/);
+  assert.match(APP, /These are the largest found, not limits/);
+  assert.match(APP, /up to about 1,200 px² on the presets at 60 frames\s+\*\s+a second \(the Two sticks, the slow way\), 2,700 at 120/);
+  assert.doesNotMatch(UI, /independent meters found up to 18 under the cross-fade/);
+});

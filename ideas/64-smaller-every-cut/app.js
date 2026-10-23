@@ -671,8 +671,15 @@
    * the cut is laid over it, fading out over TWEEN_MS. Nothing sweeps across the picture,
    * but it is not a pure pixel-by-pixel fade: the growing necks are redrawn every frame and
    * the growing heads' eyes move outward, so a few edge pixels change direction several times
-   * within one cut. ui.test.mjs measures them (a few hundred px² at most, a few per cent of
-   * WCAG's area limit). The gate keeps cuts 1000 / PICTURE_HZ ms apart, longer than one fade.
+   * within one cut, and a screen that draws more frames a second shows more of those changes.
+   * ui.test.mjs measures them (up to about 220 px² in its 4-second runs, at about 60 frames
+   * a second). Independent meters found that in any one second they cover about 500 px²
+   * at most on the presets, and up to about 670 px² (about 3% of WCAG's area limit) on the
+   * worst hydra grown, at 60 and 120 frames a second. Adding up every pixel flagged at any
+   * moment of a minute's play, they found up to about 1,200 px² on the presets at 60 frames
+   * a second (the Two sticks, the slow way), 2,700 at 120, and up to about 4,700 on grown
+   * hydras. These are the largest found, not limits. The gate keeps cuts
+   * 1000 / PICTURE_HZ ms apart, longer than one fade.
    */
   function frameItems(now) {
     const L = currentLayout;

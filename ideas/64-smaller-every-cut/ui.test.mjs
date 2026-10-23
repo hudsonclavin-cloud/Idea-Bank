@@ -117,9 +117,12 @@ test('reduced motion: a cut shows its result at once, with no animation', { skip
 // On every animation frame this reads every device pixel of the hydra canvas and tracks its
 // relative luminance: a change of 0.1 or more against the last extreme, opposite to the
 // previous one, is a transition. It returns the most transitions any pixel made in any one
-// second, and the total area (CSS px²) of the pixels that made more than 6 (more than three
-// flashes) in some second. That total is over the whole canvas, so it is an upper bound on the
-// flashing area inside any one 341 x 256 rectangle, and pixels are not averaged together.
+// second (counted only up to 9, from the last 8 remembered, which is enough for every limit
+// checked here; independent meters found up to 20 under the cross-fade at 60 frames a second
+// and 34 at 120), and the total area
+// (CSS px²) of the pixels that made more than 6 (more than three flashes) in some second.
+// That total is over the whole canvas, so it is an upper bound on the flashing area inside
+// any one 341 x 256 rectangle, and pixels are not averaged together.
 // It also returns the same worst count for the selection ring's own pixels alone (ringWorst):
 // the pixels that ever showed exactly the ring's colour, which in the light scheme nothing
 // else on the canvas uses, and their area (ringArea).
@@ -631,20 +634,31 @@ test('whole page: tapping a Hercules button 15 times a second does not make the 
     await withPage({ viewport: { width: w, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, reducedMotion: 'reduce' }, async (page) => {
       await page.evaluate(() => {
         window.__shifts = [];
+        window.__clicks = [];
         new PerformanceObserver((l) => { for (const e of l.getEntries()) if (e.value > 0) window.__shifts.push(e.startTime); }).observe({ type: 'layout-shift', buffered: false });
+        document.getElementById('autoSlow').addEventListener('click', () => window.__clicks.push(performance.now()), true);
       });
       await page.locator('#autoSlow').scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
+      const box = await page.locator('#autoSlow').boundingBox();
       const t0 = await page.evaluate(() => performance.now());
+      // real touch taps on the button's centre, by the clock: one every 1/15 s (page.tap would wait
+      // for the button to be ready each time and so manage only about 8 a second)
+      const start = Date.now();
       for (let i = 0; i < 30; i++) {
-        await page.tap('#autoSlow');
-        await page.waitForTimeout(66);
+        const wait = start + (i * 1000) / 15 - Date.now();
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
       }
       await page.waitForTimeout(600);
-      const t = (await page.evaluate(() => window.__shifts)).filter((x) => x >= t0);
+      const { shifts, clicks } = await page.evaluate(() => ({ shifts: window.__shifts, clicks: window.__clicks }));
+      assert.equal(clicks.length, 30, `${w}px: ${clicks.length} of 30 taps reached the button`);
+      const rate = (clicks.length - 1) / ((clicks[clicks.length - 1] - clicks[0]) / 1000);
+      assert.ok(rate >= 13, `${w}px: the taps came only ${rate.toFixed(1)} times a second`);
+      const t = shifts.filter((x) => x >= t0);
       let worst = 0;
       for (const a of t) worst = Math.max(worst, t.filter((b) => b >= a && b < a + 1000).length);
-      assert.ok(worst <= 3, `${w}px: ${worst} layout shifts in one second (${t.length} in all)`);
+      assert.ok(worst <= 3, `${w}px: ${worst} layout shifts in one second (${t.length} in all, taps ${rate.toFixed(1)} a second)`);
     });
   }
 });
