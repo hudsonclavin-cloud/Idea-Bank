@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aloft</title>
+<meta name="description" content="A tiny programming language with no variables: to remember a value you throw it, and the height is how long you'll need it.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Aloft</h1>
+  <p class="tag">A tiny language with no variables. To remember a value, throw it. The height is how long you'll need it.</p>
+</header>
+
+<main class="cols">
+ <div class="col col-a">
+  <section class="lesson" aria-label="Lesson">
+    <div class="picker">
+      <button id="prev" class="icon" type="button" aria-label="Previous lesson">&#8249;</button>
+      <select id="lessonSelect" aria-label="Choose a lesson"></select>
+      <button id="next" class="icon" type="button" aria-label="Next lesson">&#8250;</button>
+    </div>
+    <div id="lessonText" class="lesson-text"></div>
+  </section>
+
+  <section class="code" aria-label="Program">
+    <div class="editor" id="editor">
+      <div class="gutter" aria-hidden="true"><div id="gutterInner"></div></div>
+      <div class="code-area">
+        <div id="bands" aria-hidden="true"></div>
+        <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Aloft program" aria-describedby="verdict"></textarea>
+      </div>
+    </div>
+    <div class="editor-bar">
+      <button id="resetLesson" type="button">Reset lesson</button>
+      <label class="limit">Beat limit <input id="limit" type="number" min="1" max="100000" step="1" value="10000" inputmode="numeric"></label>
+    </div>
+  </section>
+
+  <section class="status" aria-label="Checker">
+    <div id="verdict" class="verdict" aria-live="polite"></div>
+    <div id="startList" class="start-list"></div>
+  </section>
+
+  <section class="output-wrap" aria-label="Output">
+    <div class="output-head"><h2>Output</h2><span id="runStatus" class="run-status"></span></div>
+    <div id="output" class="output" tabindex="0" aria-label="Program output"></div>
+  </section>
+
+ </div>
+ <div class="col col-b">
+  <section class="stage-wrap" aria-label="The juggle">
+    <canvas id="stage" role="img" aria-label="The program's balls being juggled"></canvas>
+    <div class="controls">
+      <button id="play" type="button" class="primary">Play</button>
+      <button id="step" type="button">Step</button>
+      <button id="restart" type="button">Restart</button>
+      <label class="speed">Speed <input id="speed" type="range" min="0.5" max="8" step="0.5" value="2" aria-label="Beats per second"></label>
+      <button id="sound" type="button" aria-pressed="false">Sound off</button>
+    </div>
+    <p id="beatDesc" class="beat-desc"></p>
+  </section>
+
+  <section class="timeline-wrap" aria-label="Timeline">
+    <canvas id="timeline" role="img" aria-label="Timeline of throws: each arc runs from the beat a value is thrown to the beat it lands"></canvas>
+    <p class="caption">Each arc is one value in the air, from the beat it is thrown to the beat it lands. The program's memory at any moment is the arcs crossing that moment.</p>
+  </section>
+ </div>
+</main>
+
+<section class="reference">
+  <details>
+    <summary>Language reference</summary>
+    <div class="ref-body">
+      <p>A program is some <code>balls</code> lines, then one or more <b>beats</b>. A beat starts with a <code>catch</code> line and runs until the next one. Beats repeat in a loop: at time t = 0, 1, 2, … the beat numbered t mod n runs, where n is the number of beats.</p>
+      <pre>balls 0 1           # values already in the air, in landing order
+catch a b           # this beat catches two balls
+  let s = a + b     # a name for the rest of this beat
+  say a, s when a &lt; 9   # print a line (optionally only when…)
+  stop when a &gt; 50  # end the run (optionally only when…)
+  throw b up 1      # lands at t + 1
+  throw s up 1</pre>
+      <ul>
+        <li><b>A throw at time t with height h lands at time t + h.</b> Heights are numbers written out, 1 to 9999. Every beat throws exactly as many balls as it catches, and throws can't have <code>when</code>.</li>
+        <li><b>Balls that land together are caught in the order they were thrown</b> (earlier throw first; thrown on the same beat: in the order of the <code>throw</code> lines).</li>
+        <li><b>Names last one beat.</b> A name is bound by <code>catch</code> or <code>let</code> and is gone when the beat ends. Nothing else remembers anything.</li>
+        <li><b><code>balls</code></b> lists the values in the air when the program starts, as if the pattern had always been running, in the order they will be caught.</li>
+        <li><b>Before it runs,</b> the checker makes sure every name is in hand, every beat throws what it catches, every beat receives exactly the balls it catches (a throw on beat i, height h, lands on beat (i + h) mod n), and <code>balls</code> lists exactly (sum of heights) / n values.</li>
+        <li><b>Numbers</b> are whole, of any size below 2<sup>4096</sup>. <code>/</code> and <code>%</code> round down (−7 / 2 = −4, −7 % 2 = 1). Comparisons, <code>and</code>, <code>or</code>, <code>not</code> give 1 or 0, and 0 is false. <code>if c then x else y</code> picks a value. <code>min(a, b, …)</code>, <code>max(a, b, …)</code>, <code>abs(x)</code>.</li>
+        <li><b>Precedence,</b> loosest first: <code>if … then … else</code>; <code>or</code>; <code>and</code>; <code>not</code>; <code>== != &lt; &lt;= &gt; &gt;=</code> (no chaining); <code>+ -</code>; <code>* / %</code>; unary <code>-</code>.</li>
+        <li><b>Lines:</b> one statement per line; a line break inside brackets is ignored; <code>#</code> starts a comment; <code>say</code> joins its items with spaces.</li>
+      </ul>
+      <p>The full grammar and semantics are in the README.</p>
+    </div>
+  </details>
+</section>
+
+<footer class="foot">
+  <p>Aloft is idea 56 in the Idea Bank. Grammar, semantics and an honest assessment are in <a href="README.md">README.md</a>.</p>
+</footer>
+
+<script src="aloft.js"></script>
+<script src="examples.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
