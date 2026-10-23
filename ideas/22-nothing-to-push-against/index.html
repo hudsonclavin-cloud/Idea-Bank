@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing to Push Against</title>
+<meta name="description" content="A spacecraft can't turn; it can only lend its spin to a wheel. Drag the sky from inside the spacecraft, watch the reaction wheels fill up, and pay propellant to empty them.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#070a14">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="sky" role="img" aria-label="The star field seen through the spacecraft's own camera. Drag to turn the spacecraft; the reaction wheels take the opposite spin."></canvas>
+    <div class="hud hud-tl">
+      <div class="hud-mode" id="hudMode">Autopilot · holding</div>
+      <div class="hud-time" id="hudTime">0d 00:00:00 · 10× time</div>
+      <div class="badge badge-full" id="badgeFull" hidden>Wheel full · hold lost</div>
+      <div class="badge badge-thr" id="badgeThr" hidden>Thrusters firing · paying propellant</div>
+    </div>
+    <div class="hud hud-tr">
+      <div class="hud-target" id="hudTarget">—</div>
+      <div class="hud-rate" id="hudRate">turning 0.00°/s</div>
+    </div>
+    <div class="roll" aria-label="Roll">
+      <button type="button" id="rollL" title="Roll the sky anticlockwise (Q)">↺</button>
+      <button type="button" id="rollR" title="Roll the sky clockwise (E)">↻</button>
+    </div>
+    <div class="hud hud-bottom" id="hudHint">Drag the sky to point somewhere else</div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <aside class="panel">
+    <header class="masthead">
+      <h1>Nothing to Push Against</h1>
+      <p class="tagline">A spacecraft can't turn; it can only lend its spin to a wheel. Drag the sky, feel the wheels fill up, and pay to empty them.</p>
+    </header>
+
+    <section class="controls" aria-label="Controls">
+      <div class="row">
+        <span class="lbl">Autopilot</span>
+        <div class="seg" id="mode" role="group" aria-label="Autopilot">
+          <button type="button" data-v="hold" title="Wheels hold the attitude you drag to (A)">On</button><button type="button" data-v="raw" title="Your drag is the motor torque; nothing damps (A)">Off · raw</button>
+        </div>
+        <button id="desat" class="btn btn-primary" type="button" title="Fire the thrusters until the wheels are empty (D)">Empty the wheels</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Time</span>
+        <div class="seg" id="rate" role="group" aria-label="Time rate">
+          <button type="button" data-v="1">1×</button><button type="button" data-v="10">10×</button><button type="button" data-v="600">600×</button>
+        </div>
+        <button id="pause" class="btn" type="button" title="Pause (Space)">Pause</button>
+        <button id="reset" class="btn" type="button" title="Back to the start, wheels empty, tank full">Reset</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Tumble</span>
+        <div class="seg seg-wrap" id="tumble" role="group" aria-label="Start a free tumble">
+          <button type="button" data-v="0" title="Spin about the long axis (x), 17°/s">Long axis</button><button type="button" data-v="1" title="Spin about the middle axis (y), 17°/s: unstable">Middle axis</button><button type="button" data-v="2" title="Spin about the short axis (z, the boresight), 17°/s">Short axis</button>
+        </div>
+      </div>
+      <div class="dist">
+        <label for="dist" class="dist-label">Sunlight torque <span class="muted">(steady, fixed in the sky)</span> <output id="distOut">10 µN·m</output></label>
+        <input id="dist" type="range" min="0" max="100" step="1" value="10" aria-describedby="distNote">
+        <p class="verdict" id="distNote"></p>
+      </div>
+    </section>
+
+    <section class="wheels" aria-label="Reaction wheels">
+      <h2>Reaction wheels <span class="muted">momentum stored, ± capacity</span></h2>
+      <div class="wheel" id="wheel0"><span class="wk">x · pitch</span><div class="bar"><div class="fill"></div></div><span class="wv mono">0.000 · 0 rpm</span></div>
+      <div class="wheel" id="wheel1"><span class="wk">y · yaw</span><div class="bar"><div class="fill"></div></div><span class="wv mono">0.000 · 0 rpm</span></div>
+      <div class="wheel" id="wheel2"><span class="wk">z · roll</span><div class="bar"><div class="fill"></div></div><span class="wv mono">0.000 · 0 rpm</span></div>
+      <div class="stats">
+        <div class="stat"><span class="k">Body turning</span><span class="v mono" id="rBody">0.00°/s</span></div>
+        <div class="stat"><span class="k">Propellant</span><span class="v mono" id="rProp">2.000 kg</span></div>
+        <div class="stat stat-wide"><span class="k">At this torque</span><span class="v" id="rLife">—</span></div>
+      </div>
+    </section>
+
+    <section class="ledger" aria-label="Angular momentum ledger">
+      <h2>The ledger <span class="muted">angular momentum, N·m·s, seen from the stars</span></h2>
+      <table>
+        <thead><tr><th></th><th class="mono">x</th><th class="mono">y</th><th class="mono">z</th></tr></thead>
+        <tbody>
+          <tr><td>Opening balance</td><td class="mono" id="lOpen0"></td><td class="mono" id="lOpen1"></td><td class="mono" id="lOpen2"></td></tr>
+          <tr><td>+ sunlight put in</td><td class="mono" id="lDep0"></td><td class="mono" id="lDep1"></td><td class="mono" id="lDep2"></td></tr>
+          <tr><td>+ thrusters took out</td><td class="mono" id="lThr0"></td><td class="mono" id="lThr1"></td><td class="mono" id="lThr2"></td></tr>
+          <tr class="sum"><td>= should be on board</td><td class="mono" id="lExp0"></td><td class="mono" id="lExp1"></td><td class="mono" id="lExp2"></td></tr>
+          <tr class="sum"><td>on board (measured)</td><td class="mono" id="lNow0"></td><td class="mono" id="lNow1"></td><td class="mono" id="lNow2"></td></tr>
+          <tr class="err"><td>bookkeeping error</td><td class="mono" id="lErr" colspan="3">0</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small" id="lSplit"></p>
+      <p class="muted small">Axes fixed to the stars. "Should be" sums the pushes from outside; "on board" is the spin of body and wheels, read off the simulation and rotated into star axes. Two routes, one answer, to floating-point round-off, whatever you do. Nothing internal, wheels included, can change the total.</p>
+    </section>
+
+    <section class="missions" aria-label="Things to try">
+      <h2>Things to try <span class="muted" id="mScore">0/7</span></h2>
+      <ol id="missionList"></ol>
+      <button id="resetMissions" class="link" type="button">Reset progress</button>
+    </section>
+
+    <section class="explain">
+      <h2>What you're looking at</h2>
+      <p>You are the camera on a small spacecraft, a 60&nbsp;kg box with its long side along your line of sight. There is nothing to push against out here, so the spacecraft turns the only way it can: three motors spin up three <strong>reaction wheels</strong>, one per axis, and the body takes the opposite spin. Drag the sky and watch the bars. Every turn you make is borrowed from a wheel, and when you stop, the wheel keeps whatever it was lent.</p>
+
+      <h2>Why the wheels fill up</h2>
+      <p>If the only pushes were your own, the books would always balance: slew, stop, and the wheels are back where they started. But sunlight presses on the spacecraft, and because it presses a little off-centre, it twists it, steadily, about ten millionths of a newton-metre here. The autopilot cancels that twist by spinning a wheel a little faster every second. Nothing ever spins it back down. After about fourteen hours the wheel lined up with that twist reaches its limit (6,000 rpm), the autopilot has nothing left to give, and the sky starts to drift. Turn to a new target with a loaded wheel and the load migrates to a different wheel, because the stored momentum stays fixed in the sky, not in the spacecraft.</p>
+
+      <h2>Why you have to pay</h2>
+      <p>The total angular momentum of body plus wheels, measured against the stars, can only be changed by something outside: sunlight going in, or thrusters going out. "Empty the wheels" fires a pair of cold-gas thrusters while the wheels wind down against them. A full wheel costs about two grams of gas. With the two kilograms on board, that is the mission's clock: about 1.6 years at the default torque. The ledger on the left adds up every deposit and withdrawal and compares it with what is on board, by a different route. It balances to round-off, always. That is the part you can prove. The heaviness of the sky is the part you can only feel.</p>
+
+      <h2>The flip</h2>
+      <p>Switch the autopilot off and the wheels stop helping: your drag is a raw motor torque, and the sky keeps turning after you let go. Start a tumble about the <em>middle</em> axis and the sky will, every couple of minutes (seconds, at 10×), turn over on its own, with no torque applied at all. That is the intermediate-axis instability (the tennis-racket or Dzhanibekov effect). Spins about the long or short axis are steady. Then try to catch the tumble: the wheels can soak up only their capacity, and 17°/s about the middle axis is 1.8 N·m·s, more than three times a wheel's 0.5, so the thrusters have to finish the job.</p>
+
+      <h2>Small print</h2>
+      <p class="muted">Rigid body with three reaction wheels, principal inertias 7.5, 6.0, 3.5 kg·m², wheel capacity ±0.5 N·m·s, motor torque 20 mN·m, thruster couple 16 mN·m, cold gas Isp 65 s, 2 kg propellant. The disturbance is a constant torque vector fixed in the inertial frame. Integrator: kick–drift–kick at a fixed 0.02 s step, the torque-free drift split into exact single-axis rotations composed to 4th order, so the inertial momentum is conserved to round-off. Time runs faster than real (1×, 10×, 600×), and stars are invented. Keys: drag, arrows, <kbd>Q</kbd>/<kbd>E</kbd> roll, <kbd>A</kbd> autopilot, <kbd>D</kbd> empty wheels, <kbd>T</kbd> time rate, <kbd>Space</kbd> pause. The README has the tests and numbers.</p>
+    </section>
+  </aside>
+</div>
+<script src="attitude.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
