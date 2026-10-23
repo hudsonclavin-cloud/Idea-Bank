@@ -898,8 +898,10 @@ test('method: the pull toward the ruler for a reader who stops well short comes 
         // Without the b > 0.5 rule: every run whose fixed point lies in the window.
         if (fp.x >= w0 && fp.x <= w1) unruled.push(fp.x - T);
       }
-      // Three in four or more refused runs have a fixed point beyond the setting, away from the ruler.
-      assert.ok(beyond / refused > 0.7 && beyond / refused < 0.9, `${k} T=${T}: ${beyond} of ${refused} refused runs beyond`);
+      // About three in four refused runs (73% to 84%) have a fixed point beyond the setting, away
+      // from the ruler; in the middle test, a little under three in four.
+      assert.ok(beyond / refused > 0.72 && beyond / refused < 0.86, `${k} T=${T}: ${beyond} of ${refused} refused runs beyond`);
+      if (k === 'middle') assert.ok(beyond / refused < 0.75, `middle T=${T}: ${beyond} of ${refused}`);
       // The kept runs are pulled toward the ruler; without the rule nearly all of that pull goes.
       const mk = away * med(kept);
       const mu = away * med(unruled);
@@ -907,6 +909,10 @@ test('method: the pull toward the ruler for a reader who stops well short comes 
       assert.ok(Math.abs(mu) < 0.2 * Math.abs(mk), `${k} T=${T}: without the rule ${mu}, with it ${mk}`);
     }
   }
+  // The README gives the range, not "three in four or more" (the fourth check).
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.doesNotMatch(readme, /three in four or more of the harder reader's runs/);
+  assert.match(readme, /about three in four of the harder reader's runs refused for \*b\* > 0\.5 \(73% to 84%, depending on the test\)/);
 });
 
 // A third check found that a steady reader who overshoots could get a wrong setting with no warning:
@@ -1010,8 +1016,8 @@ test('method: a try held at an end of the control’s range gives no setting, no
   const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
   assert.doesNotMatch(readme, /this fixed point is exactly their setting as long as they are steady \(no scatter from try to try\)\./);
   assert.doesNotMatch(readme, /the fixed point is their setting exactly when they are steady\./);
-  assert.match(readme, /this fixed point is exactly their setting as long as they are steady \(no scatter from try to try\) and no try is stopped by an end of the control's range/);
-  assert.match(readme, /the fixed point is their setting exactly when they are steady and no try runs into an end of the control's range/);
+  assert.match(readme, /For a steady reader the fixed point is exactly their setting on two conditions: no stop is held at an end of the control's range/);
+  assert.match(readme, /The fixed point is exactly a steady reader's setting when no stop is held at an end of the control's range/);
   assert.match(readme, /Carlito Bold's correction \(uprights 42% thicker\) does so once it overshoots by about a sixth, one with Carlito Regular's \(38%\) by about a fifth and one with DejaVu Sans Bold's \(32%\) by about a quarter/);
   assert.match(readme, /about 0\.5 to 3\.4 points too far from the ruler at the median/);
   assert.match(readme, /only 12 of the 20,000 runs of one of their readers/);
@@ -1019,68 +1025,420 @@ test('method: a try held at an end of the control’s range gives no setting, no
   assert.match(html, /or a try ends where the strip stops/);
 });
 
-// Found while writing the test above: the fit takes the side the page planned for each try as the
-// side the reader came from. For a reader with a can't-tell band, a nearer try that starts on the
-// other side of its setting from the planned one breaks that, and the result is off with nothing to
-// show it. These pin when that happens, how far off it goes, and what the README says about it.
-test('method: a reader with a can’t-tell band is got back exactly only if every try starts on its planned side', () => {
-  const r = rng(13);
-  const off = {}; // per test: { faces: Set, fs: [], toward: n, away: n, worst }
+// The second condition of the exactness claim: every try starts on the side of the reader's setting
+// that the page planned. A fourth check found it pinned only at the typefaces' own values, where it
+// rarely fails, while for a setting beyond where the far tries start it fails often, even for a
+// reader who goes all the way; and the page said flatly that a can't-tell-band reader is got back
+// exactly. This sweeps steady readers (the reader above, held to the window) across each test's
+// whole window and pins what the README, the page and method.js now say. A fifth check found the
+// claim's scope ("only a reader with a can't-tell band") too narrow: a reader who goes a fixed
+// distance past (a negative zone) is steady by the same definition and misses the same way, but away
+// from the ruler. So the sweep runs offsets both ways, and a random search covers closing shares from
+// 0 to 2.
+const SWEEP_FS = Array.from({ length: 20 }, (_, i) => 0.5 + 0.05 * i); // closes 0.5 to 1.45 of the distance
+test('method: steady readers across each whole range: exact or refused with no offset; with a band or going past, off only after an unplanned start, and never by more than the offset', async () => {
+  const sim = await import('./simulate.mjs');
+  const own = {};
   for (const k of KEYS) {
-    off[k] = { faces: new Set(), fs: [], toward: 0, away: 0, worst: 0 };
-    for (const face of k === 'point' ? FACES.pointed : FACES.sans) {
-      const T = { round: face.round, point: face.pointBottom, bar: face.bar, middle: face.middle, halves: face.halves8 }[k];
-      for (let i = 50; i < 150; i++) {
-        const f = i / 100;
-        for (let rep = 0; rep < 40; rep++) {
-          const { held, crossed, res } = runHeld(k, { T, f, zone: SCATTER[k], noise: 0 }, r);
-          if (held >= 0) continue; // refused; the test above
-          if (!res.ok) {
-            assert.equal(res.why, 'anchored', `${k} T=${T} f=${f}: ${res.why}`);
-            continue;
+    const p = MTH.PLAN[k];
+    const [w0, w1] = p.window;
+    const r = rng(14);
+    own[k] = {};
+    for (const zm of [0, 1, 2, -1, -2]) {
+      const zone = zm * SCATTER[k];
+      const a = { ok: 0, off: 0, nearOk: 0, nearOff: 0, worst: 0, away: 0 };
+      for (let i = 0; i <= 100; i++) {
+        const T = w0 + ((w1 - w0) * i) / 100;
+        const near = Math.abs(T - p.ruler) < p.far[0];
+        for (const f of SWEEP_FS) {
+          for (let rep = 0; rep < (Math.abs(zm) === 1 ? 20 : 6); rep++) {
+            const { tries, held, crossed, res } = runHeld(k, { T, f, zone, noise: 0 }, r);
+            if (held >= 0) {
+              assert.equal(res.why, 'end');
+              continue;
+            }
+            if (!res.ok) {
+              // Without a band the only other refusals are at the edges: a stop within AT_END of an
+              // end, b a hair over 0.5 for a reader who closes exactly half, or a setting exactly at
+              // an end of the window.
+              if (zm === 0) assert.ok(res.why === 'end' || (res.why === 'anchored' && f === 0.5) || (res.why === 'outside' && (i === 0 || i === 100)), `${k} T=${T} f=${f}: ${res.why}`);
+              continue;
+            }
+            a.ok++;
+            if (near) a.nearOk++;
+            const e = Math.abs(res.value - T);
+            if (e < 1e-9) continue;
+            assert.ok(zm !== 0, `${k} T=${T} f=${f}: off by ${e} with no offset`);
+            assert.ok(crossed, `${k} T=${T} f=${f}: off by ${e} with every try on its planned side`);
+            assert.ok(e <= Math.abs(zone) * (1 + 1e-9), `${k} T=${T} f=${f}, offset x${zm}: off by ${e / Math.abs(zone)} of the offset`);
+            a.off++;
+            if (near) a.nearOff++;
+            a.worst = Math.max(a.worst, e / Math.abs(zone));
+            if (Math.abs(res.value - p.ruler) >= Math.abs(T - p.ruler)) {
+              a.away++;
+              // A band's few misses away from the ruler: the readers the sixth check describes.
+              if (zm > 0) assert.equal(whyUnexpected(k, { T, f, zone }, tries), '', `${k} T=${T} f=${f} band x${zm}`);
+            }
           }
-          const err = DISPLAY[k](res.value) - DISPLAY[k](T);
-          if (Math.abs(res.value - T) < 1e-9) continue;
-          assert.ok(crossed, `${k} ${face.name} ${face.style} f=${f}: off by ${err} with every try on its planned side`);
-          const o = off[k];
-          o.faces.add(`${face.name} ${face.style}`);
-          o.fs.push(f);
-          if (err * Math.sign(DISPLAY[k](T)) < 0) o.toward++;
-          else o.away++;
-          o.worst = Math.max(o.worst, Math.abs(err));
         }
+      }
+      own[k][zm] = a;
+    }
+    const [none, one, two, past, pastTwo] = [own[k][0], own[k][1], own[k][2], own[k][-1], own[k][-2]];
+    assert.equal(none.off, 0);
+    // With a band, a share of results is off, nearly all for settings beyond the far starts' nearest
+    // edge (about seven in ten there, under one in a hundred nearer the ruler), nearly all toward the
+    // ruler, and the furthest exactly at the band's edge.
+    for (const a of [one, two]) {
+      assert.ok(a.off > 0.08 * a.ok && a.off < 0.3 * a.ok, `${k}: ${a.off} of ${a.ok} off`);
+      assert.ok(a.nearOff < 0.01 * a.nearOk, `${k}: ${a.nearOff} of ${a.nearOk} off nearer the ruler`);
+      assert.ok((a.off - a.nearOff) > 0.6 * (a.ok - a.nearOk), `${k}: beyond the far starts ${a.off - a.nearOff} of ${a.ok - a.nearOk}`);
+      assert.ok(a.away < 0.002 * a.off, `${k}: ${a.away} of ${a.off} away from the ruler`);
+      assert.ok(a.worst > 0.999, `${k}: furthest ${a.worst} of the half-width`);
+    }
+    // Going past: about as often, nearly all beyond the far starts (one or two in a hundred nearer the
+    // ruler), every miss on this grid away from the ruler (not every miss off it: see the sixth check's
+    // test below), and the furthest exactly the distance gone past.
+    for (const a of [past, pastTwo]) {
+      assert.ok(a.off > 0.06 * a.ok && a.off < 0.3 * a.ok, `${k}: going past, ${a.off} of ${a.ok} off`);
+      assert.ok(a.nearOff > 0 && a.nearOff < 0.025 * a.nearOk, `${k}: going past, ${a.nearOff} of ${a.nearOk} off nearer the ruler`);
+      assert.ok((a.off - a.nearOff) > 0.5 * (a.ok - a.nearOk), `${k}: going past, beyond the far starts ${a.off - a.nearOff} of ${a.ok - a.nearOk}`);
+      assert.equal(a.away, a.off, `${k}: going past, ${a.off - a.away} misses toward the ruler`);
+      assert.ok(a.worst > 0.999, `${k}: going past, furthest ${a.worst} of the distance`);
+    }
+  }
+
+  // Any steady reader, more widely: settings anywhere in the window, closing shares from 0 to 2 (so
+  // past the swept 0.5 to 1.45, where most sets are refused), offsets of half to twice the first
+  // table's scatter either way. With no offset each result is exact or refused; with one, a result
+  // is off only after an unplanned start and never by more than the offset.
+  for (const k of KEYS) {
+    const [w0, w1] = MTH.PLAN[k].window;
+    const rr = rng(18);
+    let offs = 0;
+    const unexpected = [];
+    for (let i = 0; i < 12000; i++) {
+      const T = w0 + rr() * (w1 - w0);
+      const f = 2 * rr();
+      const zone = i % 3 === 0 ? 0 : (i % 3 === 1 ? 1 : -1) * SCATTER[k] * (0.5 + 1.5 * rr());
+      const { tries, held, crossed, res } = runHeld(k, { T, f, zone, noise: 0 }, rr);
+      if (held >= 0 || !res.ok) continue;
+      const e = Math.abs(res.value - T);
+      if (e < 1e-9) continue;
+      offs++;
+      const away = Math.abs(res.value - MTH.PLAN[k].ruler) >= Math.abs(T - MTH.PLAN[k].ruler);
+      // A band's miss away from the ruler, or going past's toward it: the readers the sixth check describes.
+      if (away === (zone > 0)) unexpected.push(whyUnexpected(k, { T, f, zone }, tries));
+      assert.ok(zone !== 0 && crossed, `${k} T=${T} f=${f} zone=${zone}: off by ${e}`);
+      assert.ok(e <= Math.abs(zone) * (1 + 1e-9), `${k} T=${T} f=${f} zone=${zone}: off by ${e / Math.abs(zone)} of the offset`);
+    }
+    assert.ok(offs > 100, `${k}: ${offs} misses in the random search`);
+    assert.deepEqual(unexpected.filter(Boolean), [], k);
+  }
+  // Settings no further from the ruler than a measured typeface's, more finely: the largest misses
+  // there are under 2 points on the uprights' scale and about 0.2% of the cap height in the middle
+  // test, and the round and pointed tests have none.
+  // Going past instead: under 2 points on the uprights' scale, 0.4 on the halves' and 0.1% of the cap
+  // height in the middle test, and again none in the round and pointed tests.
+  const nearFaces = { 1: {}, [-1]: {} };
+  for (const zm of [1, -1]) {
+    for (const k of KEYS) {
+      const p = MTH.PLAN[k];
+      const reach = Math.max(...faceValues[k].map((v) => Math.abs(v - p.ruler)));
+      const r = rng(17);
+      let worst = 0;
+      for (let i = 0; i <= 200; i++) {
+        const T = p.ruler - reach + (2 * reach * i) / 200;
+        for (const f of SWEEP_FS) {
+          for (let rep = 0; rep < 30; rep++) {
+            const { res } = runHeld(k, { T, f, zone: zm * SCATTER[k], noise: 0 }, r);
+            if (res.ok) worst = Math.max(worst, Math.abs(DISPLAY[k](res.value) - DISPLAY[k](T)));
+          }
+        }
+      }
+      nearFaces[zm][k] = worst;
+    }
+  }
+  const nb = nearFaces[1];
+  assert.ok(nb.bar > 1.2 && nb.bar < 2, `bar ${nb.bar}`);
+  assert.ok(nb.middle > 0.1 && nb.middle < 0.3, `middle ${nb.middle}`);
+  assert.ok(nb.round < 1e-6 && nb.point < 1e-6, `round ${nb.round}, points ${nb.point}`);
+  const np = nearFaces[-1];
+  assert.ok(np.bar > 1.2 && np.bar < 2, `going past: bar ${np.bar}`);
+  assert.ok(np.halves > 0.2 && np.halves < 0.45, `going past: halves ${np.halves}`);
+  assert.ok(np.middle > 0.03 && np.middle < 0.15, `going past: middle ${np.middle}`);
+  assert.ok(np.round < 1e-6 && np.point < 1e-6, `going past: round ${np.round}, points ${np.point}`);
+
+  // The fourth table is what simulate.mjs prints, and this sweep (its own reader, a coarser grid)
+  // agrees with it on how often a result is off.
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.deepEqual(sim.SWEEP, { points: 201, fs: SWEEP_FS.map((f) => +f.toFixed(2)), runs: 40 });
+  assert.ok(readme.includes('| Test | Results off | Off: setting inside the far starts / beyond them | Furthest off, in half-widths of the band | Furthest off, in the test\'s units | Off away from the ruler |'));
+  const sweeps = KEYS.map((k) => sim.bandSweep(k));
+  const shares = sweeps.map((s) => s.off / s.ok);
+  KEYS.forEach((k, i) => {
+    assert.ok(Math.abs(shares[i] - own[k][1].off / own[k][1].ok) < 0.02, `${k}: simulate.mjs ${shares[i]}, here ${own[k][1].off / own[k][1].ok}`);
+    assert.ok(sweeps[i].worstBands <= 1 + 1e-9);
+  });
+  for (const row of sim.sweepRows(sweeps)) assert.ok(readme.includes(row), `README is missing the row\n${row}`);
+  const pct = (v) => `${(100 * v).toFixed(1)}%`;
+  assert.ok(readme.includes(`${pct(Math.min(...shares))} to ${pct(Math.max(...shares))} of the results that come back are off`));
+  // The fifth table: the same sweep going as far past, from simulate.mjs, agreeing with this sweep.
+  assert.ok(readme.includes('| Test | Results off | Off: setting inside the far starts / beyond them | Furthest off, in multiples of the distance gone past | Furthest off, in the test\'s units | Off away from the ruler |'));
+  const pastSweeps = KEYS.map((k) => sim.bandSweep(k, -1));
+  const pastShares = pastSweeps.map((s) => s.off / s.ok);
+  KEYS.forEach((k, i) => {
+    assert.ok(Math.abs(pastShares[i] - own[k][-1].off / own[k][-1].ok) < 0.02, `${k}: going past, simulate.mjs ${pastShares[i]}, here ${own[k][-1].off / own[k][-1].ok}`);
+    assert.ok(pastSweeps[i].worstBands <= 1 + 1e-9 && pastSweeps[i].worstBands > 0.999);
+    assert.equal(pastSweeps[i].away, pastSweeps[i].off);
+  });
+  for (const row of sim.sweepRows(pastSweeps)) assert.ok(readme.includes(row), `README is missing the row\n${row}`);
+  assert.ok(readme.includes(`For a reader who goes that far past, ${pct(Math.min(...pastShares))} to ${pct(Math.max(...pastShares))} are off, none by more than the distance gone past and, in that sweep, all away from the ruler (the fifth table)`));
+
+  // The check's own example: an eye whose uprights are 54% thicker, going all the way, with a band
+  // as wide as the first table's scatter. About two runs in three off, by 1.75 points at the median
+  // and 2.2 at worst, all toward the ruler and inside the band.
+  const r = rng(15);
+  const errs = [];
+  let off = 0;
+  for (let i = 0; i < 2000; i++) {
+    const { crossed, res } = runHeld('bar', { T: 0.65, f: 1, zone: SCATTER.bar, noise: 0 }, r);
+    assert.ok(res.ok, res.why);
+    const e = DISPLAY.bar(res.value) - DISPLAY.bar(0.65);
+    errs.push(e);
+    if (Math.abs(res.value - 0.65) > 1e-9) {
+      off++;
+      assert.ok(crossed && e < 0 && Math.abs(res.value - 0.65) <= SCATTER.bar * (1 + 1e-9));
+    }
+  }
+  assert.equal(Math.round(DISPLAY.bar(0.65)), 54);
+  assert.ok(off > 0.6 * 2000 && off < 0.72 * 2000, `${off} of 2000 off`);
+  assert.ok(Math.abs(quant(errs, 0.5) + 1.75) < 0.08, `median ${quant(errs, 0.5)}`);
+  assert.ok(Math.min(...errs) < -2.15 && Math.min(...errs) > -2.3, `worst ${Math.min(...errs)}`);
+  // The fifth check's example: the same eye going all the way and then as far past. About two runs
+  // in three off, by 1.75 points at the median and 2.3 at worst, all away from the ruler, none by
+  // more than the distance gone past. Before the fifth check, the page said such misses went toward
+  // the ruler and that only a can't-tell band could cause them.
+  const errsPast = [];
+  let offPast = 0;
+  for (let i = 0; i < 2000; i++) {
+    const { crossed, res } = runHeld('bar', { T: 0.65, f: 1, zone: -SCATTER.bar, noise: 0 }, r);
+    assert.ok(res.ok, res.why);
+    const e = DISPLAY.bar(res.value) - DISPLAY.bar(0.65);
+    errsPast.push(e);
+    if (Math.abs(res.value - 0.65) > 1e-9) {
+      offPast++;
+      assert.ok(crossed && e > 0 && res.value < 0.65 && Math.abs(res.value - 0.65) <= SCATTER.bar * (1 + 1e-9));
+    }
+  }
+  assert.ok(offPast > 0.6 * 2000 && offPast < 0.72 * 2000, `going past: ${offPast} of 2000 off`);
+  assert.ok(Math.abs(quant(errsPast, 0.5) - 1.75) < 0.08, `going past: median ${quant(errsPast, 0.5)}`);
+  assert.ok(Math.max(...errsPast) > 2.25 && Math.max(...errsPast) < 2.35, `going past: worst ${Math.max(...errsPast)}`);
+  assert.match(readme, /going all the way and then that same distance past, came back off about two runs in three, by 1\.75 points at the median and 2\.3 at worst, all away from the ruler/);
+
+  // Much wider bands (four to ten times): a result can leave the band, by up to about another
+  // half-width, and only when a try started inside the band. Going four to ten times as far past,
+  // no result was further off than the distance gone past.
+  let widest = 0;
+  for (const k of KEYS) {
+    const [w0, w1] = MTH.PLAN[k].window;
+    const rr = rng(16);
+    let worst = 0;
+    let worstPast = 0;
+    for (let i = 0; i < 20000; i++) {
+      const T = w0 + rr() * (w1 - w0);
+      const zone = (i % 2 ? -1 : 1) * SCATTER[k] * (4 + 6 * rr());
+      const o = { T, f: 0.5 + rr(), zone, noise: 0 };
+      const { tries, held, res } = runHeld(k, o, rr);
+      if (held >= 0 || !res.ok) continue;
+      const e = Math.abs(res.value - T) / Math.abs(zone);
+      if (zone < 0) {
+        worstPast = Math.max(worstPast, e);
+        continue;
+      }
+      worst = Math.max(worst, e);
+      if (e > 1 + 1e-9) assert.ok(tries.some((q) => Math.abs(q.start - T) < zone), `${k}: outside the band with no start inside it`);
+    }
+    assert.ok(worst < 2, `${k}: ${worst} half-widths`);
+    assert.ok(worstPast <= 1 + 1e-9, `${k}: going far past, off by ${worstPast} of the distance`);
+    widest = Math.max(widest, worst);
+  }
+  assert.ok(widest > 1, 'with much wider bands a result can leave the band');
+  assert.match(readme, /going four to ten times as far, in a random search, never took a result further off than the distance gone past either/);
+
+  // The README, the page and method.js say the same thing at the same level: one general claim
+  // with its two conditions, the page refusing the first and blind to the second, and the cost
+  // measured over the whole range. The earlier, narrower accounts are gone.
+  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  const mjs = fs.readFileSync(path.join(DIR, 'method.js'), 'utf8').replace(/\n \*( |$)/gm, ' ');
+  assert.doesNotMatch(readme, /The third condition is about the nearer tries/);
+  assert.doesNotMatch(readme, /in one narrow case, misses without saying so/);
+  assert.doesNotMatch(readme, /The tests run every measured face's correction and check all three cases/);
+  assert.match(readme, /For a steady reader the fixed point is exactly their setting on two conditions: no stop is held at an end of the control's range, and every try starts on the side of their setting that the page planned for it\. The page sees when the first fails, and refuses the tries\. It cannot see when the second fails/);
+  assert.match(readme, /about two runs in three came back off, by 1\.75 points at the median and 2\.2 at worst/);
+  assert.match(readme, /never more than the band's half-width/);
+  assert.doesNotMatch(html, /or who stops as soon as the difference becomes too small to see, that is exactly their setting\./);
+  assert.match(html, /that is exactly their setting, as long as no try ends where the strip stops and every try starts on the side of their setting that the page planned\. The page checks the first\. It cannot check the second without knowing the setting\./);
+  assert.doesNotMatch(mjs, /a near try can start on the other side when the first two stops' mean is far/);
+  assert.match(mjs, /provided \(1\) no stop is held at an end of the window and \(2\) every try starts on the side of the reader's setting that was planned for it\. estimate\(\) sees \(1\) and refuses\. Nothing here can see \(2\)/);
+  // The scope of the second condition is stated by its cause (the stop depends on the side the try
+  // came from), not by one type of reader; "toward the ruler" is tied to the band (fifth check).
+  assert.doesNotMatch(readme, /The second matters only to a reader with a can't-tell band/);
+  assert.doesNotMatch(readme, /\(only for a reader with a can't-tell band\)/);
+  assert.doesNotMatch(readme, /which matters only with a can't-tell band/);
+  assert.doesNotMatch(html, /That one matters only to a reader who stops when the difference becomes too small to see/);
+  assert.doesNotMatch(html, /the result is then off, usually toward the ruler's value/);
+  assert.doesNotMatch(mjs, /it matters only to a reader with a band,/);
+  assert.match(readme, /always going the same distance past their setting, and any mix of these, are all steady/);
+  assert.match(readme, /The second matters only to a reader whose stop depends on which side they came from, that is, one with an offset \(a can't-tell band, or going a fixed distance past\), whose result is then off with nothing to show it\. With no offset, the side a try came from makes no difference to where it stops, and the result is exact or refused\./);
+  assert.match(readme, /\[Certain\] For a steady simulated reader, the method returns their setting exactly, or refuses, or \(only for a reader whose stop depends on which side they came from\) misses without saying so\. \[Likely\] Such a miss is no larger than about the width of the reader's can't-tell band, or the distance they go past/);
+  assert.match(readme, /It cannot see the second, which matters only to a reader with an offset, whose stop depends on the side they came from: a can't-tell band, or going a fixed distance past\./);
+  assert.match(readme, /every one was away from the ruler, a larger correction than the reader's own, and none was further off than the distance the reader goes past/);
+  assert.match(html, /That one matters only to a reader whose stop depends on which side they came from, like the last two,/);
+  assert.match(html, /by up to about the width of the range in which they cannot see a difference, or about as far as they go past, and the page cannot tell\. For a reader who stops as soon as they cannot see a difference, the miss is usually toward the ruler's value; for one who goes past, nearly always away from it\./);
+  assert.match(mjs, /going a fixed distance past \(c < 0\)/);
+  assert.match(mjs, /it matters only to a reader whose stop depends on the side they came from \(c != 0: a band, or going a fixed distance past\), whose result is then off with no warning/);
+  assert.match(mjs, /none was off by more than that half-width or distance \(measured, not proven\)\. A band's misses are nearly all toward the ruler, going past's nearly all away from it\./);
+});
+
+// The sixth check: the fifth check's fix said that a reader who goes past always misses away from the
+// ruler. That held on the fifth table's grid (closing shares in steps of 0.05, distances past of
+// exactly one or two times the scatter), not for every steady reader. One who overshoots by about two
+// fifths or more, with a setting between the ruler and the far starts, can carry the mean of the first
+// two stops so far beyond the setting that the near try planned on the ruler's side of it starts
+// beyond it, and then a reader who goes past misses toward the ruler (and one with a band, away from
+// it). whyUnexpected says what such a miss lacks of that description ('' when it fits).
+function whyUnexpected(key, o, tries) {
+  const p = MTH.PLAN[key];
+  const out = Math.sign(o.T - p.ruler); // the side of the setting away from the ruler
+  const unplanned = tries.map((q) => (q.start >= o.T ? 1 : -1) !== q.side);
+  const centre = (tries[0].stop + tries[1].stop) / 2;
+  const nearRulerSide = [2, 3].find((n) => tries[n].side === -out);
+  const why = [];
+  if (!(o.f > 1.38)) why.push(`closes ${o.f} of the distance`);
+  if (!(Math.abs(o.T - p.ruler) < p.far[0])) why.push('setting beyond the far starts');
+  if (unplanned[0] || unplanned[1]) why.push('a far try started on its unplanned side');
+  if (out === 0 || Math.sign(centre - o.T) !== out) why.push('the near centre is not beyond the setting');
+  if (nearRulerSide === undefined || !unplanned[nearRulerSide]) why.push('the near try planned on the ruler side started there');
+  return why.join(', ');
+}
+test('method: a reader who goes past nearly always misses away from the ruler, but one who overshoots by about two fifths can miss toward it (sixth check)', () => {
+  // The check's example, round test: setting 0.0314 (an O 3.14% of the cap height taller), closing
+  // 1.42 times the distance, going 0.0023 past. The far tries start at -0.0517 and +0.0411; the near
+  // ones 0.015 below and 0.020 above the mean of the first two stops. A scripted stream of random
+  // numbers makes the page's own pairOrder and startFor place them there.
+  const P = MTH.PLAN.round;
+  const script = [0.9, 0.9, (0.0517 - P.far[0]) / (P.far[1] - P.far[0]), (0.0411 - P.far[0]) / (P.far[1] - P.far[0]), 0, (0.02 - P.near[0]) / (P.near[1] - P.near[0])];
+  let at = 0;
+  const scripted = () => script[at++];
+  const ex = { T: 0.0314, f: 1.42, zone: -0.0023, noise: 0 };
+  const { tries, held, crossed, res } = runHeld('round', ex, scripted);
+  assert.equal(at, script.length);
+  assert.deepEqual(tries.map((q) => q.side), [-1, 1, -1, 1]);
+  assert.ok(Math.abs(tries[0].start + 0.0517) < 1e-12 && Math.abs(tries[1].start - 0.0411) < 1e-12);
+  assert.ok(Math.abs((tries[0].stop + tries[1].stop) / 2 - 0.046814) < 1e-9, `near centre ${(tries[0].stop + tries[1].stop) / 2}`);
+  // The near try planned below the centre starts above the setting: the only unplanned start.
+  assert.ok(tries[0].start < ex.T && tries[1].start > ex.T && tries[2].start > ex.T && tries[3].start > ex.T);
+  assert.ok(held < 0 && crossed);
+  assert.equal(whyUnexpected('round', ex, tries), '');
+  assert.ok(res.ok, res.why);
+  assert.ok(Math.abs(res.value - 0.029855) < 2e-6, `result ${res.value}`);
+  const miss = ex.T - res.value;
+  assert.ok(miss > 0 && Math.abs(res.value) < ex.T, 'toward the ruler');
+  assert.ok(Math.abs(miss / 0.0023 - 0.67) < 0.01, `${miss / 0.0023} of the distance gone past`);
+  assert.equal(DISPLAY.round(ex.T).toFixed(2), '3.14');
+  assert.equal(DISPLAY.round(res.value).toFixed(2), '2.99');
+  assert.ok(ex.T > Math.max(...faceValues.round) && ex.T < P.far[0], 'beyond every measured face, inside the far starts');
+
+  // Readers like that one: closing 1.39 to 1.5 times the distance, going up to the first table's
+  // scatter past, settings anywhere in the window. They rarely miss, but nearly every miss is toward
+  // the ruler.
+  const toward = [];
+  let ok = 0;
+  let off = 0;
+  for (const k of KEYS) {
+    const p = MTH.PLAN[k];
+    const [w0, w1] = p.window;
+    const r = rng(19);
+    for (let i = 0; i < 60000; i++) {
+      const o = { T: w0 + r() * (w1 - w0), f: 1.39 + 0.11 * r(), zone: -SCATTER[k] * (0.01 + 0.99 * r()), noise: 0 };
+      const run = runHeld(k, o, r);
+      if (run.held >= 0 || !run.res.ok) continue;
+      ok++;
+      if (Math.abs(run.res.value - o.T) < 1e-9) continue;
+      off++;
+      if (Math.abs(run.res.value - p.ruler) < Math.abs(o.T - p.ruler)) toward.push({ k, o, ...run });
+    }
+  }
+  assert.ok(off > 0 && off < 0.001 * ok, `${off} of ${ok} off`);
+  assert.ok(toward.length >= 0.9 * off, `${toward.length} of ${off} toward the ruler`);
+  assert.ok(new Set(toward.map((t) => t.k)).size >= 3, 'in at least three tests');
+
+  // A random search over every closing share from 0 to 2 and distances past up to twice the scatter:
+  // fewer than one miss in ten thousand goes toward the ruler, and a reader who goes past and
+  // overshoots by more than half never gets a result.
+  let wideOff = 0;
+  let wideToward = 0;
+  for (const k of KEYS) {
+    const [w0, w1] = MTH.PLAN[k].window;
+    const r = rng(20);
+    for (let i = 0; i < 200000; i++) {
+      const o = { T: w0 + r() * (w1 - w0), f: 2 * r(), zone: -SCATTER[k] * (0.01 + 1.99 * r()), noise: 0 };
+      const run = runHeld(k, o, r);
+      if (run.held >= 0 || !run.res.ok) continue;
+      assert.ok(o.f <= 1.5, `${k} T=${o.T} f=${o.f} zone=${o.zone}: a result`);
+      if (Math.abs(run.res.value - o.T) < 1e-9) continue;
+      wideOff++;
+      if (Math.abs(run.res.value - MTH.PLAN[k].ruler) < Math.abs(o.T - MTH.PLAN[k].ruler)) {
+        wideToward++;
+        toward.push({ k, o, ...run });
       }
     }
   }
-  // Thickness: eyes like Carlito's and DejaVu Sans Bold's that close between half and two thirds of
-  // the distance, always toward the ruler, by up to about 1.8 points.
-  assert.deepEqual([...off.bar.faces].sort(), ['Carlito Bold', 'Carlito Regular', 'DejaVu Sans Bold']);
-  assert.ok(Math.min(...off.bar.fs) >= 0.5 && Math.max(...off.bar.fs) < 0.67, `bar: f ${Math.min(...off.bar.fs)} to ${Math.max(...off.bar.fs)}`);
-  assert.equal(off.bar.away, 0);
-  assert.ok(off.bar.worst > 1.5 && off.bar.worst < 1.85, `bar worst ${off.bar.worst}`);
-  // Middle, halves and round: rarely, for readers who stop nearly half short or overshoot by more
-  // than two fifths, by up to about 0.2% of the cap height (middle, round) or 1.1 points (halves).
-  for (const k of ['middle', 'halves', 'round']) assert.ok(off[k].fs.every((f) => f < 0.6 || f > 1.4), `${k}: ${off[k].fs}`);
-  assert.ok(off.middle.fs.length > 0 && off.halves.fs.length > 0);
-  assert.ok(off.middle.toward > 0 && off.middle.away > 0, 'middle: both ways');
-  assert.ok(off.middle.worst < 0.25 && off.round.worst < 0.25 && off.halves.worst < 1.15, `${off.middle.worst} ${off.round.worst} ${off.halves.worst}`);
-  assert.equal(off.point.fs.length, 0);
-  // Twice the band, about twice as far (the nearer starts do not depend on the band, so the stops
-  // move in proportion to it; the fixed point nearly does).
-  const carlitoBold = FACES.sans.find((f) => f.name === 'Carlito' && f.style === 'Bold').bar;
-  let checked = 0;
-  for (let seed = 1; checked < 20 && seed < 2000; seed++) {
-    const one = runHeld('bar', { T: carlitoBold, f: 0.6, zone: SCATTER.bar, noise: 0 }, rng(seed));
-    const two = runHeld('bar', { T: carlitoBold, f: 0.6, zone: 2 * SCATTER.bar, noise: 0 }, rng(seed));
-    if (!one.res.ok || Math.abs(one.res.value - carlitoBold) < 1e-9) continue;
-    const ratio = (DISPLAY.bar(two.res.value) - DISPLAY.bar(carlitoBold)) / (DISPLAY.bar(one.res.value) - DISPLAY.bar(carlitoBold));
-    assert.ok(ratio > 1.9 && ratio < 2.1, `ratio ${ratio}`);
-    checked++;
+  assert.ok(wideToward > 0 && wideToward < 1e-4 * wideOff, `${wideToward} of ${wideOff} toward the ruler`);
+  // Every miss toward the ruler, from either search: the reader and the starts the description gives,
+  // going past by no more than the scatter, and off by about three quarters of the distance at most.
+  let most = 0;
+  for (const { k, o, tries: t, res: rr } of toward) {
+    const where = `${k} T=${o.T} f=${o.f} zone=${o.zone}`;
+    assert.equal(whyUnexpected(k, o, t), '', where);
+    assert.ok(o.f <= 1.5 && -o.zone <= SCATTER[k] * (1 + 1e-9), where);
+    const e = Math.abs(rr.value - o.T) / Math.abs(o.zone);
+    assert.ok(e < 0.8, `${where}: ${e} of the distance`);
+    most = Math.max(most, e);
   }
-  assert.equal(checked, 20);
+  assert.ok(most > 0.6, `furthest ${most} of the distance`);
+  // A band's misses away from the ruler, in a random search, fit the same description.
+  let bandAway = 0;
+  for (const k of KEYS) {
+    const [w0, w1] = MTH.PLAN[k].window;
+    const r = rng(21);
+    for (let i = 0; i < 60000; i++) {
+      const o = { T: w0 + r() * (w1 - w0), f: 2 * r(), zone: SCATTER[k] * (0.01 + 1.99 * r()), noise: 0 };
+      const run = runHeld(k, o, r);
+      if (run.held >= 0 || !run.res.ok || Math.abs(run.res.value - o.T) < 1e-9) continue;
+      if (Math.abs(run.res.value - MTH.PLAN[k].ruler) < Math.abs(o.T - MTH.PLAN[k].ruler)) continue;
+      bandAway++;
+      assert.equal(whyUnexpected(k, o, run.tries), '', `band: ${k} T=${o.T} f=${o.f} zone=${o.zone}`);
+    }
+  }
+  assert.ok(bandAway > 50, `${bandAway} band misses away from the ruler`);
+
+  // What the page, the README and method.js say about it.
   const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
-  assert.match(readme, /every try starts on the side of their setting that the page planned/);
-  assert.match(readme, /eyes like Carlito's and DejaVu Sans Bold's that close between half and two thirds of the distance, always toward the ruler and by up to about 1\.8 points/);
+  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  const mjs = fs.readFileSync(path.join(DIR, 'method.js'), 'utf8').replace(/\n \*( |$)/gm, ' ');
+  assert.doesNotMatch(html, /for one who goes past, it is away from it\./);
+  assert.match(html, /the miss is usually toward the ruler's value; for one who goes past, nearly always away from it\./);
+  assert.doesNotMatch(mjs, /going past's all away from it/);
+  assert.match(mjs, /A band's misses are nearly all toward the ruler, going past's nearly all away from it\. The exceptions found, both ways, came from readers who overshoot by about two fifths or more, with a setting between the ruler and the far starts: the mean of the first two stops lands so far beyond the setting that a near try starts on its unplanned side\./);
+  assert.doesNotMatch(readme, /they go the other way: every one was away from the ruler/);
+  assert.match(readme, /they go the other way: in this sweep every one was away from the ruler/);
+  assert.match(readme, /A reader who overshoots by about two fifths to a half \(closing 1\.39 to 1\.5 times the distance; overshooting by more, a reader who goes past got no result in any run\) and goes past by up to about the first table's scatter, with a setting between the ruler and where the far tries start, can send the first two stops so far beyond the setting that their mean, the centre of the nearer tries, lies beyond it too, and the nearer try planned on the ruler's side starts on the other side\. Such a reader rarely misses at all, but when they do the miss is nearly always toward the ruler, by up to about three quarters of the distance gone past\./);
+  assert.match(readme, /an eye whose O overshoots 3\.14% of the cap height \(more than any measured face, but nearer the ruler than the far starts\), closing 1\.42 times the distance and going 0\.23% past, came back 2\.99%/);
+  assert.match(readme, /fewer than one miss in ten thousand went that way\. The band's few misses away from the ruler, in the fourth table, come from the same kind of reader\./);
+  assert.match(readme, /in that sweep, all away from the ruler \(the fifth table\); a wider random search found rare misses toward it, fewer than one in ten thousand, from readers who overshoot by about two fifths or more\./);
+  assert.match(readme, /\*\*A sixth check\*\* found that the fifth check's fix had overstated in its turn\./);
 });
 
 test('method: the README’s simulation tables are what simulate.mjs prints', async () => {

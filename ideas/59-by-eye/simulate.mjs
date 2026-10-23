@@ -11,7 +11,8 @@
 //
 // where side is +1 if it approaches from above and -1 from below. f = 1 goes all the way; f < 1
 // stops a fixed fraction short (anchoring on the start); zone > 0 stops at the near edge of a band
-// in which it cannot tell the difference. f = 0 never moves at all.
+// in which it cannot tell the difference; zone < 0 goes that far past its setting, to the far side
+// from where it started. f = 0 never moves at all.
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
@@ -210,6 +211,56 @@ export function waverRows() {
   return rows;
 }
 
+// The README's fourth and fifth tables: steady readers (no scatter) at settings across each test's
+// whole window, not only near the typefaces' values, closing from half to 1.45 times the distance,
+// with a can't-tell band as wide as the first table's scatter (zoneMul 1, the fourth table) or
+// going that far past their setting (zoneMul -1, the fifth). For a steady reader a result can be off
+// only when its stop depends on the side it came from (zone not 0) and a try starts on the other
+// side of the setting from the side the page planned, which the page cannot see; this counts how
+// often a result that comes back is off, and how far. `near` holds settings nearer the ruler than
+// the far tries' nearest start, `far` the rest. worstBands is the furthest miss divided by |zone|:
+// the band's half-width, or the distance gone past.
+export const SWEEP = { points: 201, fs: Array.from({ length: 20 }, (_, i) => +(0.5 + 0.05 * i).toFixed(2)), runs: 40 };
+export function bandSweep(key, zoneMul = 1, seed = 1) {
+  const p = M.PLAN[key];
+  const [w0, w1] = p.window;
+  const zone = zoneMul * NOISE[key];
+  const rand = rng(seed);
+  const near = { ok: 0, off: 0 };
+  const far = { ok: 0, off: 0 };
+  let worst = 0; // in parameter units
+  let worstShown = 0; // in the test's display units
+  let away = 0; // off results no nearer the ruler than the setting
+  for (let i = 0; i < SWEEP.points; i++) {
+    const T = w0 + ((w1 - w0) * i) / (SWEEP.points - 1);
+    const where = Math.abs(T - p.ruler) < p.far[0] ? near : far;
+    for (const f of SWEEP.fs) {
+      for (let n = 0; n < SWEEP.runs; n++) {
+        const r = runNew(key, { T, f, zone, noise: 0 }, rand);
+        if (!r.ok) continue;
+        where.ok++;
+        if (Math.abs(r.value - T) < 1e-9) continue;
+        where.off++;
+        worst = Math.max(worst, Math.abs(r.value - T));
+        worstShown = Math.max(worstShown, Math.abs(SHOW[key](r.value) - SHOW[key](T)));
+        if (Math.abs(r.value - p.ruler) >= Math.abs(T - p.ruler)) away++;
+      }
+    }
+  }
+  const off = near.off + far.off;
+  const ok = near.ok + far.ok;
+  return { zone, near, far, ok, off, worst, worstBands: zone ? worst / Math.abs(zone) : NaN, worstShown, away };
+}
+const pc = (a, b) => `${((100 * a) / b).toFixed(1)}%`;
+const thousands = (v) => v.toLocaleString('en-US');
+export function sweepRows(sweeps = Object.keys(M.PLAN).map((key) => bandSweep(key))) {
+  return Object.keys(M.PLAN).map((key, i) => {
+    const s = sweeps[i];
+    const cells = [pc(s.off, s.ok), `${pc(s.near.off, s.near.ok)} / ${pc(s.far.off, s.far.ok)}`, s.worstBands.toFixed(2), s.worstShown.toFixed(2), `${thousands(s.away)} of ${thousands(s.off)}`];
+    return `| ${TITLES[key]} | ${cells.join(' | ')} |`;
+  });
+}
+
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1]);
 if (isMain) {
   const fmt = (v) => (Number.isNaN(v) ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2));
@@ -227,4 +278,14 @@ if (isMain) {
   for (const r of hardRows()) console.log(r);
   console.log('\nREADME rows, which way scatter leaves the result:');
   for (const r of waverRows()) console.log(r);
+  console.log('\nREADME rows, steady readers with a can’t-tell band across each whole range:');
+  for (const r of sweepRows()) console.log(r);
+  console.log('\nREADME rows, steady readers who go as far past their setting, across each whole range:');
+  for (const r of sweepRows(Object.keys(M.PLAN).map((key) => bandSweep(key, -1)))) console.log(r);
+  for (const key of Object.keys(M.PLAN)) {
+    const none = bandSweep(key, 0);
+    const two = bandSweep(key, 2);
+    const past = bandSweep(key, -2);
+    console.log(`  ${key}: no offset, ${none.off} of ${none.ok} results off; band twice as wide, ${pc(two.off, two.ok)} off, furthest ${two.worstBands.toFixed(2)} of its half-width; twice as far past, ${pc(past.off, past.ok)} off, furthest ${past.worstBands.toFixed(2)} of the distance`);
+  }
 }

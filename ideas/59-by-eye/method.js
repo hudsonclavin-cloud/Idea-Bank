@@ -10,18 +10,31 @@
  *   tries 3 and 4  start nearer, on either side of the mean of tries 1 and 2, in random order.
  *
  * The result is not the mean of the stops. It is the fixed point of the straight line fitted (least
- * squares) to stop = a + b * start + c * side, where side is +1 for a try that started above and
- * -1 for one that started below: the setting from which the reader would not have moved, averaged
- * over both directions, a / (1 - b). b is the share of the starting error the reader left in
- * place. For a reader who stops a fixed fraction short (b > 0), who stops at the edge of a band
- * in which they cannot tell the difference (c > 0), who overshoots by a fixed fraction of less
- * than half (b < 0), or any mix of these, this is exactly their setting when there is no noise,
- * provided no try is stopped by an end of the control's range and, for a reader with a band, every
- * try starts on the side of their setting that was planned for it (side is the planned side, set
- * before the try; a near try can start on the other side when the first two stops' mean is far
- * from the reader's setting, and then the band is not fully allowed for). The tests check all of
- * this with simulated observers. A reader who leaves more than half the starting error in place
- * (b > 0.5) gets no result: their stops say more about the starts than about the letters.
+ * squares) to stop = a + b * start + c * side, where side is +1 for a try the page planned to start
+ * above its pair's centre and -1 for one planned below: the setting from which the reader would not
+ * have moved, averaged over both directions, a / (1 - b). b is the share of the starting error the
+ * reader left in place; c is half the gap between stops approached from above and from below.
+ *
+ * When that is exact. Call a reader steady if, on every try, the stop is the same straight-line
+ * function of the start plus a fixed offset that depends only on the side the try came from, with
+ * no noise: stopping a fixed fraction short (b > 0), overshooting by a fixed fraction (b < 0),
+ * stopping at the near edge of a band in which they cannot tell the difference (c > 0), going a
+ * fixed distance past (c < 0), or any mix. For a steady reader the fixed point is exactly their
+ * setting provided (1) no stop is held at an end of the window and (2) every try starts on the side
+ * of the reader's setting that was planned for it. estimate() sees (1) and refuses. Nothing here can
+ * see (2), which depends on the setting being sought; it matters only to a reader whose stop depends
+ * on the side they came from (c != 0: a band, or going a fixed distance past), whose result is then
+ * off with no warning. With c = 0 the stops lie on a line through the starts whatever their sides,
+ * and the fit is exact. (2) fails most often when the setting lies beyond where the far tries start,
+ * which they cannot bracket. The tests sweep steady readers across every test's whole window: with
+ * c = 0 each result is exact or refused; with a band, or a distance gone past, as large as
+ * simulate.mjs's scatter or twice that, none was off by more than that half-width or distance
+ * (measured, not proven). A band's misses are nearly all toward the ruler, going past's nearly all away
+ * from it. The exceptions found, both ways, came from readers who overshoot by about two fifths or
+ * more, with a setting between the ruler and the far starts: the mean of the first two stops lands so
+ * far beyond the setting that a near try starts on its unplanned side. A reader who leaves more than
+ * half the starting error in place (b > 0.5) gets no result: their stops say more about the starts
+ * than about the letters.
  *
  * The control cannot go past the ends of its window, so a try that ends there may have been
  * stopped by the window rather than by the reader's eye. Where that try would have stopped is
