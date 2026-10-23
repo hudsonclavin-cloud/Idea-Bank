@@ -13,6 +13,9 @@
   // Dates. MJD = Modified Julian Date; MJD 0 = 1858-11-17, MJD 51544 = 2000-01-01.
   var MJD_EPOCH_MS = Date.UTC(1858, 10, 17);
   var MJD_2000 = 51544;
+  // Before the mid-1980s the file's short-period detail is heavily smoothed, with the zonal tide put back
+  // afterwards from a model (see analyse(), step 8), so every test of the Moon uses the days from here on.
+  var MEASURED_FROM = '1985-01-01';
 
   function isoFromMJD(mjd) {
     return new Date(MJD_EPOCH_MS + mjd * 86400000).toISOString().slice(0, 10);
@@ -303,14 +306,18 @@
     }
     return sxy / Math.sqrt(sxx * syy);
   }
-  function lag1(x) {
-    var m = mean(x), num = 0, den = 0;
-    for (var i = 0; i < x.length; i++) {
-      den += (x[i] - m) * (x[i] - m);
-      if (i) num += (x[i] - m) * (x[i - 1] - m);
+  /** Sample autocorrelation at lags 0..K (biased estimator, mean removed). */
+  function acf(x, K) {
+    var m = mean(x), den = 0, out = new Float64Array(K + 1), i, k;
+    for (i = 0; i < x.length; i++) den += (x[i] - m) * (x[i] - m);
+    for (k = 0; k <= K; k++) {
+      var num = 0;
+      for (i = k; i < x.length; i++) num += (x[i] - m) * (x[i - k] - m);
+      out[k] = num / den;
     }
-    return num / den;
+    return out;
   }
+  function lag1(x) { return acf(x, 1)[1]; }
   function logGamma(z) {
     var c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
     var x = z, y = z, tmp = x + 5.5, ser = 1.000000000190015;
@@ -348,12 +355,25 @@
   function tTwoSided(t, df) {
     return betaInc(df / 2, 0.5, df / (df + t * t));
   }
-  /** Pearson r with Bretherton et al. (1999) effective sample size for two autocorrelated series. */
+  /**
+   * Pearson r between two autocorrelated series, with an effective sample size from the general lag-by-lag
+   * form N / (1 + 2 sum_k rho_x(k) rho_y(k)), summed to lag floor(N/4). The AR(1) shortcut
+   * N (1 - r1 r2) / (1 + r1 r2) (usually cited to Bretherton et al. 1999) is the special case rho(k) = r1^k;
+   * it is kept as neffAR1/pAR1, a conservative bound here, because twelve-month changes lose their memory
+   * within about a year instead of decaying geometrically from lag 1.
+   */
   function correlationTest(x, y) {
-    var r = pearson(x, y), r1 = lag1(x), r2 = lag1(y), n = x.length;
-    var neff = n * (1 - r1 * r2) / (1 + r1 * r2);
+    var r = pearson(x, y), n = x.length, K = Math.floor(n / 4);
+    var ax = acf(x, K), ay = acf(y, K), sum = 0;
+    for (var k = 1; k <= K; k++) sum += ax[k] * ay[k];
+    var neff = n / (1 + 2 * sum);
     var t = r * Math.sqrt((neff - 2) / (1 - r * r));
-    return { r: r, n: n, lag1x: r1, lag1y: r2, neff: neff, t: t, p: tTwoSided(t, neff - 2) };
+    var r1 = ax[1], r2 = ay[1], neffAR1 = n * (1 - r1 * r2) / (1 + r1 * r2);
+    var tAR1 = r * Math.sqrt((neffAR1 - 2) / (1 - r * r));
+    return {
+      r: r, n: n, lags: K, lag1x: r1, lag1y: r2, neff: neff, t: t, p: tTwoSided(t, neff - 2),
+      neffAR1: neffAR1, tAR1: tAR1, pAR1: tTwoSided(tAR1, neffAR1 - 2)
+    };
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -375,8 +395,8 @@
   }
   function monthKey(y, m) { return y * 12 + (m - 1); }
   /**
-   * Pre-registered comparison: the 3-month-mean day length against the ONI (itself a 3-month mean),
-   * both as 12-month changes, same centre month, lag 0.
+   * Comparison chosen before computing (not formally pre-registered): the 3-month-mean day length against
+   * the ONI (itself a 3-month mean), both as 12-month changes, same centre month, lag 0.
    */
   function pacific(L, ONI) {
     var mon = monthlyMeans(L.mjd0, L.lod), byKey = {}, k;
@@ -408,10 +428,13 @@
     var lunarIdx = [], seasIdx = [];
     LINES.forEach(function (l, q) { (l.lunar ? lunarIdx : seasIdx).push(q); });
 
-    // 1. Full harmonic fit of the high-passed series.
+    // 1. Full harmonic fit of the high-passed series (used for the seasons, the sound and the date box),
+    // and the same fit on the measured era only (used for every statement about the Moon).
+    var i85 = mjdFromISO(MEASURED_FROM) - L.mjd0, measuredYear = ymdFromMJD(L.mjd0 + i85).y;
     var fit = fitHarmonics(L.mjd0, hp, freqs);
-    var amps = {};
-    LINES.forEach(function (l, q) { amps[l.id] = fit.terms[q].amp; });
+    var fitM = fitHarmonics(L.mjd0, hp, freqs, function (q) { return q >= i85; });
+    var amps = {}, ampsM = {};
+    LINES.forEach(function (l, q) { amps[l.id] = fit.terms[q].amp; ampsM[l.id] = fitM.terms[q].amp; });
     var resid = new Float64Array(n), noSeason = new Float64Array(n), lunarModel = new Float64Array(n);
     var ssRes = 0, ssTot = 0, cntFit = 0, mhp = 0;
     for (i = 0; i < n; i++) if (isFinite(hp[i])) { mhp += hp[i]; cntFit++; }
@@ -437,10 +460,10 @@
     for (i = 0; i < n; i++) if (isFinite(hp[i])) { var mo = ymdFromMJD(L.mjd0 + i).m; monthHp[mo - 1].sum += hp[i]; monthHp[mo - 1].n++; }
     monthHp = monthHp.map(function (r) { return { m: r.m, v: r.sum / r.n, n: r.n }; });
 
-    // 3. Out-of-sample: fit on days before 2016-01-01, predict the Moon's part from 2016 on.
+    // 3. Out-of-sample: fit on the measured days before 2016-01-01 (1985-2015), predict the Moon's part from 2016 on.
     var cut = mjdFromISO('2016-01-01');
-    var fitTrain = fitHarmonics(L.mjd0, hp, freqs, function (q) { return L.mjd0 + q < cut; });
-    var oos = { cutISO: '2016-01-01', target: [], pred: [], mjd: [] };
+    var fitTrain = fitHarmonics(L.mjd0, hp, freqs, function (q) { return q >= i85 && L.mjd0 + q < cut; });
+    var oos = { fromISO: MEASURED_FROM, cutISO: '2016-01-01', target: [], pred: [], mjd: [] };
     for (i = 0; i < n; i++) {
       var m2 = L.mjd0 + i;
       if (m2 < cut || !isFinite(hp[i])) continue;
@@ -457,16 +480,25 @@
     oos.r = pearson(oos.target, oos.pred);
     oos.lastISO = isoFromMJD(oos.mjd[oos.mjd.length - 1]);
 
-    // 4. Spectrum and line tests.
-    var spec = spectrum(hp, 17);
+    // 4. Spectrum and line tests: on the measured era (1985 on), and over the whole record for comparison.
+    var hpM = new Float64Array(n);
+    for (i = 0; i < n; i++) hpM[i] = i >= i85 ? hp[i] : NaN;
     var known = freqs.slice();
-    var lineTests = {};
-    LINES.forEach(function (l) { lineTests[l.id] = lineRatio(spec, l.f, known); });
-    var controls = {
-      synodic: lineRatio(spec, 1 / MONTHS.synodic, known),
-      tropical: lineRatio(spec, 1 / MONTHS.tropical, known),
-      draconic: lineRatio(spec, 1 / MONTHS.draconic, known)
-    };
+    function lineSet(sp) {
+      var t0 = {};
+      LINES.forEach(function (l) { t0[l.id] = lineRatio(sp, l.f, known); });
+      return t0;
+    }
+    function controlSet(sp) {
+      return {
+        synodic: lineRatio(sp, 1 / MONTHS.synodic, known),
+        tropical: lineRatio(sp, 1 / MONTHS.tropical, known),
+        draconic: lineRatio(sp, 1 / MONTHS.draconic, known)
+      };
+    }
+    var spec = spectrum(hpM, 17), specAll = spectrum(hp, 17);
+    var lineTests = lineSet(spec), controls = controlSet(spec);
+    var lineTestsAll = lineSet(specAll), controlsAll = controlSet(specAll);
 
     // 5. The fortnightly ripple, year by year, against the Moon's 18.6-year tilt cycle.
     var yearly = [];
@@ -481,11 +513,12 @@
       if (!complete) continue;
       var fy1 = fitHarmonics(L.mjd0, noSeason, perYearFreqs, (function (lo, hi) { return function (q) { return q >= lo && q < hi; }; })(a0, a1));
       var mid = mjdFromISO(yr + '-07-02');
-      yearly.push({ year: yr, amp: fy1.terms[mfIdx].amp, cosOmega: Math.cos(moonArgs(mid).Omega * Math.PI / 180) });
+      yearly.push({ year: yr, amp: fy1.terms[mfIdx].amp, cosOmega: Math.cos(moonArgs(mid).Omega * Math.PI / 180), measured: yr >= measuredYear });
     }
-    var yAmp = yearly.map(function (r) { return r.amp; });
-    var ampMax = yearly.reduce(function (b, r) { return r.amp > b.amp ? r : b; }, yearly[0]);
-    var ampMin = yearly.reduce(function (b, r) { return r.amp < b.amp ? r : b; }, yearly[0]);
+    var yearlyM = yearly.filter(function (r) { return r.measured; });
+    var ampMax = yearlyM.reduce(function (b, r) { return r.amp > b.amp ? r : b; }, yearlyM[0]);
+    var ampMin = yearlyM.reduce(function (b, r) { return r.amp < b.amp ? r : b; }, yearlyM[0]);
+    function ampTilt(rows) { return pearson(rows.map(function (r) { return r.amp; }), rows.map(function (r) { return r.cosOmega; })); }
 
     // 6. Phase: when do the Mf and Mm terms peak, in terms of the Moon's position?
     // Correlate each fitted term with cos(2L) (Moon at the equinoxes, i.e. over the equator) and
@@ -494,8 +527,8 @@
     var qMf = LINES.indexOf(line('Mf')), qMm = LINES.indexOf(line('Mm'));
     for (var tq = 0; tq < 40000; tq++) {
       var mjq = 51544.5 + tq * 0.25, args = moonArgs(mjq);
-      cf.push(evalTerms(fit, mjq, [qMf])); c2L.push(Math.cos(2 * args.L * Math.PI / 180));
-      cm.push(evalTerms(fit, mjq, [qMm])); cM.push(Math.cos(args.M * Math.PI / 180));
+      cf.push(evalTerms(fitM, mjq, [qMf])); c2L.push(Math.cos(2 * args.L * Math.PI / 180));
+      cm.push(evalTerms(fitM, mjq, [qMm])); cM.push(Math.cos(args.M * Math.PI / 180));
     }
 
     // 7. Record, drift and leap seconds.
@@ -524,16 +557,36 @@
     var sinceLastLeap = 0;
     for (i = 0; i < n; i++) if (L.mjd0 + i >= lastLeap[0]) sinceLastLeap += L.lod[i];
 
+    // 8. The early record. The wiggle the fitted Moon and seasons leave behind, band-passed to roughly a week
+    // to a month (7-day minus 35-day running mean), compared between 1974-1982 and 1985-2025, beside the
+    // fortnightly line fitted to each era. Heavy smoothing with the tide restored afterwards shows up as a
+    // much quieter background under a full-strength line.
+    var bp7 = runningMean(resid, 7), bp35 = runningMean(resid, 35);
+    function era(y0, y1) {
+      var ss = 0, cnt = 0, errs = [];
+      for (i = 0; i < n; i++) {
+        var yy0 = ymdFromMJD(L.mjd0 + i).y;
+        if (yy0 < y0 || yy0 > y1) continue;
+        errs.push(L.err[i]);
+        var v = bp7[i] - bp35[i];
+        if (isFinite(v)) { ss += v * v; cnt++; }
+      }
+      var fe = fitHarmonics(L.mjd0, hp, freqs, function (q) { var yq = ymdFromMJD(L.mjd0 + q).y; return yq >= y0 && yq <= y1; });
+      return { from: y0, to: y1, bandRms: Math.sqrt(ss / cnt), mfAmp: fe.terms[0].amp, medianErr: median(errs) };
+    }
+    var eras = { early: era(1974, 1982), measured: era(measuredYear, ly - 1) };
+
     var pac = pacific(L, ONI);
     var lastPac = pac.rows[pac.rows.length - 1];
     var maxDLod = pac.rows.reduce(function (b, r) { return r.dLod > b.dLod ? r : b; }, pac.rows[0]);
 
     return {
       L: L, hp: hp, fit: fit, amps: amps, noSeason: noSeason, lunarModel: lunarModel, resid: resid,
-      fitR2: 1 - ssRes / ssTot,
+      fitR2: 1 - ssRes / ssTot, fitM: fitM, ampsM: ampsM, measuredFrom: MEASURED_FROM, measuredYear: measuredYear, eras: eras,
       seasonal: { curve: seasCurve, maxDay: seasMax, minDay: seasMin, maxISO: isoFromMJD(mjdFromISO('2001-01-01') + seasMax), minISO: isoFromMJD(mjdFromISO('2001-01-01') + seasMin), max: seasCurve[seasMax], min: seasCurve[seasMin], range: seasCurve[seasMax] - seasCurve[seasMin], months: monthHp },
       oos: oos, spec: spec, lineTests: lineTests, controls: controls,
-      yearly: yearly, ampMax: ampMax, ampMin: ampMin, ampVsTilt: pearson(yAmp, yearly.map(function (r) { return r.cosOmega; })),
+      specAll: specAll, lineTestsAll: lineTestsAll, controlsAll: controlsAll,
+      yearly: yearly, ampMax: ampMax, ampMin: ampMin, ampVsTilt: ampTilt(yearlyM), ampVsTiltAll: ampTilt(yearly),
       phase: { mfVsEquator: pearson(cf, c2L), mmVsPerigee: pearson(cm, cM) },
       record: {
         n: n, firstISO: isoFromMJD(L.mjd0), lastISO: isoFromMJD(lastMJD),
@@ -580,10 +633,10 @@
 
   return {
     isoFromMJD: isoFromMJD, mjdFromISO: mjdFromISO, ymdFromMJD: ymdFromMJD, dayOfYear: dayOfYear,
-    load: load, LINES: LINES, MONTHS: MONTHS, RATE: RATE, line: line, moonArgs: moonArgs,
+    load: load, LINES: LINES, MONTHS: MONTHS, RATE: RATE, MEASURED_FROM: MEASURED_FROM, line: line, moonArgs: moonArgs,
     majorStandstills: majorStandstills, minorStandstills: minorStandstills,
     runningMean: runningMean, highPass: highPass, fitHarmonics: fitHarmonics, evalTerms: evalTerms,
-    spectrum: spectrum, lineRatio: lineRatio, pearson: pearson, lag1: lag1, tTwoSided: tTwoSided,
+    spectrum: spectrum, lineRatio: lineRatio, pearson: pearson, acf: acf, lag1: lag1, tTwoSided: tTwoSided,
     correlationTest: correlationTest, monthlyMeans: monthlyMeans, pacific: pacific,
     analyse: analyse, personal: personal
   };

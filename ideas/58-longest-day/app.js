@@ -128,7 +128,7 @@
     function leave(ev) {
       if (ev && ev.pointerType === 'touch') return;
       cross.setAttribute('visibility', 'hidden'); hideTip();
-      Array.prototype.forEach.call(svg.querySelectorAll('.bar.on'), function (e) { e.setAttribute('class', 'bar'); });
+      Array.prototype.forEach.call(svg.querySelectorAll('.bar.on'), function (e) { e.classList.remove('on'); });
     }
     crosses.push(cross);
     hit.addEventListener('pointermove', at);
@@ -368,19 +368,20 @@
     if (!tb.childElementCount) {
       C.LINES.forEach(function (ln) {
         var lt = A.lineTests[ln.id], tr = document.createElement('tr');
-        [ln.id + ' · ' + ln.label, num(1 / ln.f, 4), num(lt.peakPeriod, 4), ln.lunar ? num(lt.ratio, lt.ratio < 100 ? 1 : 0) + '×' : '(see note)', num(A.amps[ln.id], 3)].forEach(function (v) {
+        var la = A.lineTestsAll[ln.id];
+        [ln.id + ' · ' + ln.label, num(1 / ln.f, 4), num(lt.peakPeriod, 4), ln.lunar ? num(lt.ratio, lt.ratio < 100 ? 1 : 0) + '×' : '(see note)', ln.lunar ? num(la.ratio, la.ratio < 100 ? 1 : 0) + '×' : '—', num(A.ampsM[ln.id], 3)].forEach(function (v) {
           var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
         });
         tb.appendChild(tr);
       });
-      [['synodic month (phases)', A.months.synodic, A.controls.synodic], ['tropical month', A.months.tropical, A.controls.tropical], ['draconic month', A.months.draconic, A.controls.draconic]].forEach(function (r) {
+      [['synodic month (phases)', A.months.synodic, A.controls.synodic, A.controlsAll.synodic], ['tropical month', A.months.tropical, A.controls.tropical, A.controlsAll.tropical], ['draconic month', A.months.draconic, A.controls.draconic, A.controlsAll.draconic]].forEach(function (r) {
         var tr = document.createElement('tr');
-        [r[0], num(r[1], 4), '—', num(r[2].ratio, 2) + '×', '—'].forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+        [r[0], num(r[1], 4), '—', num(r[2].ratio, 2) + '×', num(r[3].ratio, 2) + '×', '—'].forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
         tb.appendChild(tr);
       });
       var tr2 = document.createElement('tr'), td2 = document.createElement('td');
-      td2.colSpan = 5; td2.className = 'muted';
-      td2.textContent = 'Seasonal lines: the 365-day filter leaves too few clean neighbouring frequencies for a fair background, so no ratio is quoted. Sizes are amplitudes of the fitted sine waves.';
+      td2.colSpan = 6; td2.className = 'muted';
+      td2.textContent = 'Measured peaks, ratios and sizes use ' + A.measuredYear + '–' + A.record.lastISO.slice(0, 4) + ', the stretch where the smoothing is light. The whole-record column adds 1973–' + (A.measuredYear - 1) + ', where the short-period detail is largely the producers\u2019 tide model, which inflates the ratios. Seasonal lines: the 365-day filter leaves too few clean neighbouring frequencies for a fair background, so no ratio is quoted. Sizes are amplitudes of the fitted sine waves.';
       tr2.appendChild(td2); tb.appendChild(tr2);
     }
   }
@@ -443,8 +444,14 @@
     var bars = [];
     Y.forEach(function (r) {
       var bx = x(r.year) + (slot - bw) / 2;
-      bars.push(s('path', { d: roundedTop(bx, y(r.amp), bw, y(0) - y(r.amp), 4), 'class': 'bar' }, svg));
+      bars.push(s('path', { d: roundedTop(bx, y(r.amp), bw, y(0) - y(r.amp), 4), 'class': r.measured ? 'bar' : 'bar early' }, svg));
     });
+    var firstM = A.measuredYear;
+    if (Y[0].year < firstM) {
+      var ex = x(firstM);
+      s('line', { x1: ex, x2: ex, y1: y(0.6), y2: H - m.b, 'class': 'rule era' }, svg);
+      text(svg, x(Y[0].year) + 2, y(0.56), narrow ? 'largely model' : 'before ' + firstM + ': largely the tide model', 'lab', 'start');
+    }
     C.majorStandstills(y0, y1).forEach(function (yr) {
       s('line', { x1: x(yr), x2: x(yr), y1: m.t - 6, y2: H - m.b, 'class': 'rule' }, svg);
       text(svg, x(yr), m.t - 10, narrow ? 'major' : 'major ' + yr.toFixed(1), 'lab', 'middle');
@@ -457,8 +464,10 @@
     hover(svg, m.l, W - m.r, m.t, H - m.b, function (sx) {
       var yy = Math.floor(x.inv(sx)), k = yy - y0;
       if (k < 0 || k >= Y.length) return null;
-      bars.forEach(function (bb, q) { bb.setAttribute('class', q === k ? 'bar on' : 'bar'); });
-      return { x: x(yy) + slot / 2, title: String(Y[k].year), lines: [{ k: 'fortnightly ripple', v: num(Y[k].amp, 3) + ' ms' }] };
+      bars.forEach(function (bb, q) { bb.setAttribute('class', (q === k ? 'bar on' : 'bar') + (Y[q].measured ? '' : ' early')); });
+      var tl = [{ k: 'fortnightly ripple', v: num(Y[k].amp, 3) + ' ms' }];
+      if (!Y[k].measured) tl.push({ v: 'largely the producers\u2019 tide model, not a clean measurement' });
+      return { x: x(yy) + slot / 2, title: String(Y[k].year), lines: tl };
     });
     var tb = document.querySelector('#tbl-yearly tbody');
     if (!tb.childElementCount) {
@@ -467,11 +476,15 @@
         var tr = document.createElement('tr');
         [Y[q], Y[q + half]].forEach(function (r) {
           var a1 = document.createElement('td'), a2 = document.createElement('td');
-          a1.textContent = r ? String(r.year) : ''; a2.textContent = r ? num(r.amp, 3) : '';
+          a1.textContent = r ? String(r.year) + (r.measured ? '' : '*') : ''; a2.textContent = r ? num(r.amp, 3) : '';
           tr.appendChild(a1); tr.appendChild(a2);
         });
         tb.appendChild(tr);
       }
+      var nt = document.createElement('tr'), nd = document.createElement('td');
+      nd.colSpan = 4; nd.className = 'muted';
+      nd.textContent = '* Before ' + firstM + ': largely the producers\u2019 tide model (most of all before 1981), not a clean measurement.';
+      nt.appendChild(nd); tb.appendChild(nt);
     }
   }
 
@@ -677,7 +690,7 @@
     } else {
       li(ul, 'Over those ' + num(r.days, 0) + ' days the Earth gained ' + num(-r.driftSeconds, 2) + ' s on the atomic clocks: it has been spinning fast.');
     }
-    if (r.longestErr > 0.1) li(ul, 'Days before about 1985 carry errors of a tenth of a millisecond or more, so "longest" among them is a close race.');
+    if (r.longestErr > 0.1) li(ul, 'Days before about 1985 carry errors of a tenth of a millisecond or more, and their day-to-day detail is a heavily smoothed curve with the Moon\u2019s tide added back from a model, so "longest" among them is a close race partly decided by that model.');
     out.appendChild(ul);
     redrawYou();
   }

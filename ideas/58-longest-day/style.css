@@ -122,6 +122,9 @@ b { font-weight: 650; }
 .chart .mark.ink { fill: var(--ink); }
 .chart .bar { fill: var(--accent); }
 .chart .bar.on { fill: var(--ink); }
+.chart .bar.early { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; }
+.chart .bar.early.on { fill: var(--grid); stroke: var(--ink); }
+.chart .rule.era { stroke: var(--axis-text); stroke-dasharray: 3 3; }
 .chart .rule { stroke: var(--axis-text); stroke-width: 1; }
 .chart .rule.minor { stroke: var(--axis); }
 .chart .you { fill: var(--accent-wash); stroke: none; }
@@ -243,6 +246,7 @@ ul.plain li { margin-bottom: 0.6em; }
 @media (forced-colors: active) {
   .chart .series { stroke: CanvasText; }
   .chart .bar { fill: CanvasText; }
+  .chart .bar.early { fill: Canvas; stroke: CanvasText; }
 }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.85rem; color: var(--ink-2); margin: -2px 0 10px; }
 .legend .key-inline { margin: 0; white-space: normal; }

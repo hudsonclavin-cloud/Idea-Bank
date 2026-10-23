@@ -23,7 +23,7 @@ Result: `lod.js` (19,650 days, 3 January 1973 to 21 October 2026).
 
 ### Verbatim excerpt: `finals2000A.excerpt.txt`
 
-156 lines copied unchanged from the downloaded file: the first 12 observed rows (including the dropped placeholder), every 1 January and 1 July, all of July 2024, every day named on the page or in the README (listed in `named-days.json`), and the last observed row. `check.mjs` confirms every one of them against `lod.js`. Each line can be found with `grep -F` in a fresh download; values more than a year old should be unchanged, although the 22 October 2026 bulletin announces a new processing method and warns that values "up to one year in the past" may shift slightly ("less than ... 20 us in UT1-UTC").
+158 lines copied unchanged from the downloaded file: the first 12 observed rows (including the dropped placeholder), every 1 January and 1 July, all of July 2024, every day named on the page or in the README (listed in `named-days.json`), and the last observed row. `check.mjs` confirms every one of them against `lod.js`. Each line can be found with `grep -F` in a fresh download; values more than a year old should be unchanged, although the 22 October 2026 bulletin announces a new processing method and warns that values "up to one year in the past" may shift slightly ("less than ... 20 us in UT1-UTC").
 
 To re-verify everything against a fresh download:
 
@@ -58,11 +58,12 @@ A later download will have more days and a different checksum; `check.mjs` then 
 
 All analysis is in `../lod-core.js` (the page) and, written separately, in `../claims.test.mjs` (the check). In brief:
 
-- **Slow drift removed** by subtracting each day's centred 365-day mean (defined from 4 July 1973 to 21 April 2026).
-- **Periodogram**: Hann taper over that span, mean removed, zero-padded to 131,072 points. A line's strength is the power at the bin nearest the predicted frequency divided by the median power within ±15% of that frequency, after masking ±0.0004 cycles/day around every known line.
+- **Slow drift removed** by subtracting each day's centred 365-day mean (defined from 4 July 1973 to 22 April 2026).
+- **Measured era.** Every test of the Moon (periodogram, line ratios, fitted sizes and timing, the forecast's training, the standstill correlation) uses the days from 1 January 1985 on. Before the mid-1980s the file's short-period detail is heavily smoothed and its lunar tide is restored from a model (see the README's Honest assessment); the whole-record figures are kept alongside for comparison.
+- **Periodogram**: Hann taper over the measured era (1 January 1985 to 22 April 2026; also computed over the whole high-passed span for comparison), mean removed, zero-padded to 131,072 points. A line's strength is the power at the bin nearest the predicted frequency divided by the median power within ±15% of that frequency, after masking ±0.0004 cycles/day around every known line.
 - **Harmonic fit**: least squares of the high-passed series on a constant plus cosine and sine pairs at nine fixed frequencies: six lunar tidal lines (Mf, its 18.6-year sideband Mf′, Mm, MSf, MSm, Mtm) and the yearly, half-yearly and third-yearly harmonics. The frequencies come from the Moon's and Sun's mean motions in Meeus, *Astronomical Algorithms* (1998), not from the data.
-- **Forecast**: the same fit using only days before 1 January 2016, evaluated on the days after.
-- **Pacific**: calendar-month means (complete months only), centred three-month means, twelve-month differences of both series at the same centre month, Pearson correlation at lag 0, effective sample size N(1 − r₁r₂)/(1 + r₁r₂) from the two lag-1 autocorrelations.
+- **Forecast**: the same fit using only the days from 1 January 1985 to 31 December 2015, evaluated on the days after.
+- **Pacific**: calendar-month means (complete months only), centred three-month means, twelve-month differences of both series at the same centre month, Pearson correlation at lag 0, effective sample size from the general lag-by-lag form N / (1 + 2 Σₖ ρₓ(k) ρᵧ(k)), summed to lag N/4, with the AR(1) shortcut N(1 − r₁r₂)/(1 + r₁r₂) kept as a conservative bound; checked against 20,000 phase-randomised surrogates.
 
 ## Checksums of the files in this folder
 
@@ -73,7 +74,7 @@ All analysis is in `../lod-core.js` (the page) and, written separately, in `../c
 | `data/lod.js` | `604a77ed4912ac3d96835f1fac86b021d0229fef8f512ed3bfa6f8d54ecb9604` |
 | `data/oni.js` | `c22cd4ab0874040004fbd1289c12ddb0230d17fee985d283e4aeffef8587a975` |
 | `data/leapsec.js` | `188068ff6b6362b782a6c66c478cc78ae3047d4023077a5228e18bac4184bd86` |
-| `data/finals2000A.excerpt.txt` | `34acbd9da34965c3a009e7d48d21e6f601a82cecaf899cf14f6bf01e499931ea` |
+| `data/finals2000A.excerpt.txt` | `54a1bf737d9c8b25a80032040d6e931adafff1a5dd27b9e035418a7c1eee005d` |
 | `data/oni.ascii.txt` | `5d6fa3a2f857d916550d39c2c686e94cb942430195c82518e6a5d0f5ffbd0665` |
 | `data/tai-utc.dat` | `3524e1ae34d67e858873a89e59983bbc5bd100221da898e796c1b36036a310c3` |
-| `data/named-days.json` | `3d8bccb428732d614161dd8f450a05976ae0491a56eb82de3a20c1863b383eca` |
+| `data/named-days.json` | `d0652945f4bcbc5aaf819faa4795c335cfa1d18d20842d4bfd4821258d80395c` |
