@@ -150,16 +150,25 @@ function powerOf(tap, fr) {
 }
 const NPAD = 131072, GUARD = 4e-4;
 const KNOWN = ALL.map((k) => FREQ[k]);
-function lineRatioOf(tap, f0) {
+function lineRatioOf(tap, f0, pw = (fr) => powerOf(tap, fr)) {
   const band = [];
   for (let j = Math.ceil((0.85 * f0) * NPAD); j <= Math.floor(1.15 * f0 * NPAD); j++) {
     const fr = j / NPAD;
     if (Math.abs(fr - f0) < GUARD || KNOWN.some((L) => Math.abs(fr - L) < GUARD)) continue;
-    band.push(powerOf(tap, fr));
+    band.push(pw(fr));
   }
   band.sort((a, b) => a - b);
   const med = band.length % 2 ? band[band.length >> 1] : (band[band.length / 2 - 1] + band[band.length / 2]) / 2;
-  return powerOf(tap, Math.round(f0 * NPAD) / NPAD) / med;
+  return pw(Math.round(f0 * NPAD) / NPAD) / med;
+}
+// the same power, remembered per frequency bin, for tests that ask for many ratios on one span
+function cachedPower(tap) {
+  const memo = new Map();
+  return (fr) => {
+    const j = Math.round(fr * NPAD);
+    if (!memo.has(j)) memo.set(j, powerOf(tap, j / NPAD));
+    return memo.get(j);
+  };
 }
 function peakPeriodOf(tap, f0, halfWidth = GUARD) {
   const power = (fr) => powerOf(tap, fr);
@@ -743,6 +752,68 @@ test('with the six lunar sine waves subtracted, the lunar lines are gone (the "n
   assert.ok(after.Mf < 10 && after.Mm < 10, JSON.stringify(after));
 });
 
+test('the whole-record ratios are higher mostly because the record is longer, not because of the early years (README, table note)', (t) => {
+  // A steady line's power grows as the square of the number of days and the background beside it only in
+  // proportion, so the ratio grows in proportion to the length. Review round 2: the README had put the rise
+  // from 29,048x to 41,230x at 13.66 d down mostly to the restored tide model in 1973-1984.
+  const nM = TAP_M.length, nAll = TAP_ALL.length, LF = nAll / nM;
+  assert.equal(okIdx[okIdx.length - 1] - okIdx[0], nAll - 1, 'the high-passed record is one unbroken run');
+  const LINES5 = ['Mf', 'Mtm', 'Mm', 'MSf', 'MSm'];
+  const share = {};
+  for (const k of LINES5) {
+    const rise = X.ratioAll[k] / X.ratio[k];
+    share[k] = rise > 1 ? Math.log(LF) / Math.log(rise) : Infinity;
+    // length alone accounts for most of the rise (in log terms) at every line, and all of it at 27.55 and 31.81 d
+    assert.ok(share[k] > 0.5, `${k}: rise ${rise.toFixed(3)} vs length ${LF.toFixed(3)}`);
+  }
+  assert.ok(X.ratioAll.Mm / X.ratio.Mm < LF && X.ratioAll.MSm / X.ratio.MSm < LF, 'Mm and MSm rise by less than the length');
+  // the scaling holds inside the measured era: its first and last stretches, shorter by the same factor
+  const m11 = Math.round(nM / LF);
+  const first = lineRatioOf(tapered(okM.slice(0, m11)), FREQ.Mf), last = lineRatioOf(tapered(okM.slice(-m11)), FREQ.Mf);
+  const expect = (X.ratio.Mf * m11) / nM;
+  for (const r of [first, last]) assert.ok(Math.abs(r / expect - 1) < 0.1, `sub-window ${r} vs ${expect}`);
+  // equal length: the record's first nM days (1973 on) against the measured era's nM days (1985 on)
+  const early = okIdx.slice(0, nM), tapE = tapered(early), eq = {};
+  for (const k of LINES5) eq[k] = lineRatioOf(tapE, FREQ[k]) / X.ratio[k];
+  t.diagnostic(`length ${nAll}/${nM} = ${LF.toFixed(3)}; log share of the rise from length ${JSON.stringify(Object.fromEntries(Object.entries(share).map(([k, v]) => [k, +v.toFixed(2)])))}; sub-windows ${first.toFixed(0)} ${last.toFixed(0)} vs ${expect.toFixed(0)}; equal length ${JSON.stringify(Object.fromEntries(Object.entries(eq).map(([k, v]) => [k, +v.toFixed(3)])))}`);
+  assert.ok(eq.Mf > 1.1 && eq.Mtm > 1.1 && eq.MSf > 1.1, 'the early years add to Mf, Mtm and MSf');
+  assert.ok(Math.abs(eq.Mm - 1) < 0.02 && eq.MSm < 1, 'but not to Mm or MSm');
+  X.lenRise = { nM, nAll, LF, m11, first, last, expect, eq, eqFrom: words(MJD0 + early[0]), eqTo: words(MJD0 + early[nM - 1]) };
+  // the old explanation is gone from the README body and from the spectrum table's note
+  const md = read('README.md'), body = md.slice(0, md.indexOf('## Revision note')), app = read('app.js');
+  assert.ok(!body.includes('The rise is mostly the restored tide model') && !body.includes('are inflated by those years'));
+  assert.ok(body.includes('Most of that rise is simply the longer record') && body.includes(`mostly because that record is ${f(LF, 2)} times as long, and only partly because of those years`));
+  assert.ok(!app.includes('which inflates the ratios'));
+  // ...but only where there is a line. Where there is none (the three control rows, or any line-free period)
+  // the ratio is noise over noise and does not grow with the length. Review round 3: the table note said the
+  // longer record "raises every ratio", directly under control rows that went 0.04 -> 0.12, 0.14 -> 0.64 and
+  // 0.38 -> 0.27.
+  // Every 4th frequency bin from 9 to 32 days, skipping any within 3 guard widths of a fitted or smaller line.
+  const near = [...KNOWN, ...Object.values(X.extra)], pwM = cachedPower(TAP_M), pwA = cachedPower(TAP_ALL);
+  const free = [];
+  for (let j = Math.ceil(NPAD / 32); j <= Math.floor(NPAD / 9); j += 4) {
+    const f0 = j / NPAD;
+    if (near.some((L) => Math.abs(f0 - L) < 3 * GUARD)) continue;
+    free.push({ m: lineRatioOf(TAP_M, f0, pwM), a: lineRatioOf(TAP_ALL, f0, pwA) });
+  }
+  const med = (arr) => { const s = [...arr].sort((p, q) => p - q), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+  const freeM = med(free.map((r) => r.m)), freeA = med(free.map((r) => r.a)), freeRise = med(free.map((r) => r.a / r.m));
+  const ctlRise = ['syn', 'trop', 'drac'].map((k) => X.ratioAll[k] / X.ratio[k]);
+  t.diagnostic(`${free.length} line-free frequencies, 9-32 d: median ratio ${freeM.toFixed(3)} (1985 on) and ${freeA.toFixed(3)} (whole), median rise ${freeRise.toFixed(3)} vs length ${LF.toFixed(3)}; controls rise ${ctlRise.map((v) => v.toFixed(2)).join(' ')}`);
+  assert.ok(free.length > 1000, `${free.length} line-free frequencies`);
+  assert.ok(Math.abs(freeA / freeM - 1) < 0.05 && freeRise < 1.05, `line-free ratios ${freeM} -> ${freeA} (rise ${freeRise}) should not track the length ${LF}`);
+  assert.ok(ctlRise.some((v) => v < 1), 'a control even falls with the longer record');
+  X.freeRise = { n: free.length, m: freeM, a: freeA, rise: freeRise };
+  // the table note says the length raises the lunar lines' ratios, and that the control rows have no line
+  assert.ok(!app.includes('raises every ratio'), 'the note no longer says every ratio');
+  assert.ok(app.includes('which by itself raises the ratio of each lunar line in proportion to the length'));
+  assert.ok(app.includes('The three control rows have no line, so the length does not raise them'));
+  assert.ok(body.includes(`The controls have no line, so the length does not raise them; they only move by chance. At ${f(X.freeRise.n, 0)} line-free frequencies between 9 and 32 days the median ratio is ${f(X.freeRise.m, 2)}× in the measured era and ${f(X.freeRise.a, 2)}× over the whole record.`));
+  const note = md.slice(md.indexOf('## Revision note'));
+  assert.ok(note.includes(`went from ${f(X.ratio.syn, 2)}× to ${f(X.ratioAll.syn, 2)}×, ${f(X.ratio.trop, 2)}× to ${f(X.ratioAll.trop, 2)}× and ${f(X.ratio.drac, 2)}× to ${f(X.ratioAll.drac, 2)}× (one of them down)`));
+  assert.ok(note.includes(`Across ${f(X.freeRise.n, 0)} line-free frequencies between 9 and 32 days the median ratio is ${f(X.freeRise.m, 2)}× in the measured era and ${f(X.freeRise.a, 2)}× over the whole record`));
+});
+
 test('the seasonal dots: part of their ripple is lunar (README)', () => {
   const cum = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
   const means = (fn) => {
@@ -764,6 +835,7 @@ test('README quotes the recomputed numbers', () => {
   const lagR = (L) => f(X.lags.find((q) => q.L === L).r, 3);
   const fast = (y0) => X.audioFast.find((q) => q.y0 === y0).rms, late = X.audioFast.filter((q) => q.y0 >= 2002).map((q) => q.rms);
   const quiet = X.audioQuiet.filter((q) => q.y0 > 1974).map((q) => q.rms);
+  const LR = X.lenRise;
   const must = [
     `${X.n_days} days`, X.first_date, X.last_date, `${X.zero_date}`, `+${X.max_ms} ms`, `${X.min_ms} ms`,
     `${X.mf_ratio}× at 13.66 d`, `${X.msm_ratio}× at 31.81 d`, `${X.syn_ratio}×`, `${X.trop_ratio}×`, `${X.oos_r2}%`,
@@ -813,6 +885,14 @@ test('README quotes the recomputed numbers', () => {
     `from ${f(X.rippleWith, 3)} to ${f(X.rippleWithout, 3)} ms rms`,
     `all ${spans.size} tagged numbers`,
     `${X.zero_consistent} days in all lie within their own stated error of zero (${X.zero_consistent2} within twice it)`,
+    // the whole-record ratios: higher mostly because the record is longer (review round 2)
+    `the whole high-passed record has ${f(LR.nAll, 0)} days against ${f(LR.nM, 0)}, ${f(LR.LF, 2)} times as many`,
+    `shorter by that same factor (${f(LR.m11, 0)} days, its first and its last) give ${f(LR.first, 0)}× and ${f(LR.last, 0)}× at 13.66 d, against ${f(LR.expect, 0)}× expected from length alone`,
+    `the record's first ${f(LR.nM, 0)} days (${LR.eqFrom} to ${LR.eqTo}) against the measured era's, the early years raise the ratios at 13.66, 9.13 and 14.77 d by ${f(LR.eq.Mf, 2)}, ${f(LR.eq.Mtm, 2)} and ${f(LR.eq.MSf, 2)} times`,
+    `leave 27.55 d unchanged (${f(LR.eq.Mm, 2)}×) and lower 31.81 d (${f(LR.eq.MSm, 2)}×)`,
+    `mostly because that record is ${f(LR.LF, 2)} times as long`,
+    `the whole record is ${f(LR.LF, 2)} times as long`,
+    `by ${f(Math.min(LR.eq.Mf, LR.eq.Mtm, LR.eq.MSf), 2)}–${f(Math.max(LR.eq.Mf, LR.eq.Mtm, LR.eq.MSf), 2)} times, leave 27.55 days unchanged`,
     // the cited long-term trend: net 1.8 ms/cy, against 2.3 from tidal friction alone
     'about 1.8 ms per century on average over 2,700 years, significantly less than the 2.3 ms per century that tidal friction alone predicts',
   ];
@@ -821,7 +901,8 @@ test('README quotes the recomputed numbers', () => {
   // and what the review found wrong is gone (outside the revision note, which names it)
   const body = md.slice(0, md.indexOf('## Revision note'));
   const gone = ['82%', 'between 1940 and 2008', 'audible as hiss', 'this file alone cannot settle it', 'No two were the same',
-    'no two were the same;', '21 April 2026', 'long-term braking (tides, about 1.8 ms', 'The three largest years are each within'];
+    'no two were the same;', '21 April 2026', 'long-term braking (tides, about 1.8 ms', 'The three largest years are each within',
+    'The rise is mostly the restored tide model', 'are inflated by those years'];
   assert.deepEqual(gone.filter((s) => body.includes(s)), []);
 });
 

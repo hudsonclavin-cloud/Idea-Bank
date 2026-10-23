@@ -381,7 +381,7 @@
       });
       var tr2 = document.createElement('tr'), td2 = document.createElement('td');
       td2.colSpan = 6; td2.className = 'muted';
-      td2.textContent = 'Measured peaks, ratios and sizes use ' + A.measuredYear + '–' + A.record.lastISO.slice(0, 4) + ', the stretch where the smoothing is light. The whole-record column adds 1973–' + (A.measuredYear - 1) + ', where the short-period detail is largely the producers\u2019 tide model, which inflates the ratios. Seasonal lines: the 365-day filter leaves too few clean neighbouring frequencies for a fair background, so no ratio is quoted. Sizes are amplitudes of the fitted sine waves.';
+      td2.textContent = 'Measured peaks, ratios and sizes use ' + A.measuredYear + '–' + A.record.lastISO.slice(0, 4) + ', the stretch where the smoothing is light. The whole-record column is longer (' + num(A.specAll.n, 0) + ' days against ' + num(A.spec.n, 0) + '), which by itself raises the ratio of each lunar line in proportion to the length: a steady line\u2019s power grows with the square of the number of days, the background beside it only in proportion. The three control rows have no line, so the length does not raise them; they only move by chance. The column also adds 1973–' + (A.measuredYear - 1) + ', where the short-period detail is largely the producers\u2019 tide model. Seasonal lines: the 365-day filter leaves too few clean neighbouring frequencies for a fair background, so no ratio is quoted. Sizes are amplitudes of the fitted sine waves.';
       tr2.appendChild(td2); tb.appendChild(tr2);
     }
   }
