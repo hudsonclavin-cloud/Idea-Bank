@@ -1,0 +1,457 @@
+{
+  "_about": "Every numbered citation in index.html, with what I claim it found and exactly where I saw it. I could not open full texts (the sandbox proxy blocks most publisher, repository and university pages), so each entry records the search query that surfaced it and the snippet text I relied on. 'confidence' says which bibliographic fields I saw with my own eyes and which I supplied from memory.",
+  "_method": "WebSearch tool only (WebFetch/curl were blocked with HTTP 403 by the proxy for every source I tried). Searches run 22 October 2026. Revision, 23 October 2026, after an independent review: about twenty more searches, plus WebFetch reads of the two open-access papers on pmc.ncbi.nlm.nih.gov (refs 13 and 16), which were reachable this time; every other host still failed. What the revision added is recorded per source under 'seen_in_revision'.",
+  "sources": [
+    {
+      "id": 1,
+      "key": "Dallard2001",
+      "author": "P. Dallard, A. J. Fitzpatrick, A. Flint, S. Le Bourva, A. Low, R. M. Ridsdill Smith and M. Willford (Arup)",
+      "year": "2001",
+      "venue": "The Structural Engineer, vol. 79, no. 22, pp. 17-33 (20 November 2001)",
+      "title": "The London Millennium Footbridge",
+      "claim": "Arup's account of the opening-day movements and their investigation: the lateral force pedestrians exert on the moving deck 'is found to be related to the movement', and the same phenomenon could occur on any bridge with a lateral frequency below about 1.3 Hz carrying enough pedestrians.",
+      "used_for": "Arup's empirical finding (force tied to deck motion; a critical number of pedestrians; the 1.3 Hz rule) and the origin of the name 'synchronous lateral excitation'.",
+      "seen_in": [
+        {
+          "query": "Dallard Fitzpatrick Flint Le Bourva Low Ridsdill Smith Willford 2001 \"The London Millennium Footbridge\" Structural Engineer",
+          "where": "https://www.istructe.org/journal/volumes/volume-79-(published-in-2001)/issue-22/the-london-millennium-footbridge/",
+          "snippet": "Author: P. Dallard, A.J. Fitzpatrick, A. Flint, S. Le Bourva, A. Low, R.M. Ridsdill Smith & M. Willford ... The Structural Engineer, Volume 79, Issue 22, 2001, Page(s) 17-33 ... the lateral force exerted by pedestrians on the moving deck surface is found to be related to the movement ... the same phenomenon could occur on any bridge with a lateral frequency below about 1.3Hz loaded with a sufficient number of pedestrians."
+        },
+        {
+          "query": "wikipedia \"Synchronous lateral excitation\" Millennium Bridge pedestrians \"in step\" positive feedback",
+          "where": "https://en.wikipedia.org/wiki/Millennium_Bridge,_London",
+          "snippet": "engineers at Arup, the company that designed the bridge, conducted research into the unexpected oscillation, which they called 'synchronous lateral excitation'."
+        }
+      ],
+      "confidence": "Authors, title, journal, volume, issue, pages and the two quoted findings all seen on the IStructE journal page. Wikipedia gives the page range as 17-35; I use the journal's own 17-33. I did not read the full paper, so I do not quote its internal numbers (modal frequencies, critical-number formula)."
+    },
+    {
+      "id": 2,
+      "key": "Fujino1993",
+      "author": "Y. Fujino, B. M. Pacheco, S. Nakamura and P. Warnitchai",
+      "year": "1993",
+      "venue": "Earthquake Engineering & Structural Dynamics, vol. 22, no. 9, pp. 741-758 (doi 10.1002/eqe.4290220902)",
+      "title": "Synchronization of human walking observed during lateral vibration of a congested pedestrian bridge",
+      "claim": "Video analysis of a severely congested footbridge (Toda Park, Japan) showed that the walking of 20 per cent or more of the pedestrians was synchronized to the girder's lateral vibration, raising the total lateral force, which acted as a resonant force on the girder.",
+      "used_for": "The scientific origin of the synchronisation explanation, seven years before the Millennium Bridge.",
+      "seen_in": [
+        {
+          "query": "Fujino Pacheco Nakamura Warnitchai 1993 \"Synchronization of human walking observed during lateral vibration of a congested pedestrian bridge\"",
+          "where": "search result summary citing the journal record (doi 10.1002/eqe.4290220902) and secondary citations",
+          "snippet": "published in Earthquake Engineering & Structural Dynamics, vol. 22, no. 9, pp. 741-758 ... Video analysis of walking motions showed that walking among 20 per cent or more of the pedestrians on the bridge was synchronized to the girder lateral vibration. That synchronization raised the total lateral force from pedestrians, which acted as a resonant force on the girder."
+        }
+      ],
+      "confidence": "All bibliographic fields and the 20% finding seen in the search summary of the journal abstract. Full text not read."
+    },
+    {
+      "id": 3,
+      "key": "Strogatz2005",
+      "author": "S. H. Strogatz, D. M. Abrams, A. McRobie, B. Eckhardt and E. Ott",
+      "year": "2005",
+      "venue": "Nature, vol. 438, pp. 43-44 (3 November 2005; doi 10.1038/438043a)",
+      "title": "Crowd synchrony on the Millennium Bridge",
+      "claim": "Models the wobble as crowd synchronisation, borrowing from the theory of coupled biological oscillators; states that 'many pedestrians fell spontaneously into step with the bridge's vibrations, inadvertently amplifying them' and that wobbling and synchrony 'emerge together, as dual aspects of a single instability mechanism, once the crowd reaches a critical size'.",
+      "used_for": "The most influential statement of the common belief, and the strongest case for it (its critical crowd size matched Arup's tests).",
+      "seen_in": [
+        {
+          "query": "Strogatz Abrams McRobie Eckhardt Ott 2005 Nature \"Crowd synchrony on the Millennium Bridge\"",
+          "where": "https://ideas.repec.org/a/nat/nature/v438y2005i7064d10.1038_438043a.html and the paper PDF hosted at dmabrams.esam.northwestern.edu",
+          "snippet": "Nature vol. 438(7064), pages 43-44, November ... wobbling and synchrony emerge together, as dual aspects of a single instability mechanism, once the crowd reaches a critical size ... was not due to the bridge's innovative design, as was first thought."
+        },
+        {
+          "query": "Strogatz Sync Millennium Bridge pedestrians \"fell into step\" wobble explanation popular",
+          "where": "same paper, quoted in search summary",
+          "snippet": "many pedestrians fell spontaneously into step with the bridge's vibrations, inadvertently amplifying them"
+        }
+      ],
+      "confidence": "All fields seen. The '165 people' critical-crowd figure attached to this model appears in press coverage (physicsworld.com, Science News), not in a snippet of the paper itself. Revision: the critical crowd the model is compared with comes from Arup's December 2000 crowd test on the bridge's north span (Fig. 2 caption, seen in a search summary), not from the centre span.",
+      "seen_in_revision": [
+        {
+          "query": "Strogatz 2005 \"Crowd synchrony on the Millennium Bridge\" \"north span\" test December 2000 Figure 2 number of pedestrians",
+          "where": "Figure 2 caption as reproduced on Gale Academic OneFile (search summary)",
+          "snippet": "panel (a) as the pedestrian count N in a diagnostic wobble test on the north span in December 2000, with N increased in steps over time"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "key": "Cornell2005",
+      "author": "Cornell University News Service (press release on Strogatz et al. 2005), distributed via Newswise and ScienceDaily",
+      "year": "2005",
+      "venue": "Cornell University press release, November 2005 ('Explaining why the Millennium Bridge wobbled')",
+      "title": "Explaining why the Millennium Bridge wobbled",
+      "claim": "Describes opening day as people 'walking like tentative ice skaters, planting their feet wide and pushing out to the side with each step, left, right, in near-perfect unison. The synchrony was utterly unintentional'; also gives about 80,000 people crossing on opening day with as many as 2,000 on the bridge at once.",
+      "used_for": "How the synchrony story reached the public; opening-day crowd estimate.",
+      "seen_in": [
+        {
+          "query": "nature.com/articles/421780a Millennium Bridge walkers \"marched in time\" news feature 2003",
+          "where": "https://www.newswise.com/articles/explaining-why-the-millennium-bridge-wobbled and https://news.cornell.edu/node/281741",
+          "snippet": "People were walking like tentative ice skaters, planting their feet wide and pushing out to the side with each step, left, right, in near-perfect unison. The synchrony was utterly unintentional."
+        },
+        {
+          "query": "ted.com Strogatz \"science of sync\" transcript \"Millennium Bridge\" footage crowd",
+          "where": "Cornell/Newswise coverage",
+          "snippet": "an estimated 80,000 people crossed the bridge on opening day, with as many as 2,000 on it at any one time."
+        }
+      ],
+      "confidence": "Press release, not a paper. Quotes seen in search summaries of the Newswise/Cornell text. Author byline not visible to me."
+    },
+    {
+      "id": 5,
+      "key": "Wikipedia",
+      "author": "Wikipedia contributors",
+      "year": "2026 (accessed 22 October 2026)",
+      "venue": "Wikipedia, article 'Millennium Bridge, London'",
+      "title": "Millennium Bridge, London",
+      "claim": "Attributes the bridge's movement to 'a positive feedback phenomenon, known as synchronous lateral excitation', compares it to soldiers marching in lockstep but horizontal, reports 90,000 crossings on opening day with up to 2,000 on the bridge at a time, says Arup's first laboratory work used pedestrians on moving platforms at the University of Southampton and Imperial College London, and gives the retrofit as 37 fluid-viscous dampers and 52 tuned mass dampers with reopening on 22 February 2002.",
+      "used_for": "Evidence of the belief as it is repeated today; opening-day, laboratory-platform and retrofit facts.",
+      "seen_in": [
+        {
+          "query": "wikipedia \"Synchronous lateral excitation\" Millennium Bridge pedestrians \"in step\" positive feedback",
+          "where": "https://en.wikipedia.org/wiki/Millennium_Bridge,_London",
+          "snippet": "the bridge's movement was caused by a positive feedback phenomenon, known as synchronous lateral excitation ... similar to soldiers marching in lockstep, but horizontal instead of vertical"
+        },
+        {
+          "query": "Millennium Bridge opening 10 June 2000 90,000 people closed 12 June 2000 reopened February 2002 dampers wobble",
+          "where": "search summary of Wikipedia and other pages",
+          "snippet": "Retrofitting used 37 fluid-viscous dampers and 52 tuned mass dampers ... Most sources say the bridge reopened on February 22, 2002 ... Wikipedia reports 90,000 people crossed on the day of opening"
+        },
+        {
+          "query": "arup.com projects Millennium Bridge \"synchronous lateral excitation\" pedestrians sway explanation",
+          "where": "https://en.wikipedia.org/wiki/Millennium_Bridge,_London (via search summary)",
+          "snippet": "The first lab work used pedestrians on moving platforms at the University of Southampton and Imperial College London. Engineers judged that stiffening the bridge would change its appearance too much, so they retrofitted 37 viscous fluid dampers to dissipate energy."
+        }
+      ],
+      "confidence": "Cited only as a record of the popular account and for widely repeated numbers; I treat it as a marker of belief, not as evidence about mechanism. Crowd estimates vary between sources (80,000 to 100,000)."
+    },
+    {
+      "id": 6,
+      "key": "Ingenia2001",
+      "author": "T. Fitzpatrick and R. Ridsdill Smith (Arup), as credited by two secondary citations; the byline was not visible on the Ingenia page excerpt I saw",
+      "year": "2001",
+      "venue": "Ingenia (magazine of the Royal Academy of Engineering), Issue 9, August 2001",
+      "title": "Stabilising the London Millennium Bridge",
+      "claim": "Attributes the sideways movement to 'a little-known phenomenon called synchronous lateral excitation, due to overcrowding by pedestrians'; describes the mechanism as a random event such as chance correlation of the pedestrians' steps starting a slight sideways motion, after which walkers tend to fall into step with it; reports up to 100,000 people on opening day and about 2,000 on the bridge at once; describes the research, testing and damper retrofit. It also gives the frequencies of the modes that moved: more often the south span at 0.77 Hz and the centre span's first lateral mode at 0.49 Hz, less often the north span at 1.05 Hz.",
+      "used_for": "How the engineers framed the explanation in 2001, before the physics models. The frequencies of the modes that moved on opening day (added in revision).",
+      "seen_in": [
+        {
+          "query": "ingenia.org.uk \"Stabilising the London Millennium Bridge\" author Fitzpatrick Royal Academy of Engineering pedestrians in step",
+          "where": "https://ingenia.org.uk/articles/stabilising-the-london-millennium-bridge/ and https://ingenia.org.uk/issues/issue-9/",
+          "snippet": "a little-known phenomenon called synchronous lateral excitation, due to overcrowding by pedestrians ... Issue 9 August 2001 ... Stabilising the London Millennium Bridge"
+        },
+        {
+          "query": "Dallard 2001 Millennium Bridge \"synchronous lateral excitation\" pedestrians walk in step with the movement abstract Arup opening day video footage",
+          "where": "Ingenia article, via search summary",
+          "snippet": "Ingenia reports up to 100,000 people. Both put the number on the bridge at once at about 2,000."
+        }
+      ],
+      "seen_in_followup": {
+        "query": "Ingenia issue 9 August 2001 \"Stabilising the London Millennium Bridge\" article author Arup \"synchronous lateral excitation\" \"little-known phenomenon\"",
+        "where": "https://www.ingenia.org.uk/articles/stabilising-the-london-millennium-bridge/ plus two secondary citations (search summary)",
+        "snippet": "dated August 2001 and is listed as Issue 9 ... Two sources credit Tony Fitzpatrick and Roger Ridsdill Smith, with Ridsdill Smith described as affiliated with Arup ... I could not confirm the byline from the Ingenia page itself ... Ingenia's account is that a random event such as chance correlation of the pedestrians' steps starts a slight sideways motion, and walkers then tend to fall into step with it."
+      },
+      "confidence": "Title, issue, date and quoted phrases seen. Authorship rests on two secondary citations, not on the Ingenia page itself; this is the one bibliographic field in the memo I could not confirm at source. The span frequencies were found in revision, quoted in one search summary; a second search for the exact sentence did not return it, so I treat the wording as likely rather than certain, while the figures agree with refs 7 and 13.",
+      "seen_in_revision": [
+        {
+          "query": "\"North span\" Arup \"critical number of pedestrians\" Millennium Bridge \"1.03 Hz\" OR \"166 pedestrians\"",
+          "where": "https://ingenia.org.uk/articles/stabilising-the-london-millennium-bridge/ (quoted in a search summary that listed this page; WebFetch of the page failed with a DNS error)",
+          "snippet": "The sideways movements occurred more often on the south span at a frequency of 0.77 Hz and in the first lateral mode of the central span at a frequency of 0.49 Hz; they occurred less often on the north span which has a first lateral frequency of 1.05 Hz."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "key": "Feldman2010",
+      "author": "Bernard J. Feldman",
+      "year": "2010",
+      "venue": "Physics Today, vol. 63, no. 3 (March 2010), Letters, p. 8 (doi 10.1063/1.3366249)",
+      "title": "London bridge's wobble and sway (letter)",
+      "claim": "Argues that the synchronous-lateral-excitation explanation 'is at best partial and at worst completely incorrect', draws the parallel with the wrong 'forced resonance' story about Tacoma Narrows, notes that the bridge's first lateral mode was about 0.5 Hz while average walking frequency is about 1 Hz, credits Macdonald's balance mechanism in which walkers adjust step width rather than frequency or phase, and calls the wobble an unresolved problem that should be taught as one. The letter also notes that the middle span had a second lateral mode, at about 1.0 Hz, of roughly equal amplitude.",
+      "used_for": "The frequency-mismatch argument and the Tacoma parallel; an early published dissent. After revision: the mismatch applies to the centre span's first mode only, and the letter itself records a second mode near 1.0 Hz.",
+      "seen_in": [
+        {
+          "query": "Feldman \"Physics Today\" 2010 letter Millennium Footbridge \"synchronous lateral excitation\" Tacoma Narrows",
+          "where": "https://aip.brightspotcdn.com/PTO.v63.i3.8_1.online.pdf and https://physicstoday.aip.org/letters/london-bridges-wobble-and-sway",
+          "snippet": "Bernard J. Feldman's 2010 Physics Today letter ... the synchronous lateral excitation explanation is at best partial and at worst completely incorrect ... the bridge collapse, for example, has been wrongly attributed to forced harmonic oscillations ... Macdonald suggested that as a balance strategy walkers adjusted the width of their steps ... the Clifton Suspension Bridge, whose dominant lateral vibration was at 0.5 Hz, with the London bridge, whose first lateral mode was also at 0.5 Hz, while average walking frequency is about 1 Hz."
+        }
+      ],
+      "seen_in_followup": {
+        "query": "Bernard Feldman Physics Today 2010 letters Millennium Footbridge \"Physics Today 63\" March 2010 page 8",
+        "where": "https://works.bepress.com/bernard-feldman/33 (search summary)",
+        "snippet": "Bernard J. Feldman's 'London bridge's wobble and sway,' published in Physics Today, volume 63, issue 3 (2010), page 8 ... DOI of 10.1063/1.3366249 ... He calls the wobble an unresolved problem and hopes it is taught that way."
+      },
+      "confidence": "Author, title, journal, volume, issue, page, DOI and quotes all seen (volume/issue/page/DOI confirmed in a second search against the author's publication list).",
+      "seen_in_revision": [
+        {
+          "query": "Feldman Physics Today \"London bridge's wobble and sway\" middle span first lateral mode 0.5 Hz \"second lateral mode\" 1.0 Hz",
+          "where": "https://physicstoday.aip.org/letters/london-bridges-wobble-and-sway (search summary)",
+          "snippet": "The middle span of the London bridge also had its first lateral mode at 0.5 Hz, with a second lateral mode of approximately equal amplitude at 1.0 Hz."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "key": "Macdonald2008",
+      "author": "J. H. G. Macdonald",
+      "year": "2008",
+      "venue": "Proceedings of the Institution of Civil Engineers - Bridge Engineering, vol. 161, no. 2, pp. 69-77 (June 2008)",
+      "title": "Pedestrian-induced vibrations of the Clifton Suspension Bridge, UK",
+      "claim": "Detailed measurements of the Clifton Suspension Bridge under crowd loading: the observations suggest that significant synchronisation of pedestrians did not actually occur, which challenges the commonly held view that synchronisation drives the initial rapid onset of lateral vibration; the behaviour matched Arup's negative-damping model.",
+      "used_for": "A second bridge with the same onset and no sign of synchrony.",
+      "seen_in": [
+        {
+          "query": "Macdonald 2008 \"Pedestrian-induced vibrations of the Clifton Suspension Bridge\" Proceedings ICE Bridge Engineering no synchronisation",
+          "where": "https://research-information.bris.ac.uk/en/publications/pedestrian-induced-vibrations-of-the-clifton-suspension-bridge-uk/",
+          "snippet": "Proceedings of the ICE, Bridge Engineering, volume 161(2), pages 69-77, published June 2008 ... the paper's observations suggest that significant synchronisation of pedestrians did not actually occur ... challenge the commonly held view that synchronisation drives the initial rapid onset of lateral vibration ... matches the negative-damping model Arup proposed for the Millennium Bridge, but that model doesn't explain the underlying mechanism."
+        }
+      ],
+      "confidence": "All fields and findings seen in the Bristol research-portal summary."
+    },
+    {
+      "id": 9,
+      "key": "Brownjohn2004",
+      "author": "J. M. W. Brownjohn, S. L. Fok, M. Roche and P. Omenzetter",
+      "year": "2004",
+      "venue": "The Structural Engineer, vol. 82, no. 16, pp. 28-34 (17 August 2004)",
+      "title": "Long span steel pedestrian bridge at Singapore Changi Airport - Part 2: Crowd loading tests and vibration mitigation measures",
+      "claim": "Crowd tests with up to 150 volunteers told to walk casually: with all 150 circulating for several minutes, a steady increase in lateral vibration was observed, resembling the Millennium Bridge phenomenon though with a peak about ten times smaller; the bridge was then fitted with tuned mass dampers.",
+      "used_for": "A third bridge where the lateral build-up appeared under casual walking.",
+      "seen_in": [
+        {
+          "query": "Brownjohn Fok Roche Omenzetter 2004 Changi Mezzanine Bridge crowd loading tests Structural Engineer lateral vibration negative damping",
+          "where": "https://www.istructe.org/journal/volumes/volume-82-(published-in-2004)/issue-16/long-span-steel-pedestrian-bridge-at-singapore-(1)/",
+          "snippet": "Volunteers were told to walk casually across the bridge to test for so-called 'synchronous lateral excitation' (SLE). With all 150 available pedestrians circulating for several minutes, a steady increase in lateral vibrations was observed. The authors said this resembled the phenomenon observed during tests on the London Millennium Bridge, though the peak response was about ten times smaller."
+        }
+      ],
+      "seen_in_followup": {
+        "query": "\"Long span steel pedestrian bridge at Singapore Changi Airport\" \"Part 2\" crowd loading tests authors Brownjohn Fok Roche Omenzetter Structural Engineer 2004",
+        "where": "https://ore.exeter.ac.uk/repository/handle/10871/19513 and the IStructE issue page (search summary)",
+        "snippet": "Part 2: Crowd loading tests and vibration mitigation measures, by Brownjohn, Fok, Roche and Omenzetter, published 17 August 2004 in The Structural Engineer, vol. 82 (16), pp. 28-34 ... the Changi Mezzanine Bridge, a 140 m footbridge ... walking tests with up to 150 pedestrians."
+      },
+      "confidence": "Authors, journal, volume, issue, pages, date and the quoted finding all seen (pages and date in a second search). The abstract's remark that movements were 'not well synchronised' concerns the vertical response, so I do not use it as evidence about the lateral mechanism; the lateral interpretation is Belykh et al. 2021's [13]."
+    },
+    {
+      "id": 10,
+      "key": "Macdonald2009",
+      "author": "J. H. G. Macdonald",
+      "year": "2009",
+      "venue": "Proceedings of the Royal Society A, vol. 465, no. 2104, pp. 1055-1073 (online 16 December 2008; doi 10.1098/rspa.2008.0367)",
+      "title": "Lateral excitation of bridges by balancing pedestrians",
+      "claim": "An inverted-pendulum model of how walkers keep lateral balance: balance is controlled mainly by where the foot is placed, not when; on a swaying deck a walker therefore acts as a negative (or positive) damper even when stepping at a different frequency from the deck, without altering pacing frequency or synchronising; the result is consistent with Arup's empirical model.",
+      "used_for": "The mechanism that produces Arup's negative damping without synchrony.",
+      "seen_in": [
+        {
+          "query": "Macdonald 2009 \"Lateral excitation of bridges by balancing pedestrians\" Proc R Soc A volume 465 pages 1055-1073",
+          "where": "https://research-information.bris.ac.uk/en/publications/lateral-excitation-of-bridges-by-balancing-pedestrians",
+          "snippet": "Proceedings of the Royal Society A, vol. 465, issue 2104, pp. 1055-1073, published in 2009. The DOI is 10.1098/rspa.2008.0367 ... early online date of 16 December 2008 ... lateral balance is controlled mainly by where the foot is placed, not by its timing. Applied to a swaying bridge, a walker effectively acts as a negative or positive damper on the bridge's motion, even at a different frequency from their pace."
+        },
+        {
+          "query": "\"Macdonald\" \"balancing pedestrians\" \"Proc. R. Soc. A\" OR \"Proceedings of the Royal Society A\" \"465\" \"1055\"",
+          "where": "https://www.bristol.ac.uk/news/2008/6066.html and https://royalsociety.org/news/2009/millenium-bridge",
+          "snippet": "without altering their pacing frequency, averaged over a large number of cycles, the pedestrian can effectively act as a negative damper to the bridge motion ... pedestrians walking randomly, keeping balance as normal can cause large bridge sway."
+        }
+      ],
+      "confidence": "All fields seen on the Bristol research portal record. Full text not read."
+    },
+    {
+      "id": 11,
+      "key": "Bocian2012",
+      "author": "M. Bocian, J. H. G. Macdonald and J. F. Burn",
+      "year": "2012",
+      "venue": "Journal of Sound and Vibration, vol. 331, no. 16, pp. 3914-3929 (doi 10.1016/j.jsv.2012.03.023)",
+      "title": "Biomechanically inspired modelling of pedestrian-induced forces on laterally oscillating structures",
+      "claim": "Extends the inverted-pendulum model: the self-excited forces can be modelled as frequency-dependent added damping and mass; simulations agree reasonably with treadmill measurements and are 'in very good agreement with measurements on full-scale bridges'; 'in contrast to many other models of lateral pedestrian loading, synchronisation with the bridge motion is not involved'; slower pacing in dense crowds produces larger self-excited forces.",
+      "used_for": "The no-synchrony model reproducing full-scale bridge data.",
+      "seen_in": [
+        {
+          "query": "Bocian Macdonald Burn 2012 \"Biomechanically inspired modelling of pedestrian-induced forces on laterally oscillating structures\" Journal of Sound and Vibration",
+          "where": "https://research-information.bris.ac.uk/en/publications/biomechanically-inspired-modelling-of-pedestrian-induced-forces-o/",
+          "snippet": "a biomechanically inspired model of the human response to lateral bridge motion is presented ... built on a simple inverted pendulum model ... pages 3914-3929 ... self-excited forces can be effectively modelled as frequency-dependent added damping and mass to the structure ... in very good agreement with measurements on full-scale bridges. Unlike many other models, synchronisation with the bridge motion is not involved ... as pedestrians slow down as a crowd becomes more dense, their resulting lower pacing rates generate larger self-excited forces."
+        }
+      ],
+      "seen_in_followup": {
+        "query": "Bocian Macdonald Burn \"Biomechanically inspired modelling of pedestrian-induced forces on laterally oscillating structures\" 2012 \"Journal of Sound and Vibration\" 331",
+        "where": "citing-paper reference lists on sciencedirect.com (search summary)",
+        "snippet": "Bocian M, Macdonald J, Burn J. Biomechanically inspired modelling of pedestrian-induced forces on laterally oscillating structures. Journal of Sound and Vibration. 2012;331(16):3914-3929. 10.1016/j.jsv.2012.03.023"
+      },
+      "confidence": "Authors, title, pages and abstract seen on the Bristol record; journal, year, issue and DOI confirmed in a second search against citing papers' reference lists."
+    },
+    {
+      "id": 12,
+      "key": "Ingolfsson2011",
+      "author": "E. T. Ingólfsson, C. T. Georgakis, F. Ricciardelli and J. Jönsson",
+      "year": "2011",
+      "venue": "Journal of Sound and Vibration, vol. 330, no. 6, pp. 1265-1284 (doi 10.1016/j.jsv.2010.09.034)",
+      "title": "Experimental identification of pedestrian-induced lateral forces on footbridges",
+      "claim": "Single pedestrians walked on a treadmill that was first fixed and then driven sideways sinusoidally at 0.33-1.07 Hz and 4.5-48 mm; the motion-induced part of each walker's lateral force was quantified as equivalent velocity-proportional and acceleration-proportional coefficients.",
+      "used_for": "Direct measurement of the velocity-proportional (self-excited) force from individual walkers on a moving surface.",
+      "seen_in": [
+        {
+          "query": "Ingólfsson Georgakis Ricciardelli Jönsson 2011 \"Experimental identification of pedestrian-induced lateral forces on footbridges\" Journal of Sound and Vibration treadmill self-excited",
+          "where": "https://orbit.dtu.dk/en/publications/pedestrian-induced-lateral-forces-on-footbridges-2/",
+          "snippet": "Journal of Sound and Vibration (ISSN: 0022-460X) (DOI: 10.1016/j.jsv.2010.09.034), vol: 330, issue: 6, pages: 1265-1284, 2011 ... the treadmill is fixed and then it is laterally driven in a sinusoidal motion at varying combinations of frequencies (0.33-1.07 Hz) and amplitudes (4.5-48 mm) ... quantified through equivalent velocity and acceleration proportional coefficients."
+        }
+      ],
+      "confidence": "All fields seen on the DTU Orbit record. I do not claim the paper's numerical coefficients, which I have not seen."
+    },
+    {
+      "id": 13,
+      "key": "Belykh2021",
+      "author": "I. Belykh, M. Bocian, A. R. Champneys, K. Daley, R. Jeter, J. H. G. Macdonald and A. McRobie",
+      "year": "2021",
+      "venue": "Nature Communications, vol. 12, article 7223 (10 December 2021; doi 10.1038/s41467-021-27568-y; open access, PMC8664840)",
+      "title": "Emergence of the London Millennium Bridge instability without synchronisation",
+      "claim": "Argues that increased coherence of pedestrians' foot placement 'is a consequence of, not a cause of the instability'; uncorrelated pedestrians produce positive feedback 'through negative damping on average' that can initiate lateral vibration over a wide range of natural frequencies; gives a formula for the negative damping per pedestrian, tests it in three crowd models including one with a strong propensity to synchronise, finds average negative damping is always the trigger (gait strategy only shifts the threshold), and says this fits observations on almost 30 bridges. Its Table 1 lists the London bridge's unstable modes as 0.5, 0.8 and 1.0 Hz and records 'no direct evidence' of pedestrian synchronisation there.",
+      "used_for": "The decisive modern result; the 'consequence, not cause' reversal.",
+      "seen_in": [
+        {
+          "query": "Belykh 2021 Nature Communications \"Emergence of the London Millennium Bridge instability without synchronisation\"",
+          "where": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8664840 ; https://doaj.org/article/1df5fcca295f4968bb6e5241c9487393 ; https://www.repository.cam.ac.uk/handle/1810/331868",
+          "snippet": "Nature Communications vol. 12, article 7223 (December 2021), DOI 10.1038/s41467-021-27568-y ... Igor Belykh, Mateusz Bocian, Alan Champneys, Kevin Daley, Russell Jeter, John Macdonald, and Allan McRobie ... increased coherence of pedestrians' foot placement is a consequence of, not a cause of the instability ... uncorrelated pedestrians produce positive feedback, through negative damping on average, that can initiate significant lateral bridge vibration over a wide range of natural frequencies ... simulation of three mathematical models, including one with strong propensity for synchronisation ... average negative damping is always the trigger, even though gait strategies affect the exact instability thresholds ... fits observations on almost 30 bridges."
+        },
+        {
+          "query": "critique OR response OR comment Belykh \"Millennium Bridge\" \"without synchronisation\" 2022 OR 2023 synchronization still cause",
+          "where": "search summary of the paper and press (bridgeweb.com, bristol.ac.uk)",
+          "snippet": "The initiation of bridge wobbling without synchronization was previously observed during periods of instability of the Singapore Airport's Changi Mezzanine Bridge and the Clifton Suspension Bridge ... No 2022 or 2023 critiques or rebuttals found."
+        }
+      ],
+      "confidence": "All fields and quoted findings seen in abstract snippets from PMC, DOAJ and the Cambridge repository. Full text not read (PMC served a CAPTCHA page to the sandbox).",
+      "seen_in_revision": [
+        {
+          "query": "WebFetch of https://pmc.ncbi.nlm.nih.gov/articles/PMC8664840 (Table 1 and Methods)",
+          "where": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8664840",
+          "snippet": "Table 1, 'Reported cases of lateral bridge instability due to the action of walking pedestrians', London Millennium Bridge row: Frequency (Hz) '0.5, 0.8, 1.0'; Sync evidence 'No direct evidence; vertical pedestrian force random while lateral force correlated with bridge motion'. Methods: 'an imposed sinusoidal bridge motion with an amplitude of 1 cm and a frequency of 1.039 Hz close to that of the London Millennium Bridge'."
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "key": "Eckhardt2007",
+      "author": "B. Eckhardt, E. Ott, S. H. Strogatz, D. M. Abrams and A. McRobie",
+      "year": "2007",
+      "venue": "Physical Review E, vol. 75, 021110 (doi 10.1103/PhysRevE.75.021110)",
+      "title": "Modeling walker synchronization on the Millennium Bridge",
+      "claim": "Treats walkers as phase oscillators coupled to the deck; the model yields predictions for individual walkers' phase dynamics and for the critical number of people for oscillations to begin, and reproduces the linear relation between pedestrian force and bridge velocity seen in experiments.",
+      "used_for": "The strongest case for the belief: a synchronisation model that reproduces Arup's force-velocity law.",
+      "seen_in": [
+        {
+          "query": "Eckhardt Ott Strogatz Abrams McRobie 2007 Physical Review E \"Modeling walker synchronization on the Millennium Bridge\"",
+          "where": "PDF hosted at dmabrams.esam.northwestern.edu; arXiv 0809.0358 and UMD thesis citing it",
+          "snippet": "published in Physical Review E in 2007 (DOI 10.1103/PhysRevE.75.021110) ... treat the pedestrians' stepping on the bridge as phase oscillators ... gives predictions for the phase dynamics of individual walkers and for the critical number of people needed for oscillations to begin. It also reproduces the linear relation between pedestrian force and bridge velocity seen in experiments."
+        }
+      ],
+      "confidence": "All fields seen. Full text not read."
+    },
+    {
+      "id": 15,
+      "key": "Bocian2017",
+      "author": "M. Bocian, J. F. Burn, J. H. G. Macdonald and J. M. W. Brownjohn",
+      "year": "2017",
+      "venue": "Journal of Sound and Vibration, vol. 392, pp. 382-399 (31 March 2017; doi 10.1016/j.jsv.2016.12.022)",
+      "title": "From phase drift to synchronisation - pedestrian stepping behaviour on laterally oscillating structures and the effect on structural stability",
+      "claim": "15 people made 137 walking tests on an instrumented treadmill mounted on a shaking table moving sideways sinusoidally; found a weak modulation of footstep timing by the platform motion ('phase pulling'), which the authors suggest could explain why foot-placement models and lab trials underestimate the negative damping measured on real bridges. The same trials also produced a few cases of outright synchronisation.",
+      "used_for": "The best modern evidence that some timing coupling exists, i.e. the nuance in favour of the belief.",
+      "seen_in": [
+        {
+          "query": "Bocian Burn Macdonald Brownjohn 2017 \"From phase drift to synchronisation\" pedestrian stepping laterally oscillating structures Journal of Sound and Vibration 392 abstract",
+          "where": "https://ore.exeter.ac.uk/repository/handle/10871/26001 and https://research-information.bris.ac.uk/ws/files/103112699/ped_main.pdf (listed, not opened)",
+          "snippet": "Vol. 392, 31 March 2017, pp. 382-399 ... the mechanism most commonly purported to cause lateral dynamic instability ... 15 people participated in a total of 137 walking tests during which the treadmill underwent lateral sinusoidal motion ... A weak timing modulation of footsteps ... could possibly explain the under-estimation of negative damping coefficients ... DOI is 10.1016/j.jsv.2016.12.022"
+        },
+        {
+          "query": "Carroll Owen Hussein 2013 \"Experimental identification of the lateral human-structure interaction mechanism\" Journal of Sound and Vibration synchronisation",
+          "where": "https://results2021.ref.ac.uk/outputs/af190199-55f1-4642-bfb7-071eb0e527b1 (University of Leicester REF record)",
+          "snippet": "synchronisation was rebutted as the mechanism leading to structural instability, but a new 'phase-pulling' mechanism was discovered."
+        }
+      ],
+      "confidence": "All fields seen. The phrase 'phase pulling' comes from the REF impact record, the rest from the abstract summary. Full text not read.",
+      "seen_in_revision": [
+        {
+          "query": "\"From phase drift to synchronisation\" pedestrian stepping laterally oscillating structures abstract synchronisation cases ore.exeter.ac.uk",
+          "where": "https://ore.exeter.ac.uk/repository/handle/10871/26001 (search summary of the abstract)",
+          "snippet": "The abstract reports that most footstep timing was largely unaffected by the structure's motion, though a few cases of synchronisation appeared. It also describes an intermediate, weakly modulated state between synchronised and unsynchronised motion."
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "key": "Belykh2017",
+      "author": "I. Belykh, R. Jeter and V. Belykh",
+      "year": "2017",
+      "venue": "Science Advances, vol. 3, e1701512 (10 November 2017; doi 10.1126/sciadv.1701512); preprint arXiv:1610.05366",
+      "title": "Foot force models of crowd dynamics on a wobbly bridge",
+      "claim": "Builds inverted-pendulum foot-force crowd models to ask 'to what degree pedestrian synchrony must be present for a bridge to wobble significantly and what is a critical crowd size'; notes that phase-locking's role in the initiation of wobbling 'was debated'; predicts the critical crowd size from walking frequency and the bridge's natural frequency, with a sharp threshold (press quote: 'At 164 pedestrians, potentially nothing, then boom'); concludes that pedestrian lock-in was necessary for the Millennium Bridge's large swaying, but that the popular view of crowd synchrony as the initiating cause may be an oversimplification.",
+      "used_for": "The nuance that synchrony may matter for amplitude even if not for onset. After revision: the ~165 threshold is Arup's critical crowd (the paper cites Dallard et al. 2001 for it), which the paper's parameters are tuned to reproduce and at which its onset coincides with phase-locking; the crowd test it comes from was on the north span (ref 3), not the centre span.",
+      "seen_in": [
+        {
+          "query": "Belykh Jeter Belykh 2017 Science Advances \"Foot force models of crowd dynamics on a wobbly bridge\" lock-in necessary oversimplification",
+          "where": "https://arxiv.org/abs/1610.05366 ; https://math.gsu.edu/ibelykh/Belykh_Science_Advances.pdf ; https://techxplore.com/news/2017-11-simulation-clues-pedestrian-bridge.html",
+          "snippet": "DOI 10.1126/sciadv.1701512 ... to what degree pedestrian synchrony must be present for a bridge to wobble significantly and what is a critical crowd size ... Pedestrian phase locking is suspected to be the main cause of its large lateral vibrations; however, its role in the initiation of wobbling was debated ... 'At 164 pedestrians, potentially nothing, then boom, the bridge starts wobbling when you have one or two additional pedestrians,' Belykh says."
+        },
+        {
+          "query": "BBC OR Guardian Millennium Bridge wobble explained pedestrians \"in step\" \"synchronous lateral excitation\" 2000 OR 2002",
+          "where": "search summary pointing at ar5iv.arxiv.org/html/1610.05366",
+          "snippet": "A separate analysis of the bridge also concluded that pedestrian lock-in was necessary for the London Millennium Bridge to develop large-amplitude wobbling. Its authors argued that the popular synchrony explanation may be an oversimplification."
+        }
+      ],
+      "seen_in_followup": {
+        "query": "\"Foot force models of crowd dynamics on a wobbly bridge\" Science Advances 2017 vol 3 e1701512 Belykh Jeter Belykh",
+        "where": "https://www.science.org/doi/10.1126/sciadv.1701512 and the Georgia State PDF (search summary)",
+        "snippet": "Science Advances 3 (2017): e1701512, published 10 November 2017 ... Their analysis predicts the critical number of pedestrians remarkably well, based on walking frequency and the London Millennium Bridge's natural frequency. They conclude that pedestrian lock-in was necessary for the Millennium Bridge's large swaying, but that the popular view of crowd synchrony as the initiating cause may be an oversimplification."
+      },
+      "confidence": "All bibliographic fields confirmed in a second search (volume, article number, date). The 'lock-in necessary for the large swaying / synchrony as initiator an oversimplification' conclusion was seen in two independent search summaries of the paper and preprint, though not as verbatim abstract text. Revision: the lock-in conclusion and the tuning to n_c = 165 were confirmed against the open-access text on PMC (PMC5688767), queried for specific passages.",
+      "seen_in_revision": [
+        {
+          "query": "WebFetch of https://pmc.ncbi.nlm.nih.gov/articles/PMC5688767/ (Science Advances open-access copy)",
+          "where": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5688767/",
+          "snippet": "a critical value [about 165 pedestrians on the London Millennium Bridge (29) ... The parameters are chosen to make n_c = 165 (29), beyond which the sharp onset of wobbling occurred ... The onset of bridge wobbling coincides with complete phase locking among the pedestrians ... we knowingly consider the worst-case scenario and set the natural bridge frequency Ω = 1. [Ref. 29 is Dallard et al. 2001, The Structural Engineer 79.] Conclusion: 'crowd phase locking was necessary for the London Millennium Bridge to wobble significantly' ... 'a phase lock-in mechanism might not necessarily be the main cause of initial small-amplitude wobbling'."
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "key": "Bristol2021",
+      "author": "University of Bristol press office (quoting J. Macdonald and co-authors)",
+      "year": "2021",
+      "venue": "University of Bristol news, December 2021 ('The London Millennium Bridge wobble finally explained')",
+      "title": "The London Millennium Bridge wobble finally explained",
+      "claim": "Calls the synchronisation account the 'synchronisation myth', says any synchronisation observed is typically a consequence rather than a cause of bridge motion, and quotes Macdonald that such oscillations can occur on virtually any long bridge carrying a sufficiently large crowd.",
+      "used_for": "How the authors themselves characterise the old account; the generality claim.",
+      "seen_in": [
+        {
+          "query": "Physics Today letter \"London bridges wobble and sway\" Millennium Bridge synchronization",
+          "where": "https://www.bristol.ac.uk/news/2021/december/millennium-bridge-wobble.html",
+          "snippet": "A University of Bristol summary of that work calls synchronization the 'synchronisation myth' and says any synchronisation observed is typically a consequence, rather than a cause, of the bridge motion."
+        },
+        {
+          "query": "Belykh 2021 Nature Communications \"Emergence of the London Millennium Bridge instability without synchronisation\"",
+          "where": "https://www.bridgeweb.com/Academics-unravel-reasons-for-Millennium-Bridge-wobble/8702",
+          "snippet": "Bridgeweb quotes Bristol's John Macdonald saying these large oscillations can occur on virtually any long bridge when carrying a sufficiently large crowd."
+        }
+      ],
+      "confidence": "Press release; quotes seen in search summaries. Used only for the authors' own framing, not as independent evidence."
+    },
+    {
+      "id": 18,
+      "key": "PiccardoTubino2008",
+      "author": "G. Piccardo and F. Tubino",
+      "year": "2008",
+      "venue": "Journal of Sound and Vibration, vol. 311, nos. 1-2, pp. 353-371 (volume and pages supplied from memory; not seen at source)",
+      "title": "Parametric resonance of flexible footbridges under crowd-induced lateral excitation",
+      "claim": "Reviews the mechanisms proposed for crowd-induced lateral vibration and analyses a parametric excitation mechanism, with a forcing model whose amplitude depends on the deck's oscillation; the stability criterion depends on the ratio of structural to excitation frequency, the ratio of structural to pedestrian mass, and the structural damping; the mechanism can act on very flexible footbridges with a lateral frequency around 0.5 Hz, half the lateral walking frequency, citing the London Millennium Footbridge as an example.",
+      "used_for": "The 2:1 parametric route by which walkers in step at ~1 Hz can pump a ~0.5 Hz mode; part of the strongest case for synchrony, and the mechanism behind the toy's 'in step' threshold shift. Added in revision at an independent reviewer's suggestion.",
+      "seen_in": [
+        {
+          "query": "Piccardo Tubino 2008 parametric resonance flexible footbridges pedestrian lateral \"half\" walking frequency Journal of Sound and Vibration",
+          "where": "https://iris.unige.it/handle/11567/250447 (University of Genoa IRIS record; search summary of the abstract)",
+          "snippet": "analyzes a parametric excitation mechanism, based on a forcing model whose amplitude depends on deck oscillations ... The criterion depends on the ratio between the structural and excitation frequencies, on the ratio of the structural and pedestrian masses, and on the structural damping ... for very flexible footbridges, with a lateral natural frequency around 0.5 Hz, corresponding to a half of the lateral walking frequency. The London Millennium Footbridge is cited as an example of this situation."
+        },
+        {
+          "query": "Piccardo G, Tubino F. Parametric resonance of flexible footbridges under crowd-induced lateral excitation. J Sound Vib 2008;311:353-371",
+          "where": "same IRIS record (search summary)",
+          "snippet": "It reviews three proposed mechanisms in the literature (direct resonance, dynamic interaction, and internal resonance), then analyzes the parametric mechanism ... A 2011 follow-up by the same authors ... validates the proposed forcing model against recent experimental results."
+        }
+      ],
+      "confidence": "Authors, title, year and abstract seen on the IRIS record via search summaries (WebFetch of the record failed with a DNS error). Journal, volume and pages are from memory and were not confirmed by any search; the reference on the page says so."
+    }
+  ]
+}

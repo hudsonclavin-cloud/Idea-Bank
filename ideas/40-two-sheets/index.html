@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Sheets of Nothing</title>
+<meta name="description" content="Two sheets of random noise that say nothing on their own, provably, and spell a message when you lay one over the other. Visual cryptography you can drag, print and check.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f3efe6;
+    --fg: #1f1b17;
+    --muted: #6b645b;
+    --accent: #a8481f;
+    --accent-soft: rgba(168, 72, 31, 0.12);
+    --line: #d8d1c3;
+    --table: #fbfaf5;
+    --table-edge: #c9c1b1;
+    --card: #faf8f2;
+    --ink: #111;
+    --btn-bg: #fbf9f4;
+    --btn-fg: #1f1b17;
+    --code-bg: #ebe6da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --fg: #ebe7df;
+      --muted: #9b958b;
+      --accent: #e9915f;
+      --accent-soft: rgba(233, 145, 95, 0.16);
+      --line: #2e3036;
+      --table: #f1efe8;
+      --table-edge: #45474f;
+      --card: #1e1f23;
+      --btn-bg: #24262b;
+      --btn-fg: #ebe7df;
+      --code-bg: #26282d;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  [hidden] { display: none !important; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main, header, footer { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 28px; }
+  h1, h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.1; }
+  h2 { font-size: 22px; margin-top: 0; }
+  .lede { font-size: 17px; color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
+  section { margin: 34px 0; }
+  p { max-width: 68ch; }
+  .muted { color: var(--muted); }
+  code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  a { color: var(--accent); }
+
+  /* the light table */
+  .table-wrap { margin: 14px 0 8px; }
+  .table {
+    position: relative;
+    background: var(--table);
+    border: 1px solid var(--table-edge);
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px 0 rgba(0,0,0,0.04);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+    overflow: hidden;
+  }
+  .table:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .table.aligned { border-color: var(--accent); }
+  .table canvas { display: block; width: 100%; height: auto; cursor: grab; }
+  .table.dragging canvas { cursor: grabbing; }
+  .status { min-height: 1.5em; margin: 10px 0 6px; font-size: 15px; }
+  .status.good { color: var(--accent); }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .row + .row { margin-top: 8px; }
+  button, .btn {
+    font: inherit; font-size: 14px;
+    color: var(--btn-fg); background: var(--btn-bg);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 14px; cursor: pointer; line-height: 1.2;
+    touch-action: manipulation;
+  }
+  button:hover { border-color: var(--muted); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:active { transform: translateY(1px); }
+  button[aria-checked="true"], button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .nudge { display: inline-flex; gap: 4px; margin-left: auto; }
+  .nudge button { padding: 7px 11px; min-width: 38px; }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+
+  label.field { display: block; margin: 8px 0; }
+  label.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+  input[type="text"] {
+    font: inherit; font-size: 17px; width: 100%; max-width: 420px;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--fg);
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; max-width: 560px; }
+  @media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .draw {
+    margin: 10px 0 6px; max-width: 500px;
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff;
+    touch-action: none;
+  }
+  .draw canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; cursor: crosshair; }
+
+  .evidence {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin: 14px 0;
+    display: grid; gap: 12px;
+  }
+  .evidence h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .fp { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+  .bars { display: flex; gap: 6px; align-items: flex-end; height: 56px; }
+  .bar { flex: 1; max-width: 48px; position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+  .bar i { display: block; background: var(--accent); opacity: 0.75; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .bar svg { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+  .bar b { font-size: 11px; font-weight: 500; color: var(--muted); text-align: center; margin-top: 3px; }
+  .hist { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+  @media (max-width: 520px) { .hist { grid-template-columns: 1fr; } }
+  .pats { display: inline-flex; gap: 6px; vertical-align: middle; margin: 0 4px; }
+  .pats svg, .bar svg { width: 14px; height: 14px; }
+  .pats svg rect, .bar svg rect { fill: var(--fg); }
+  .pats svg .frame, .bar svg .frame { fill: none; stroke: var(--line); stroke-width: 1; }
+
+  footer { padding: 30px 16px 40px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); margin-top: 40px; }
+  .print-only { display: none; }
+
+  @media print {
+    @page { margin: 14mm; }
+    body { background: #fff; color: #000; }
+    .screen { display: none !important; }
+    .print-only { display: block; }
+    .print-sheet { break-after: page; page-break-after: always; }
+    .print-sheet:last-child { break-after: auto; page-break-after: auto; }
+    .print-sheet img { width: 176mm; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+    .print-sheet p { font: 11pt/1.4 Georgia, serif; margin: 6mm 0 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .status { transition: color 160ms ease; }
+    .table { transition: border-color 160ms ease; }
+  }
+</style>
+</head>
+<body>
+<div class="screen">
+<header>
+  <h1>Two Sheets of Nothing</h1>
+  <p class="lede">Two sheets of random noise. Either one on its own says nothing, and that nothing can be proved. Lay one over the other and they spell a message.</p>
+</header>
+
+<main>
+  <section id="table-section" aria-labelledby="tableHeading">
+    <h2 id="tableHeading" style="position:absolute;left:-9999px">The light table</h2>
+    <div class="table-wrap">
+      <div id="table" class="table" tabindex="0" role="application" aria-label="Light table. Drag a sheet with the pointer; arrow keys nudge the top sheet by one subpixel; A aligns, S scatters.">
+        <canvas id="tableCanvas" width="10" height="10"></canvas>
+      </div>
+    </div>
+    <p id="status" class="status" aria-live="polite">Drag the top sheet until it sits exactly over the other one.</p>
+    <div class="row">
+      <button id="btnAlign" type="button">Align</button>
+      <button id="btnScatter" type="button">Scatter</button>
+      <span class="nudge" role="group" aria-label="Nudge the top sheet by one subpixel">
+        <button type="button" data-nudge="-1,0" aria-label="Nudge left">←</button>
+        <button type="button" data-nudge="1,0" aria-label="Nudge right">→</button>
+        <button type="button" data-nudge="0,-1" aria-label="Nudge up">↑</button>
+        <button type="button" data-nudge="0,1" aria-label="Nudge down">↓</button>
+      </span>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:10px">One subpixel off and the clean reading is lost, though not the information: a misaligned pair is still not secret (more below). Line them up by hand if you can; the sheets snap when they are within two subpixels.</p>
+  </section>
+
+  <section id="message-section">
+    <h2>The message</h2>
+    <label class="field"><span>Text</span>
+      <input id="msg" type="text" maxlength="24" value="ONLY TOGETHER" autocomplete="off" spellcheck="false">
+    </label>
+    <div id="coverFields" class="grid2" hidden>
+      <label class="field"><span>Sheet A shows</span><input id="coverA" type="text" maxlength="24" value="NOTHING" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Sheet B shows</span><input id="coverB" type="text" maxlength="24" value="TO SEE" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="draw"><canvas id="msgCanvas" width="100" height="40" aria-label="The message as a 100 by 40 picture. Draw on it with a finger or the pointer."></canvas></div>
+    <div class="row">
+      <span class="muted" style="font-size:14px">Draw on the picture too.</span>
+      <button id="btnClearDraw" type="button">Clear drawing</button>
+    </div>
+    <p class="muted" style="font-size:14px;margin-top:12px">Try it: change the text and watch the sheets. Sheet A never moves. Only sheet B rearranges itself. (That is a demonstration of reusing a key, so once you print, or save any sheet but A, your next change draws a fresh key.)</p>
+    <p id="keyNote" class="status" style="font-size:14px" aria-live="polite" hidden></p>
+  </section>
+
+  <section id="mode-section">
+    <h2>How many sheets</h2>
+    <div class="seg" role="radiogroup" aria-label="Scheme">
+      <button type="button" role="radio" aria-checked="true" data-mode="two">Two sheets</button>
+      <button type="button" role="radio" aria-checked="false" data-mode="three">Three sheets, any two</button>
+      <button type="button" role="radio" aria-checked="false" data-mode="cover">Two pictures</button>
+    </div>
+    <p id="modeText"></p>
+  </section>
+
+  <section id="proof-section">
+    <h2>Why one sheet is nothing</h2>
+    <div id="proofText"></div>
+    <div class="evidence" aria-label="Live evidence from the sheets on the table">
+      <div>
+        <h3>Fingerprints</h3>
+        <div class="fp" id="fps"></div>
+      </div>
+      <div>
+        <h3>How often each pattern appears on each sheet</h3>
+        <div class="hist" id="hist"></div>
+        <p class="muted" style="font-size:13px;margin:8px 0 0" id="histNote"></p>
+      </div>
+      <div>
+        <h3>Mutual information with the message, in bits per cell</h3>
+        <p id="mi" style="margin:0;font-size:14px"></p>
+      </div>
+      <div class="row">
+        <button id="btnNewKey" type="button">New key</button>
+        <span class="muted" style="font-size:13px">Throws the coin tosses again. Everything is re-made from scratch.</span>
+      </div>
+    </div>
+    <p class="muted" style="font-size:14px">The exact version of this proof lives in <code>vc.test.mjs</code>: for every value of the secret, all 144 key values a cell can take are enumerated, and the histogram of patterns on each sheet comes out identical, pattern for pattern.</p>
+    <p id="pairNote"><strong>What the proof does not cover: a pair.</strong> It is about one sheet on its own. Two sheets hold the message between them however they lie. A slip hides it from your eye, which averages how many black subpixels each cell has, but not from a camera and a computer that see every subpixel. For a random two-sheet message (one bit per cell), a one-subpixel slip sideways or up/down still leaves 0.51 bits per cell, a diagonal one at least 0.43, and a slip of whole cells 0.55 bits; the page's scattered layout leaves at least 0.50. A computer's best guess gets 80% of cells right after a one-subpixel slip and 74% after a whole-cell slip, where a coin toss gets 50%. So keep the two sheets apart until you mean to read them, and do not photograph them together.</p>
+  </section>
+
+  <section id="print-section">
+    <h2>Make it real</h2>
+    <p>Print each sheet on transparency film (overhead-projector or inkjet acetate) at 100% scale. Each sheet comes out 176 mm wide with a corner mark at each corner. Hold them up to a window and slide one over the other until the marks meet; the message appears in the film, with no computer in the loop.</p>
+    <p class="muted" style="font-size:14px">One rule, the same as for any one-time pad: a key is for one printing. Sheets made against the same sheet A for two different messages show, cell by cell, where the messages differ; made for the same message in two schemes, or under two different pictures, they can give the message itself away. So the page draws a fresh key whenever you switch scheme, and the first time you change anything after printing, or after saving any sheet but A. <em>New key</em> does it by hand.</p>
+    <p id="noCrypto" class="status good" style="font-size:14px" hidden>This browser has no secure random number generator (<code>crypto.getRandomValues</code>), so the sheets on this page come from <code>Math.random</code>, which is not fit for a key. Printing and saving are switched off.</p>
+    <div class="row">
+      <button id="btnPrint" type="button" class="primary">Print the sheets</button>
+      <span id="downloads" class="row"></span>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Made by Acetate for the Idea Bank. The two-sheet and three-sheet schemes are Naor and Shamir's visual cryptography (1994). Sheets that carry pictures of their own go back to the same paper, for two sheets; Ateniese, Blundo, De Santis and Stinson (2001) generalised the idea. I derived the small two-pictures construction used here myself, without comparing it to their matrices; it is checked exhaustively in the tests. <a href="README.md">README</a>
+</footer>
+</div>
+
+<div id="printArea" class="print-only"></div>
+
+<script src="vc.js"></script>
+<script>
+(function () {
+  'use strict';
+  const W = 100, H = 40;            // cells
+  const SW = 2 * W, SH = 2 * H;     // subpixels
+  const PAD_X = 4;                  // subpixels of table margin left and right of the fan
+  const PAD_Y = 8;                  // subpixels above a sheet at offset (0,0): room for its tab
+  const FAN_Y = 26;                 // extra table height for scattered sheets
+  const SNAP = 2;                   // subpixels
+  const LABELS = ['A', 'B', 'C'];
+  const $ = (id) => document.getElementById(id);
+
+  const MODES = {
+    two: {
+      name: 'Two sheets',
+      threshold: 4,
+      text: 'Sheet A is a key: pure coin tosses, made before the message exists. Sheet B is the message written against that key. Either sheet alone is uniform noise; laid together, white cells show two black subpixels and black cells show four.',
+      proof: `<p>Every cell of the message becomes a 2×2 block on each sheet. On sheet A the block is one of these six patterns <span class="pats" data-pats="two"></span> chosen by a fair toss, before the message is known. Sheet B copies A's block where the message is white and takes the opposite block where it is black. The opposite of one of the six patterns is another of the six, so B's block is also one of the six, equally likely, whatever the message says.</p>
+<p>So each sheet, taken alone, is a field of uniform noise. The message is not on either sheet; it is in the <em>relation</em> between them. That is a one-time pad you can hold up to a window: A is the key, B is the ciphertext, and your eye does the decryption.</p>`,
+    },
+    three: {
+      name: 'Three sheets, any two',
+      threshold: 2,
+      text: 'Three sheets, any two of which reveal the message; one alone is noise. Give one to each of three people: no one can read it alone, and any two who meet can read it together. Laid together, a white cell shows one black subpixel and a black cell shows two.',
+      proof: `<p>Here each block has one black subpixel in one of three positions <span class="pats" data-pats="one"></span> (the fourth is always clear). Where the message is white, all three sheets black the <em>same</em> position, chosen by a toss. Where it is black, the three sheets black three <em>different</em> positions, in a tossed order. Any single sheet therefore shows a uniformly random position in every cell, whatever the message. Any two sheets together show one black subpixel for white and two for black.</p>`,
+    },
+    cover: {
+      name: 'Two pictures',
+      threshold: 4,
+      text: 'Each sheet is a picture of its own, drawn in noise. Laid together, they show the hidden message and only a faint ghost of the two pictures. Sheet A is built from its own picture and the key alone; sheet B\'s noise is distributed by its own picture alone.',
+      proof: `<p>Now each sheet carries its own picture: a block has two black subpixels where that sheet's picture is white and three where it is black, so the picture shows through the noise as a darker tone. The key picks which two-of-four <span class="pats" data-pats="two"></span> or three-of-four <span class="pats" data-pats="three"></span> pattern A gets. B is then chosen so the two blocks overlap as much as possible where the message is white and cover all four subpixels where it is black.</p>
+<p>Which pattern B gets is still uniform among the patterns with B's own darkness, whatever the message and whatever A's picture say; the test enumerates all 144 key values for all eight combinations of message bit and the two picture bits to confirm it. Laid together, a black message cell is solid; a white one is two or three subpixels dark, which is where the ghost of the pictures comes from. The ghost is a choice made for contrast: where both pictures are white, a white cell drops to two subpixels. A variant that keeps every white cell at three has no ghost and the same secrecy.</p>`,
+    },
+  };
+
+  const DPR = () => Math.max(1, Math.min(4, window.devicePixelRatio || 1));
+
+  const state = {
+    mode: 'two',
+    key: null,
+    textBits: new Uint8Array(W * H),
+    drawBits: new Uint8Array(W * H),
+    coverBitsA: new Uint8Array(W * H),
+    coverBitsB: new Uint8Array(W * H),
+    bits: new Uint8Array(W * H),
+    sheets: [],
+    offsets: [],
+    z: [],
+    inks: [],
+    k: 3,
+    fpA: '',
+    unchanged: 0,
+    interacted: false, // has the visitor touched the table yet? Until then the status is an invitation.
+    issued: false, // have sheets made with the current key been printed or saved?
+  };
+
+  // ---- randomness -------------------------------------------------------------------------
+  // A key must come from a cryptographic generator. Without one the page still runs as a
+  // demonstration, on Math.random, but printing and saving are switched off and it says so.
+  const SECURE = !!(window.crypto && typeof window.crypto.getRandomValues === 'function');
+  function fillRandom(buf) {
+    if (SECURE) window.crypto.getRandomValues(buf);
+    else for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 256); // demonstration only
+  }
+  function newKey() {
+    state.key = VC.randomKey(W * H, fillRandom);
+    state.unchanged = 0;
+    state.fpA = '';
+    state.issued = false;
+  }
+  // One key, one printing: once sheets other than the key sheet A have been printed or saved, the
+  // next change of any kind (message, picture) draws a fresh key first. Switching scheme always does.
+  function markIssued() {
+    state.issued = true;
+    keyNote('Sheets printed or saved. Your next change will draw a fresh key first, so that no two printings share one.');
+  }
+  function keyNote(text) {
+    const el = $('keyNote');
+    el.textContent = text || '';
+    el.hidden = !text;
+  }
+
+  // ---- text → bits ------------------------------------------------------------------------
+  const textCanvas = document.createElement('canvas');
+  textCanvas.width = W;
+  textCanvas.height = H;
+  function renderText(text, out) {
+    const ctx = textCanvas.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, W, H);
+    out.fill(0);
+    const t = (text || '').trim();
+    if (!t) return;
+    let size = Math.floor(H * 0.78);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (; size >= 8; size--) {
+      ctx.font = `700 ${size}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+      if (ctx.measureText(t).width <= W - 4) break;
+    }
+    ctx.fillStyle = '#000';
+    ctx.fillText(t, W / 2, H / 2 + 1);
+    const d = ctx.getImageData(0, 0, W, H).data;
+    for (let i = 0; i < W * H; i++) out[i] = d[i * 4 + 3] >= 128 ? 1 : 0;
+  }
+
+  // ---- sheets -----------------------------------------------------------------------------
+  function rebuildSheets() {
+    const n = W * H;
+    for (let i = 0; i < n; i++) state.bits[i] = state.textBits[i] | state.drawBits[i];
+    if (state.mode === 'two') state.sheets = VC.twoSheets(state.bits, state.key);
+    else if (state.mode === 'three') state.sheets = VC.threeSheets(state.bits, state.key);
+    else state.sheets = VC.coverSheets(state.bits, state.coverBitsA, state.coverBitsB, state.key);
+    const count = state.sheets.length;
+    if (state.offsets.length !== count) {
+      state.offsets = scatterOffsets().slice(0, count);
+      state.z = state.sheets.map((_, i) => i);
+    }
+    buildInks();
+  }
+
+  // Where scattered sheets lie: fanned right and down as far as the table allows.
+  function scatterOffsets() {
+    return [[0, 0], [Math.min(14, Math.round(fanX / 2)), 12], [Math.min(28, fanX), 24]];
+  }
+
+  function buildInks() {
+    const k = state.k;
+    state.inks = state.sheets.map((masks) => {
+      const c = document.createElement('canvas');
+      c.width = SW * k;
+      c.height = SH * k;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#101010';
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const m = masks[y * W + x];
+          if (m & 1) ctx.fillRect(2 * x * k, 2 * y * k, k, k);
+          if (m & 2) ctx.fillRect((2 * x + 1) * k, 2 * y * k, k, k);
+          if (m & 4) ctx.fillRect(2 * x * k, (2 * y + 1) * k, k, k);
+          if (m & 8) ctx.fillRect((2 * x + 1) * k, (2 * y + 1) * k, k, k);
+        }
+      }
+      return c;
+    });
+  }
+
+  // ---- the light table --------------------------------------------------------------------
+  const table = $('table');
+  const tableCanvas = $('tableCanvas');
+  let tableW = 0, tableH = 0, baseX = 0, fanX = 0; // in subpixels
+
+  // Pick the largest whole number of device pixels per subpixel that leaves at least a small fan,
+  // so the ink is always crisp. The table canvas is exactly as wide as its box, in device pixels.
+  function sizeTable() {
+    const cssW = Math.max(200, table.clientWidth - 2);
+    const dpr = DPR();
+    const devW = Math.round(cssW * dpr);
+    state.k = Math.max(1, Math.floor(devW / (SW + 2 * PAD_X + 8)));
+    tableW = Math.floor(devW / state.k);
+    tableH = SH + PAD_Y + FAN_Y + PAD_X;
+    fanX = Math.min(28, tableW - SW - 2 * PAD_X);
+    baseX = Math.floor((tableW - SW - fanX) / 2);
+    tableCanvas.width = tableW * state.k;
+    tableCanvas.height = tableH * state.k;
+    tableCanvas.style.height = `${(tableH * state.k) / dpr}px`;
+    tableCanvas.style.width = `${(tableW * state.k) / dpr}px`;
+  }
+
+  function clampOffset(o) {
+    o[0] = Math.max(-baseX + 1, Math.min(tableW - SW - baseX - 1, o[0]));
+    o[1] = Math.max(-PAD_Y + 1, Math.min(tableH - SH - PAD_Y - 1, o[1]));
+    return o;
+  }
+
+  function drawTable() {
+    const k = state.k;
+    const ctx = tableCanvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, tableCanvas.width, tableCanvas.height);
+    state.z.forEach((idx, zi) => {
+      const [dx, dy] = state.offsets[idx];
+      const x = (baseX + dx) * k;
+      const y = (PAD_Y + dy) * k;
+      // the film: a faint tint, a hairline edge, and a shadow for anything lying on top of another sheet
+      ctx.save();
+      if (zi > 0) {
+        ctx.shadowColor = 'rgba(20, 20, 30, 0.22)';
+        ctx.shadowBlur = 6 * k;
+        ctx.shadowOffsetY = 1.5 * k;
+      }
+      ctx.fillStyle = 'rgba(70, 95, 140, 0.06)';
+      ctx.fillRect(x, y, SW * k, SH * k);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(40, 45, 60, 0.35)';
+      ctx.lineWidth = Math.max(1, k * 0.35);
+      ctx.strokeRect(x + 0.5, y + 0.5, SW * k - 1, SH * k - 1);
+      ctx.drawImage(state.inks[idx], x, y);
+      // a paper tab on the sheet's top edge, outside the ink, with its letter
+      const tw = 5 * k, th = 4.5 * k;
+      const tx = x + (1 + 6 * idx) * k, ty = y - th + 0.5 * k;
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = 'rgba(40,45,60,0.4)';
+      ctx.lineWidth = Math.max(1, k * 0.3);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(tx + 0.5, ty + 0.5, tw, th, 1.2 * k);
+      else ctx.rect(tx + 0.5, ty + 0.5, tw, th);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(40,45,60,0.85)';
+      ctx.font = `600 ${Math.max(9, 3.1 * k)}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillText(LABELS[idx], tx + tw / 2 + 0.5, ty + th / 2 + 0.5);
+    });
+  }
+
+  function alignedPairs() {
+    const pairs = [];
+    const n = state.sheets.length;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const a = state.offsets[i], b = state.offsets[j];
+      if (a[0] === b[0] && a[1] === b[1]) pairs.push([i, j]);
+    }
+    return pairs;
+  }
+
+  function setStatus(live) {
+    const n = state.sheets.length;
+    const pairs = alignedPairs();
+    const el = $('status');
+    let text;
+    let good = false;
+    if (n === 2) {
+      if (pairs.length) { text = 'Aligned. There it is.'; good = true; }
+      else if (!state.interacted) text = 'Drag the top sheet until it sits exactly over the other one.';
+      else {
+        const top = state.z[state.z.length - 1];
+        const other = 1 - top;
+        const dx = state.offsets[top][0] - state.offsets[other][0];
+        const dy = state.offsets[top][1] - state.offsets[other][1];
+        const ax = Math.abs(dx), ay = Math.abs(dy);
+        const where = `Sheet ${LABELS[top]} is ${ax} subpixel${ax === 1 ? '' : 's'} ${dx < 0 ? 'left' : 'right'} and ${ay} ${dy < 0 ? 'up' : 'down'} from ${LABELS[other]}.`;
+        // A one-subpixel slip leaves a texture ghost the eye can sometimes see; any slip leaves a
+        // pair that a camera and a computer can still read in large part (see the README).
+        text = ax <= 1 && ay <= 1
+          ? `${where} Not cleanly readable, though a faint ghost of the message can show as texture.`
+          : `${where} Hidden from the eye, not from a camera: a misaligned pair is not secret.`;
+      }
+    } else {
+      if (pairs.length === 3) { text = 'All three aligned. Any two would have done it.'; good = true; }
+      else if (pairs.length) { text = `Sheets ${LABELS[pairs[0][0]]} and ${LABELS[pairs[0][1]]} are aligned: that pair reads. Sheet ${LABELS[3 - pairs[0][0] - pairs[0][1]]} alone is noise.`; good = true; }
+      else if (!state.interacted) text = 'Three sheets. Drag any one onto any other: any two together read, one alone is noise.';
+      else text = 'No two sheets aligned. Each sheet alone is noise; any pair that meets will read, and a misaligned pair is not secret either.';
+    }
+    el.textContent = text;
+    el.classList.toggle('good', good);
+    table.classList.toggle('aligned', good);
+    if (live === false) el.removeAttribute('aria-live'); else el.setAttribute('aria-live', 'polite');
+  }
+
+  function topSheet() { return state.z[state.z.length - 1]; }
+  function raise(idx) { state.z = state.z.filter((i) => i !== idx).concat(idx); }
+
+  function snap(idx) {
+    const o = state.offsets[idx];
+    for (let j = 0; j < state.offsets.length; j++) {
+      if (j === idx) continue;
+      const p = state.offsets[j];
+      if (Math.abs(o[0] - p[0]) <= SNAP && Math.abs(o[1] - p[1]) <= SNAP) { o[0] = p[0]; o[1] = p[1]; return true; }
+    }
+    return false;
+  }
+
+  function nudge(dx, dy) {
+    state.interacted = true;
+    const idx = topSheet();
+    const o = state.offsets[idx];
+    o[0] += dx; o[1] += dy;
+    clampOffset(o);
+    drawTable();
+    setStatus(true);
+  }
+
+  function alignAll() {
+    state.interacted = true;
+    const base = state.offsets[0].slice();
+    state.offsets.forEach((o) => { o[0] = base[0]; o[1] = base[1]; });
+    drawTable();
+    setStatus(true);
+  }
+  function scatterAll() {
+    state.interacted = true;
+    const s = scatterOffsets();
+    state.offsets.forEach((o, i) => { o[0] = s[i][0]; o[1] = s[i][1]; clampOffset(o); });
+    state.z = state.sheets.map((_, i) => i);
+    drawTable();
+    setStatus(true);
+  }
+
+  // pointer drag
+  let drag = null;
+  function toSub(ev) {
+    const r = tableCanvas.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) / r.width * tableW;
+    const sy = (ev.clientY - r.top) / r.height * tableH;
+    return [sx, sy];
+  }
+  function hit(sx, sy) {
+    for (let zi = state.z.length - 1; zi >= 0; zi--) {
+      const idx = state.z[zi];
+      const [dx, dy] = state.offsets[idx];
+      if (sx >= baseX + dx && sx < baseX + dx + SW && sy >= PAD_Y + dy && sy < PAD_Y + dy + SH) return idx;
+    }
+    return topSheet();
+  }
+  tableCanvas.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== undefined && ev.button !== 0) return;
+    const [sx, sy] = toSub(ev);
+    const idx = hit(sx, sy);
+    state.interacted = true;
+    raise(idx);
+    drag = { idx, sx, sy, start: state.offsets[idx].slice(), id: ev.pointerId };
+    try { tableCanvas.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+    table.classList.add('dragging');
+    table.focus({ preventScroll: true });
+    drawTable();
+    ev.preventDefault();
+  });
+  tableCanvas.addEventListener('pointermove', (ev) => {
+    if (!drag || ev.pointerId !== drag.id) return;
+    const [sx, sy] = toSub(ev);
+    const o = state.offsets[drag.idx];
+    o[0] = Math.round(drag.start[0] + (sx - drag.sx));
+    o[1] = Math.round(drag.start[1] + (sy - drag.sy));
+    clampOffset(o);
+    snap(drag.idx);
+    drawTable();
+    setStatus(false);
+  });
+  function endDrag(ev) {
+    if (!drag || (ev && ev.pointerId !== drag.id)) return;
+    drag = null;
+    table.classList.remove('dragging');
+    setStatus(true);
+  }
+  tableCanvas.addEventListener('pointerup', endDrag);
+  tableCanvas.addEventListener('pointercancel', endDrag);
+  tableCanvas.addEventListener('lostpointercapture', endDrag);
+
+  table.addEventListener('keydown', (ev) => {
+    const map = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (map[ev.key]) { nudge(...map[ev.key]); ev.preventDefault(); }
+    else if (ev.key === 'a' || ev.key === 'A') { alignAll(); ev.preventDefault(); }
+    else if (ev.key === 's' || ev.key === 'S') { scatterAll(); ev.preventDefault(); }
+  });
+  $('btnAlign').addEventListener('click', alignAll);
+  $('btnScatter').addEventListener('click', scatterAll);
+  document.querySelectorAll('[data-nudge]').forEach((b) => b.addEventListener('click', () => {
+    const [dx, dy] = b.dataset.nudge.split(',').map(Number);
+    nudge(dx, dy);
+  }));
+
+  // ---- the message canvas (text + drawing) ------------------------------------------------
+  const msgCanvas = $('msgCanvas');
+  function drawMessage() {
+    const ctx = msgCanvas.getContext('2d');
+    const img = ctx.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) {
+      const v = state.bits[i] ? 20 : 255;
+      img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  let painting = null;
+  function paintAt(ev) {
+    const r = msgCanvas.getBoundingClientRect();
+    const cx = (ev.clientX - r.left) / r.width * W;
+    const cy = (ev.clientY - r.top) / r.height * H;
+    const rad = 1.6;
+    for (let y = Math.floor(cy - rad); y <= Math.ceil(cy + rad); y++) {
+      for (let x = Math.floor(cx - rad); x <= Math.ceil(cx + rad); x++) {
+        if (x < 0 || y < 0 || x >= W || y >= H) continue;
+        if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= rad * rad) state.drawBits[y * W + x] = 1;
+      }
+    }
+  }
+  msgCanvas.addEventListener('pointerdown', (ev) => {
+    painting = ev.pointerId;
+    try { msgCanvas.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+    paintAt(ev);
+    regen('message');
+    ev.preventDefault();
+  });
+  msgCanvas.addEventListener('pointermove', (ev) => {
+    if (painting !== ev.pointerId) return;
+    paintAt(ev);
+    regen('message');
+  });
+  const stopPaint = (ev) => { if (painting === ev.pointerId) painting = null; };
+  msgCanvas.addEventListener('pointerup', stopPaint);
+  msgCanvas.addEventListener('pointercancel', stopPaint);
+  $('btnClearDraw').addEventListener('click', () => { state.drawBits.fill(0); regen('message'); });
+
+  // ---- evidence ---------------------------------------------------------------------------
+  function patSvg(mask) {
+    let s = '<svg viewBox="0 0 14 14" aria-hidden="true"><rect class="frame" x="0.5" y="0.5" width="13" height="13"/>';
+    for (let i = 0; i < 4; i++) {
+      if (mask & (1 << i)) s += `<rect x="${1 + (i & 1) * 6}" y="${1 + (i >> 1) * 6}" width="6" height="6"/>`;
+    }
+    return s + '</svg>';
+  }
+  function fillPats(root) {
+    root.querySelectorAll('.pats').forEach((el) => {
+      const set = { two: VC.TWO, three: VC.THREE, one: VC.ONE }[el.dataset.pats];
+      el.innerHTML = set.map(patSvg).join('');
+    });
+  }
+  function patternsFor(sheetIdx) {
+    if (state.mode === 'two') return VC.TWO;
+    if (state.mode === 'three') return VC.ONE;
+    return null; // cover: both darknesses appear
+  }
+
+  function updateEvidence(cause) {
+    const n = W * H;
+    // fingerprints
+    const fps = state.sheets.map(VC.fingerprint);
+    if (cause === 'message') {
+      if (state.fpA && fps[0] === state.fpA) state.unchanged++;
+      else state.unchanged = 0;
+    } else if (cause !== 'redraw') state.unchanged = 0;
+    state.fpA = fps[0];
+    const fpEl = $('fps');
+    fpEl.innerHTML = fps.map((fp, i) => {
+      let note = '';
+      if (i === 0 && state.unchanged > 0) note = ` <span class="muted">unchanged through the last ${state.unchanged} message edit${state.unchanged === 1 ? '' : 's'}</span>`;
+      else if (i === 0) note = ' <span class="muted">the key sheet</span>';
+      return `<span>Sheet ${LABELS[i]} <code>${fp}</code>${note}</span>`;
+    }).join('');
+
+    // histograms
+    const histEl = $('hist');
+    histEl.innerHTML = state.sheets.map((masks, i) => {
+      const h = VC.histogram(masks);
+      const pats = patternsFor(i) || [...VC.TWO, ...VC.THREE];
+      const max = Math.max(...pats.map((m) => h[m]), 1);
+      const expected = patternsFor(i) ? n / pats.length : null;
+      const bars = pats.map((m) => `<div class="bar" title="${h[m]} cells">${patSvg(m)}<i style="height:${Math.round((h[m] / max) * 38)}px"></i><b>${h[m]}</b></div>`).join('');
+      return `<div><div style="font-size:13px;margin-bottom:4px">Sheet ${LABELS[i]}${expected ? ` <span class="muted">· ${n} cells, expected ${expected.toFixed(0)} each</span>` : ''}</div><div class="bars">${bars}</div></div>`;
+    }).join('');
+    $('histNote').textContent = state.mode === 'cover'
+      ? 'In two-pictures mode the counts follow each sheet\'s own picture (two-black patterns where it is white, three-black where it is black), never the message.'
+      : 'Flat within sampling noise, whatever the message says. Edit the message and the bars barely move; they are a property of the coin tosses, not of the text.';
+
+    // mutual information
+    let sheetsMI;
+    let floors;
+    if (state.mode === 'cover') {
+      // A sheet is meant to show its own picture, which may overlap the message. So ask instead
+      // how much a sheet says about the message beyond its own picture: MI(M; sheet, cover) - MI(M; cover).
+      const covers = [state.coverBitsA, state.coverBitsB];
+      sheetsMI = state.sheets.map((s, i) => {
+        const joint = new Uint16Array(n);
+        for (let j = 0; j < n; j++) joint[j] = s[j] + 16 * covers[i][j];
+        return VC.mutualInformation(state.bits, joint).bits - VC.mutualInformation(state.bits, covers[i]).bits;
+      });
+      // the bias of a conditional estimate: (|M_c| - 1)(|S_c| - 1) / (2 N ln 2), summed over the cover values
+      floors = state.sheets.map((s, i) => VC.plugInBias(state.bits, s, covers[i]));
+    } else {
+      sheetsMI = state.sheets.map((s) => VC.mutualInformation(state.bits, s).bits);
+      floors = state.sheets.map((s) => VC.plugInBias(state.bits, s));
+    }
+    const lo = Math.min(...floors), hi = Math.max(...floors);
+    const floorText = hi - lo < 5e-5 ? hi.toFixed(4) : `${lo.toFixed(4)}–${hi.toFixed(4)}`;
+    const over = VC.orMasks(state.mode === 'three' ? state.sheets.slice(0, 2) : state.sheets);
+    const counts = new Uint8Array(n);
+    for (let i = 0; i < n; i++) counts[i] = VC.popcount(over[i]);
+    const miOver = VC.mutualInformation(state.bits, counts).bits;
+    const entropy = VC.mutualInformation(state.bits, state.bits).bits;
+    const alone = state.mode === 'cover' ? 'beyond its own picture' : 'alone';
+    const parts = sheetsMI.map((v, i) => `${LABELS[i]} ${alone}: <b>${v.toFixed(4)}</b>`);
+    $('mi').innerHTML = `${parts.join(' · ')} · ${state.mode === 'three' ? 'A and B aligned' : 'both aligned'}: <b>${miOver.toFixed(4)}</b>` +
+      `<br><span class="muted" style="font-size:13px">The message has ${entropy.toFixed(4)} bits of entropy per cell, so the aligned pair recovers all of it. A single sheet's figure is estimation noise: the plug-in estimate from ${n} cells is biased upward by roughly <span id="miFloor">${floorText}</span> bits even when the true value is zero.</span>`;
+  }
+
+  // ---- print and save ---------------------------------------------------------------------
+  function sheetImage(idx, scale) {
+    const margin = 10 * scale; // subpixels of white margin, holding the corner marks
+    const c = document.createElement('canvas');
+    c.width = (SW + 20) * scale;
+    c.height = (SH + 20) * scale;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#000';
+    const masks = state.sheets[idx];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const m = masks[y * W + x];
+      for (let i = 0; i < 4; i++) if (m & (1 << i)) ctx.fillRect(margin + (2 * x + (i & 1)) * scale, margin + (2 * y + (i >> 1)) * scale, scale, scale);
+    }
+    // corner marks: a cross centred 5 subpixels outside each corner of the ink area
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = Math.max(1, scale * 0.4);
+    const marks = [[margin - 5 * scale, margin - 5 * scale], [margin + (SW + 5) * scale, margin - 5 * scale], [margin - 5 * scale, margin + (SH + 5) * scale], [margin + (SW + 5) * scale, margin + (SH + 5) * scale]];
+    for (const [mx, my] of marks) {
+      ctx.beginPath();
+      ctx.moveTo(mx - 4 * scale, my); ctx.lineTo(mx + 4 * scale, my);
+      ctx.moveTo(mx, my - 4 * scale); ctx.lineTo(mx, my + 4 * scale);
+      ctx.stroke();
+    }
+    return c;
+  }
+  function buildPrintArea() {
+    const area = $('printArea');
+    area.innerHTML = '';
+    if (!SECURE) {
+      area.textContent = 'No secure random number generator in this browser, so there are no sheets to print.';
+      return;
+    }
+    state.sheets.forEach((_, i) => {
+      const div = document.createElement('div');
+      div.className = 'print-sheet';
+      const img = document.createElement('img');
+      img.src = sheetImage(i, 10).toDataURL('image/png');
+      img.alt = `Sheet ${LABELS[i]}`;
+      const p = document.createElement('p');
+      p.textContent = `Two Sheets of Nothing — sheet ${LABELS[i]} of ${state.sheets.length} (${MODES[state.mode].name}). Print at 100% on transparency film; the ink area is 160 mm wide. Lay the corner marks over each other.`;
+      div.appendChild(img);
+      div.appendChild(p);
+      area.appendChild(div);
+    });
+  }
+  $('btnPrint').addEventListener('click', () => {
+    if (!SECURE) return;
+    buildPrintArea();
+    markIssued();
+    window.print();
+  });
+  window.addEventListener('beforeprint', () => { buildPrintArea(); if (SECURE) markIssued(); });
+  function updateDownloads() {
+    const el = $('downloads');
+    el.innerHTML = '';
+    state.sheets.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = `Save sheet ${LABELS[i]} (PNG)`;
+      b.disabled = !SECURE;
+      b.addEventListener('click', () => {
+        if (!SECURE) return;
+        if (i > 0) markIssued(); // sheet A alone is only the key: saving it first and B later is fine
+        const a = document.createElement('a');
+        a.href = sheetImage(i, 10).toDataURL('image/png');
+        a.download = `two-sheets-of-nothing-${LABELS[i]}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+      el.appendChild(b);
+    });
+  }
+
+  // ---- modes ------------------------------------------------------------------------------
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.mode === mode)));
+    $('coverFields').hidden = mode !== 'cover';
+    $('modeText').textContent = MODES[mode].text;
+    const proof = $('proofText');
+    proof.innerHTML = MODES[mode].proof;
+    fillPats(proof);
+    state.offsets = [];
+    // A scheme switch draws a fresh key: the same message in two schemes under one key leaks it.
+    const hadIssued = state.issued;
+    newKey();
+    keyNote(hadIssued ? 'A fresh key for the new scheme. Print or save every sheet again.' : '');
+    regen('mode');
+    updateDownloads();
+  }
+  document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+  // ---- regenerate everything --------------------------------------------------------------
+  function regen(cause) {
+    if (state.issued && (cause === 'message' || cause === 'cover')) {
+      newKey();
+      keyNote('Fresh key drawn, because the last sheets were printed or saved. Print or save every sheet again.');
+      cause = 'key';
+    }
+    rebuildSheets();
+    drawMessage();
+    drawTable();
+    setStatus(cause === 'redraw' ? false : true);
+    updateEvidence(cause);
+  }
+
+  let typingTimer = 0;
+  $('msg').addEventListener('input', () => {
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => { renderText($('msg').value, state.textBits); regen('message'); }, 40);
+  });
+  $('coverA').addEventListener('input', () => { renderText($('coverA').value, state.coverBitsA); regen('cover'); });
+  $('coverB').addEventListener('input', () => { renderText($('coverB').value, state.coverBitsB); regen('cover'); });
+  $('btnNewKey').addEventListener('click', () => { newKey(); keyNote(''); regen('key'); });
+
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const before = tableW;
+      sizeTable();
+      state.offsets.forEach(clampOffset);
+      buildInks();
+      drawTable();
+      if (before !== tableW) setStatus(false);
+    }, 80);
+  });
+
+  // ---- go ---------------------------------------------------------------------------------
+  if (!SECURE) {
+    $('btnPrint').disabled = true;
+    $('noCrypto').hidden = false;
+  }
+  newKey();
+  renderText($('msg').value, state.textBits);
+  renderText($('coverA').value, state.coverBitsA);
+  renderText($('coverB').value, state.coverBitsB);
+  sizeTable();
+  setMode('two');
+  // For the end-to-end check (check.mjs): read the geometry back so the table canvas can be decoded.
+  window.__twoSheets = {
+    state, W, H, SW, SH, VC, regen, alignAll, scatterAll, setMode, nudge, buildPrintArea, secure: SECURE,
+    geometry: () => ({ k: state.k, baseX, padY: PAD_Y, tableW, tableH, fanX }),
+  };
+})();
+</script>
+</body>
+</html>

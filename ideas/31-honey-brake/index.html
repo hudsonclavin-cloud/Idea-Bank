@@ -1,0 +1,2106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>The Honey Brake</title>
+<meta name="description" content="Invention dossier: a contactless eddy-current descent brake for manual wheelchairs. Field and eddy-current solves, feasibility math, live calculator, prior art, pre-mortem and the first experiment.">
+<style>
+:root {
+  --bg: #f6f1e6;
+  --surface: #fffdf7;
+  --surface-2: #efe8d8;
+  --ink: #1f1c17;
+  --muted: #5f584c;
+  --rule: #ddd3bf;
+  --accent: #8a5300;
+  --honey: #c98a12;
+  --honey-soft: #f6e3bb;
+  --north: #b8352a;
+  --north-soft: #f4d6d1;
+  --south: #2a5fa8;
+  --south-soft: #d6e2f3;
+  --steel: #6b7178;
+  --alu: #c3c8ce;
+  --alu-edge: #8d949c;
+  --tyre: #34312c;
+  --ok: #2e6b3d;
+  --bad: #a3271f;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12110e;
+    --surface: #1b1915;
+    --surface-2: #25221c;
+    --ink: #ece6da;
+    --muted: #a59c8c;
+    --rule: #37322a;
+    --accent: #f0b44c;
+    --honey: #f0b44c;
+    --honey-soft: #3a2c12;
+    --north: #ff8a7a;
+    --north-soft: #3e211c;
+    --south: #86b3ff;
+    --south-soft: #1a263a;
+    --steel: #8d949c;
+    --alu: #4f5660;
+    --alu-edge: #7b838d;
+    --tyre: #b9b2a5;
+    --ok: #7fd394;
+    --bad: #ff8a80;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.62 var(--sans); overflow-wrap: break-word; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.wide { max-width: 1100px; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+h2 { font-size: 1.75rem; margin: 3.2rem 0 1rem; padding-top: 1.4rem; border-top: 1px solid var(--rule); }
+h2 .sec { display: block; font: 600 0.78rem/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.55rem; }
+h3 { font-size: 1.22rem; margin: 2rem 0 0.6rem; }
+p { margin: 0 0 1rem; }
+.small { font-size: 0.88rem; }
+.muted { color: var(--muted); }
+var { font-family: var(--serif); font-style: italic; }
+.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mast { padding-top: 2.6rem; padding-bottom: 1.4rem; }
+.eyebrow { font: 600 0.78rem/1.4 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.mast h1 { font-size: clamp(2.3rem, 7vw, 3.6rem); margin: 0.5rem 0 0.8rem; }
+.tagline { font-family: var(--serif); font-size: 1.28rem; line-height: 1.45; margin: 0 0 1rem; }
+.byline { font-size: 0.92rem; color: var(--muted); }
+.lede { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1.1rem 1.2rem; margin: 1.4rem 0; }
+.lede p:last-child { margin-bottom: 0; }
+.verdict { border-left: 4px solid var(--honey); }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 1.2rem 0 0.4rem; }
+.tiles .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (min-width: 700px) { .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); } .tiles .tile:last-child:nth-child(odd) { grid-column: auto; } .tile .big { font-size: 1.42rem; white-space: nowrap; } }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 0.8rem 0.9rem; }
+.tile .big { font: 600 1.7rem/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.tile .big.h { color: var(--accent); }
+.tile .big.bad { color: var(--bad); }
+.tile .what { font-size: 0.86rem; line-height: 1.4; color: var(--muted); margin-top: 0.35rem; }
+nav.toc { font-size: 0.92rem; margin: 1.6rem 0 0; }
+nav.toc ol { margin: 0.3rem 0 0; padding-left: 1.3rem; columns: 2 220px; column-gap: 2rem; }
+nav.toc li { margin: 0.12rem 0; }
+.eq { background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--honey); border-radius: 6px; padding: 0.8rem 1rem; margin: 0.4rem 0 1.2rem; font-family: var(--serif); font-size: 1.02rem; line-height: 1.7; overflow-x: auto; }
+.eq .l { display: block; }
+.eq .c { display: block; color: var(--muted); font-family: var(--sans); font-size: 0.84rem; line-height: 1.45; margin-top: 0.35rem; }
+figure { margin: 1.6rem 0; }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 0.9rem; line-height: 1.5; color: var(--muted); margin-top: 0.6rem; }
+.fig-frame { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 10px; }
+ol.legend { margin: 0.8rem 0 0; padding-left: 1.6rem; font-size: 0.93rem; }
+ol.legend li { margin: 0.2rem 0; }
+@media (max-width: 560px) { .lbl { display: none; } }
+.f-ink { fill: var(--ink); } .s-ink { stroke: var(--ink); }
+.f-muted { fill: var(--muted); } .s-muted { stroke: var(--muted); }
+.f-north { fill: var(--north); } .f-south { fill: var(--south); }
+.f-north-soft { fill: var(--north-soft); } .f-south-soft { fill: var(--south-soft); }
+.f-honey { fill: var(--honey); } .s-honey { stroke: var(--honey); }
+.f-honey-soft { fill: var(--honey-soft); }
+.f-steel { fill: var(--steel); } .s-steel { stroke: var(--steel); }
+.f-alu { fill: var(--alu); } .s-alu { stroke: var(--alu-edge); }
+.f-surface { fill: var(--surface); } .f-bg { fill: var(--bg); }
+.s-tyre { stroke: var(--tyre); } .f-tyre { fill: var(--tyre); }
+.s-rule { stroke: var(--rule); }
+.t { font-family: var(--sans); font-size: 13px; fill: var(--ink); }
+.t-sm { font-family: var(--sans); font-size: 12px; fill: var(--muted); }
+.t-b { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+.t-w { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #fff; }
+.co circle { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.co text { font: 700 19px var(--sans); fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tbl { overflow-x: auto; margin: 0.6rem 0 1.4rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tfoot td { font-weight: 700; border-top: 2px solid var(--rule); }
+.assume table { min-width: 620px; }
+@media (max-width: 600px) {
+  .assume table { min-width: 0; }
+  .assume thead { display: none; }
+  .assume tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 0.8rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--rule); }
+  .assume tr:last-child { border-bottom: 0; }
+  .assume td { border: 0; padding: 0; }
+  .assume td:nth-child(1) { font-weight: 600; }
+  .assume td:nth-child(2) { white-space: normal; }
+  .assume td:nth-child(3) { color: var(--muted); font-size: 0.86rem; grid-column: 1 / -1; }
+  .assume td:nth-child(4) { text-align: right; align-self: start; grid-row: 1; grid-column: 2; }
+}
+.tag { display: inline-block; font: 600 0.72rem/1.5 var(--sans); letter-spacing: 0.04em; padding: 0 0.45rem; border-radius: 99px; border: 1px solid currentColor; vertical-align: 0.1em; white-space: nowrap; }
+.tag.c { color: var(--ok); } .tag.l { color: var(--accent); } .tag.s { color: var(--north); }
+.cards { display: grid; gap: 10px; margin: 0.8rem 0 1.4rem; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 0.9rem 1rem; }
+.card h4 { margin: 0 0 0.35rem; font: 600 1.02rem/1.35 var(--sans); }
+.card p { margin: 0.3rem 0 0; font-size: 0.95rem; }
+.card.kill { border-color: var(--bad); }
+.risk { display: grid; grid-template-columns: 4.2rem 1fr; gap: 0.9rem; align-items: start; }
+.risk .p { font: 600 1.45rem/1 var(--serif); color: var(--north); font-variant-numeric: tabular-nums; text-align: right; padding-top: 0.15rem; }
+.risk .p small { display: block; font: 500 0.7rem/1.3 var(--sans); color: var(--muted); margin-top: 0.25rem; }
+.calc { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 1rem; margin: 1rem 0; }
+.calc-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
+@media (min-width: 900px) { .calc-grid { grid-template-columns: 330px minmax(0, 1fr); } }
+.ctl { margin: 0 0 0.85rem; }
+.ctl label { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; }
+.ctl output { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.ctl .hint { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+input[type=range] { width: 100%; accent-color: var(--honey); margin: 0.25rem 0 0; height: 28px; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 1rem; }
+button { font: 500 0.86rem/1 var(--sans); color: var(--ink); background: var(--surface-2); border: 1px solid var(--rule); border-radius: 99px; padding: 0.55rem 0.8rem; cursor: pointer; min-height: 36px; }
+button:hover { border-color: var(--honey); }
+button[aria-pressed=true] { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 0.8rem; }
+.ro { background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 0.55rem 0.7rem; }
+.ro .v { font: 600 1.25rem/1.15 var(--serif); font-variant-numeric: tabular-nums; }
+.ro .k { font-size: 0.78rem; line-height: 1.35; color: var(--muted); }
+.ro.hero { grid-column: 1 / -1; border-color: var(--honey); }
+.ro.hero .v { font-size: 2.1rem; color: var(--accent); }
+.warns { list-style: none; padding: 0; margin: 0.6rem 0 0; font-size: 0.88rem; }
+.warns li { padding: 0.4rem 0.6rem; border-left: 3px solid var(--north); background: var(--north-soft); border-radius: 4px; margin-bottom: 6px; }
+.warns li.good { border-left-color: var(--ok); background: transparent; }
+.chart { margin-top: 0.6rem; }
+.chart svg { display: block; width: 100%; height: auto; }
+.status { font-size: 0.82rem; color: var(--muted); min-height: 1.2em; }
+.timing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 0.6rem 0; }
+.timing label { font-size: 0.85rem; display: block; }
+.timing input { width: 100%; font: 500 1rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.result { font-size: 0.95rem; padding: 0.6rem 0.8rem; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.result b.pass { color: var(--ok); } .result b.kill { color: var(--bad); } .result b.grey { color: var(--accent); }
+footer { margin: 3.5rem 0 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); font-size: 0.88rem; color: var(--muted); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); padding: 0.05em 0.3em; border-radius: 4px; }
+ul.tight li, ol.tight li { margin: 0.25rem 0; }
+</style>
+</head>
+<body>
+
+<header class="wrap mast">
+  <div class="eyebrow">Idea Bank · Dossier 11 · Invention</div>
+  <h1>The Honey Brake</h1>
+  <p class="tagline">Magnets and an aluminium disc that let a manual wheelchair roll down a ramp at walking pace, hands off the rims.</p>
+  <div class="byline">by Lenzwright · October 2026 · status: unbuilt and untested; every number below is computed, not measured</div>
+
+  <div class="lede">
+    <p><strong>The idea.</strong> Bolt a thin aluminium disc to each rear wheel, and clip a row of magnets to the frame so they straddle it. When the wheel turns, the moving metal cuts the magnets' field and eddy currents swirl through it. They push back with a force proportional to speed, like a spoon pulled through honey. On a slope, the chair speeds up until that drag matches the slope's push, then holds that speed by itself. On the steepest ramp the ADA allows in new construction (1:12), a <span class="n"><span data-v="B.massTotal">100</span> kg</span> rider and chair settle at <span class="n"><span data-v="vT">0.88</span> m/s</span>, a slow walk, without touching anything. Nothing rubs, nothing wears, and it can never lock a wheel. Slide the magnets off the disc with a lever and the chair rolls freely again.</p>
+  </div>
+
+  <div class="tiles" aria-label="Key numbers">
+    <div class="tile"><div class="big h"><span data-v="vT">0.88</span> m/s</div><div class="what">steady speed down a 1:12 ramp, <span data-v="B.massTotal">100</span> kg all-up, hands off (<span data-v="vKmh">3.2</span> km/h)</div></div>
+    <div class="tile"><div class="big"><span data-v="rampFree">3.5</span> m/s</div><div class="what">the same chair free-rolling at the foot of one <span data-v="R.run">9.14</span> m ramp run, with nothing holding it</div></div>
+    <div class="tile"><div class="big"><span data-v="kappa">0.359</span></div><div class="what">brake shape factor κ, from a field solve and an eddy-current solve (the number the experiment checks)</div></div>
+    <div class="tile"><div class="big bad"><span data-v="perChair">6.2</span> kg</div><div class="what">added to the chair: two discs and two magnet brackets</div></div>
+    <div class="tile"><div class="big bad"><span data-v="stack_mm">63</span> mm</div><div class="what">bracket thickness across the disc, <span data-v="half_mm">29</span> mm of it between the disc and the spokes</div></div>
+  </div>
+
+  <div class="lede verdict">
+    <p><strong>Verdict.</strong> The physics works, and with margin. A field calculation and an eddy-current calculation, each checked by separately written code, say twelve magnets per wheel hold a 1:12 ramp to walking pace. <strong>The physics is the easy half; what decides it is the package.</strong> It adds <span data-v="perChair">6.2</span> kg to the chair and a bracket <span data-v="stack_mm">63</span> mm thick that has to live between the wheel and the frame. I put <span data-v="pPhysics">85</span>% on a well-built prototype braking well enough to clear the experiment's kill line, <span data-v="pTechnical">58</span>% on it also coping with street grit, a hot car boot and left–right matching, and <span data-v="pProduct">12</span>% on it becoming something people actually fit to their chairs (§7). Whether a chair that slows itself feels like being held or being dragged is the part no number here can answer. The cheapest decisive test costs about $<span data-v="X.costUSD">200</span>: one braked wheel, two weights and a phone camera (§8).</p>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#problem">The problem, and who has it</a></li>
+      <li><a href="#concept">The concept</a></li>
+      <li><a href="#numbers">Feasibility, from first principles</a></li>
+      <li><a href="#felt">The part that can only be felt</a></li>
+      <li><a href="#calculator">Calculator</a></li>
+      <li><a href="#prior">Prior art</a></li>
+      <li><a href="#premortem">Pre-mortem</a></li>
+      <li><a href="#experiment">The first experiment</a></li>
+      <li><a href="#assumptions">Assumptions register</a></li>
+      <li><a href="#revisions">What changed from the first draft</a></li>
+      <li><a href="#review">What an independent review changed</a></li>
+    </ol>
+  </nav>
+</header>
+
+<main>
+<section class="wrap" id="problem">
+  <h2><span class="sec">§1</span>The problem, and who has it</h2>
+  <p>A manual wheelchair has no brake that works while it moves. The levers on the frame are parking locks, which clamp a tyre or let it go. To slow down on a slope you grip the handrims and let them slide through your palms, turning the hill's energy into heat in your hands.</p>
+  <p>The numbers are not small. On a 1:12 ramp, gravity pushes a <span class="n"><span data-v="B.massTotal">100</span> kg</span> rider-plus-chair downhill with <span class="n"><span data-v="fNet">69.7</span> N</span> after rolling resistance. The ADA allows a single ramp run up to <span class="n"><span data-v="R.run">9.14</span> m</span> long before a landing (<span data-v="rampRise">0.76</span> m of rise). Roll onto one at <span class="n"><span data-v="R.v0">0.5</span> m/s</span> and let go, and you reach the bottom at <span class="n"><span data-v="rampFree">3.5</span> m/s</span> (<span data-v="rampFreeKmh">13</span> km/h) about <span data-v="rampTFree">4.5</span> s later. Holding a crawl instead means your hands absorb about <span class="n"><span data-v="rampHands">637</span> J</span> as friction heat on every run. A kilometre of 1:12 street turns <span class="n"><span data-v="hillPot_kJ">81</span> kJ</span> of height into heat.</p>
+  <h3>Who has it worst</h3>
+  <ul class="tight">
+    <li><strong>People with weak hands or grip:</strong> tetraplegia at levels that leave the arms but not the fingers, arthritis, older users. One manual-wheelchair brake patent (US 8,622,178) says in its background that braking downhill is especially hard, and that using friction on the tyres or rims can be difficult or impossible for users with poor hand strength. These people often avoid long ramps, go down them backwards, or wait for help.</li>
+    <li><strong>Strong users on long descents:</strong> they can do it, but gloves wear through and palms heat up, and a hand off the rim to steer, wave or hold a coffee is a hand not braking.</li>
+    <li><strong>Power-assist users:</strong> the popular rear add-on drives push but do not brake. A 2022 study of these devices says none of the latest models has an active braking system (§6).</li>
+  </ul>
+  <p>The person I am designing for is an independent manual-chair user with some arm strength and weaker hands, who lives somewhere with ramps and hills and would like to go down them with their hands in their lap.</p>
+</section>
+
+<section class="wrap" id="concept">
+  <h2><span class="sec">§2</span>The concept</h2>
+  <p>Each rear wheel gets a flat aluminium disc, laser-cut from <span class="n"><span data-v="B.ringT" data-scale="1000">5</span> mm</span> plate: a ring <span class="n"><span data-v="B.ringOD" data-scale="1000">380</span> mm</span> across and <span class="n"><span data-v="B.ringW" data-scale="1000">60</span> mm</span> wide, joined to a hub flange by six spokes. It bolts to the wheel's hub on the frame side of the wheel's own spokes. On the frame, a C-shaped bracket straddles the ring. It holds <span data-v="B.pairs">6</span> pairs of magnets, one magnet on each side of the disc, with <span class="n"><span data-v="B.clearance" data-scale="1000">2</span> mm</span> of air on each side. Neighbouring pairs point opposite ways, and steel yokes behind the magnets close the magnetic loop. A lever on the frame slides the whole bracket <span class="n"><span data-v="slide_mm">53</span> mm</span> outward, off the ring, to switch the brake off.</p>
+
+  <figure>
+    <div class="fig-frame">
+      <svg viewBox="0 0 640 450" role="img" aria-label="Side view of a manual wheelchair's rear wheel, seen from inside the chair, rolling down a 1:12 ramp to the right. A grey aluminium disc with six spokes is fixed to the wheel's hub. At the lower rear of the disc, a curved magnet bracket straddles the disc's outer ring and holds six magnets alternating red (north) and blue (south). A cable runs from the bracket to a lever on the seat rail. An arrow shows that the bracket slides radially outward to switch the brake off.">
+        <!-- ramp -->
+        <path d="M0 380.3 L640 430.3 L640 450 L0 450 Z" class="f-honey-soft"/>
+        <line x1="0" y1="380.3" x2="640" y2="430.3" class="s-muted" stroke-width="1.5"/>
+        <text x="600" y="446" class="t-sm" text-anchor="end">ramp, 1:12, downhill →</text>
+        <!-- frame: seat rail, back post, axle plate, caster -->
+        <g class="s-steel" stroke-width="7" stroke-linecap="round" fill="none">
+          <line x1="140" y1="104" x2="560" y2="104"/>
+          <line x1="150" y1="104" x2="128" y2="10"/>
+          <line x1="560" y1="104" x2="560" y2="360"/>
+          <line x1="250" y1="104" x2="250" y2="200"/>
+        </g>
+        <circle cx="560" cy="390" r="36" class="s-tyre" stroke-width="8" fill="none"/>
+        <circle cx="560" cy="390" r="4" class="f-tyre"/>
+        <!-- wheel: tyre, rim, steel spokes -->
+        <circle cx="250" cy="220" r="179" class="s-tyre" stroke-width="10" fill="none"/>
+        <circle cx="250" cy="220" r="153" class="s-muted" stroke-width="3" fill="none"/>
+        <g class="s-muted" stroke-width="1" opacity="0.55">
+          <line x1="250" y1="220" x2="250" y2="67"/><line x1="250" y1="220" x2="326.5" y2="87.5"/><line x1="250" y1="220" x2="382.5" y2="143.5"/>
+          <line x1="250" y1="220" x2="403" y2="220"/><line x1="250" y1="220" x2="382.5" y2="296.5"/><line x1="250" y1="220" x2="326.5" y2="352.5"/>
+          <line x1="250" y1="220" x2="250" y2="373"/><line x1="250" y1="220" x2="173.5" y2="352.5"/><line x1="250" y1="220" x2="117.5" y2="296.5"/>
+          <line x1="250" y1="220" x2="97" y2="220"/><line x1="250" y1="220" x2="117.5" y2="143.5"/><line x1="250" y1="220" x2="173.5" y2="87.5"/>
+        </g>
+        <!-- the disc: ring (r 130-190 mm = 78-114 px), six plate spokes, hub flange -->
+        <path d="M250 106 A114 114 0 1 1 249.99 106 Z M250 142 A78 78 0 1 0 250.01 142 Z" class="f-alu s-alu" stroke-width="1.5" fill-rule="evenodd" opacity="0.92"/>
+        <g class="f-alu s-alu" stroke-width="1.2" opacity="0.92">
+          <rect x="244" y="142" width="12" height="49" transform="rotate(0 250 220)"/>
+          <rect x="244" y="142" width="12" height="49" transform="rotate(60 250 220)"/>
+          <rect x="244" y="142" width="12" height="49" transform="rotate(120 250 220)"/>
+          <rect x="244" y="142" width="12" height="49" transform="rotate(180 250 220)"/>
+          <rect x="244" y="142" width="12" height="49" transform="rotate(240 250 220)"/>
+          <rect x="244" y="142" width="12" height="49" transform="rotate(300 250 220)"/>
+        </g>
+        <circle cx="250" cy="220" r="30" class="f-alu s-alu" stroke-width="1.5"/>
+        <circle cx="250" cy="220" r="10" class="f-surface s-ink" stroke-width="1.5"/>
+        <!-- rotation arrow (rolling right = clockwise here) -->
+        <path d="M196 72 A160 160 0 0 1 318 74" fill="none" class="s-ink" stroke-width="1.6"/>
+        <path d="M318 74 l-11 -5 l1 10 z" class="f-ink"/>
+        <!-- bracket: jaw outline (r 140-200 mm = 84-120 px), centred at 135 deg -->
+        <path d="M238.31 303.18 A84 84 0 0 1 166.82 231.69 L129.19 236.98 A122 122 0 0 0 233.02 340.81 Z" class="f-honey-soft s-honey" stroke-width="2" opacity="0.8"/>
+        <!-- six poles at r 160 mm = 96 px, 25 mm = 15 px squares, pitch 11.46 deg -->
+        <g>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-north" transform="rotate(106.35 250 220)"/>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-south" transform="rotate(117.81 250 220)"/>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-north" transform="rotate(129.27 250 220)"/>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-south" transform="rotate(140.73 250 220)"/>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-north" transform="rotate(152.19 250 220)"/>
+          <rect x="338.5" y="212.5" width="15" height="15" class="f-south" transform="rotate(163.65 250 220)"/>
+        </g>
+        <!-- slide-out arrow, radially outward at 135 deg -->
+        <line x1="153" y1="317" x2="133" y2="337" class="s-honey" stroke-width="2.5"/>
+        <path d="M127 343 l3 -12 l9 9 z" class="f-honey"/>
+        <!-- cable to lever -->
+        <path d="M430 104 C 400 190 300 300 178 312" fill="none" class="s-ink" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <rect x="420" y="76" width="9" height="30" rx="3" class="f-ink" transform="rotate(-20 424 104)"/>
+        <circle cx="430" cy="104" r="5" class="f-honey s-ink"/>
+        <!-- labels (hidden on phones; the numbered callouts carry them) -->
+        <g class="lbl">
+          <text x="440" y="250" class="t">aluminium disc</text>
+          <text x="40" y="378" class="t">magnet bracket</text>
+          <text x="440" y="70" class="t">lever</text>
+          <text x="18" y="300" class="t-sm">slides out</text>
+          <text x="18" y="314" class="t-sm">to switch off</text>
+          <text x="300" y="28" class="t-sm">wheel turns</text>
+        </g>
+        <!-- callouts -->
+        <g class="co">
+          <circle cx="372" cy="250" r="13"/><text x="372" y="251">1</text>
+          <circle cx="146" cy="358" r="13"/><text x="146" y="359">2</text>
+          <circle cx="458" cy="96" r="13"/><text x="458" y="97">3</text>
+          <circle cx="104" cy="330" r="13"/><text x="104" y="331">4</text>
+          <circle cx="410" cy="300" r="13"/><text x="410" y="301">5</text>
+          <circle cx="283" cy="252" r="13"/><text x="283" y="253">6</text>
+        </g>
+      </svg>
+      <ol class="legend">
+        <li><strong>Aluminium disc</strong>: <span data-v="B.ringT" data-scale="1000">5</span> mm 6061, <span data-v="B.ringOD" data-scale="1000">380</span> mm across, bolted to the hub on the frame side, <span data-v="plateMass">1.01</span> kg.</li>
+        <li><strong>Magnet bracket</strong>: <span data-v="magnetsPerWheel">12</span> N52 magnets (<span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magL" data-scale="1000">10</span> mm) in <span data-v="B.pairs">6</span> pairs across the ring, alternating north (red) and south (blue), spanning <span data-v="arcDeg">69</span>° of the disc. Drawn as if seen through its inboard jaw.</li>
+        <li><strong>Lever and cable</strong> on the seat rail; one lever can work both wheels.</li>
+        <li><strong>Off</strong>: the bracket slides <span data-v="slide_mm">53</span> mm outward and the poles leave the ring.</li>
+        <li><strong>The wheel you already have</strong>: tyre, rim and steel spokes, which sit outboard of the disc.</li>
+        <li><strong>Hub</strong>: the disc turns with the wheel; the bracket is fixed to the frame.</li>
+      </ol>
+    </div>
+    <figcaption>Fig. 1. The rear wheel seen from inside the chair, rolling down a 1:12 ramp. Scale 0.59 px per mm except the frame, which is schematic.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame scroll-x">
+      <svg viewBox="0 0 640 384" role="img" aria-label="Cross-section through the bracket at one pole. The aluminium ring stands vertically in the middle. On each side, separated by a 2 millimetre air gap, is a magnet, then a steel yoke, then an aluminium jaw plate; a bridge joins the two jaws over the top of the ring. The left magnet's ring-facing side is north and the right magnet's is south, so the field crosses the ring from left to right. Dimensions show a 9 millimetre gap between the magnets, 29 millimetres from the ring face to the outside of the bracket on one side, and 63 millimetres across the whole bracket. The wheel's spokes are to the right, the chair frame to the left.">
+        <!-- coordinates: x = 320 + 4 z(mm), y = 345 - 4 (r(mm) - 125) -->
+        <rect x="474" y="20" width="160" height="320" class="f-surface"/>
+        <g class="s-muted" stroke-width="1" stroke-dasharray="4 4"><line x1="486" y1="20" x2="486" y2="340"/><line x1="506" y1="20" x2="506" y2="340"/><line x1="526" y1="20" x2="526" y2="340"/></g>
+        <text x="540" y="40" class="t-sm">wheel spokes</text>
+        <text x="540" y="56" class="t-sm">(outboard)</text>
+        <text x="10" y="40" class="t-sm">chair frame side</text>
+        <text x="10" y="56" class="t-sm">(inboard)</text>
+        <!-- bridge and jaws -->
+        <path d="M193.2 21 L446.8 21 L446.8 285 L422.8 285 L422.8 45 L217.2 45 L217.2 285 L193.2 285 Z" class="f-alu s-alu" stroke-width="1.5" opacity="0.75"/>
+        <!-- yokes (r 140-180 => y 285-125) -->
+        <rect x="217.2" y="125" width="44.8" height="160" class="f-steel"/>
+        <rect x="378" y="125" width="44.8" height="160" class="f-steel"/>
+        <!-- magnets: z 4.5..14.5 (x 338..378) and mirror; r 147.5..172.5 (y 255..155) -->
+        <rect x="262" y="155" width="20" height="100" class="f-south"/>
+        <rect x="282" y="155" width="20" height="100" class="f-north"/>
+        <rect x="338" y="155" width="20" height="100" class="f-south"/>
+        <rect x="358" y="155" width="20" height="100" class="f-north"/>
+        <text x="272" y="210" class="t-w" text-anchor="middle">S</text>
+        <text x="292" y="210" class="t-w" text-anchor="middle">N</text>
+        <text x="348" y="210" class="t-w" text-anchor="middle">S</text>
+        <text x="368" y="210" class="t-w" text-anchor="middle">N</text>
+        <!-- ring: z -2.5..2.5 (x 310..330), r 130..190 (y 325..85) -->
+        <rect x="310" y="85" width="20" height="240" class="f-alu s-alu" stroke-width="1.5"/>
+        <path d="M306 325 l6 6 l-4 4 l6 6 M334 325 l-6 6 l4 4 l-6 6" class="s-muted" fill="none" stroke-width="1.2"/>
+        <text x="340" y="340" class="t-sm">continues to hub</text>
+        <!-- field arrows across the gap -->
+        <g class="s-ink" stroke-width="1.6">
+          <line x1="302" y1="180" x2="338" y2="180"/><line x1="302" y1="230" x2="338" y2="230"/>
+        </g>
+        <path d="M338 180 l-7 -4 l0 8 z M338 230 l-7 -4 l0 8 z" class="f-ink"/>
+        <!-- eddy current, radial under the pole -->
+        <line x1="320" y1="248" x2="320" y2="166" class="s-honey" stroke-width="3"/>
+        <path d="M320 160 l-6 10 l12 0 z" class="f-honey"/>
+        <!-- motion into the page -->
+        <circle cx="320" cy="108" r="8" class="f-surface s-ink" stroke-width="1.5"/>
+        <path d="M314.5 102.5 l11 11 M325.5 102.5 l-11 11" class="s-ink" stroke-width="1.5"/>
+        <!-- dimensions -->
+        <g class="s-ink" stroke-width="1">
+          <line x1="193.2" y1="292" x2="193.2" y2="362"/><line x1="446.8" y1="292" x2="446.8" y2="362"/>
+          <line x1="193.2" y1="356" x2="446.8" y2="356"/>
+          <line x1="330" y1="292" x2="330" y2="312"/>
+          <line x1="330" y1="304" x2="446.8" y2="304"/>
+          <line x1="302" y1="140" x2="302" y2="150"/><line x1="338" y1="140" x2="338" y2="150"/>
+          <line x1="302" y1="145" x2="338" y2="145"/>
+        </g>
+        <text x="320" y="375" class="t-b" text-anchor="middle"><tspan data-v="stack_mm">63</tspan> mm across</text>
+        <text x="392" y="300" class="t-sm" text-anchor="middle"><tspan data-v="half_mm">29</tspan> mm</text>
+        <text x="320" y="139" class="t-sm" text-anchor="middle"><tspan data-v="g_mm">9</tspan> mm</text>
+        <g class="lbl">
+          <text x="20" y="100" class="t">bridge</text>
+          <text x="20" y="196" class="t">steel yoke</text>
+          <text x="20" y="212" class="t-sm"><tspan data-v="yokeT_mm">11.2</tspan> × <tspan data-v="B.barW" data-scale="1000">40</tspan> mm</text>
+          <text x="20" y="268" class="t">jaw plate</text>
+        </g>
+        <g class="co">
+          <circle cx="320" cy="68" r="12"/><text x="320" y="69">1</text>
+          <circle cx="292" cy="270" r="12"/><text x="292" y="271">2</text>
+          <circle cx="240" cy="110" r="12"/><text x="240" y="111">3</text>
+          <circle cx="205" cy="60" r="12"/><text x="205" y="61">4</text>
+          <circle cx="358" cy="270" r="12"/><text x="358" y="271">5</text>
+        </g>
+      </svg>
+    </div>
+    <ol class="legend">
+      <li><strong>The disc's ring</strong>, <span data-v="B.ringT" data-scale="1000">5</span> mm thick, moving into the page. Under the pole its eddy current runs radially (honey arrow).</li>
+      <li><strong>A magnet pair</strong>: north faces the ring on one side and south on the other, so the field crosses the <span data-v="g_mm">9</span> mm gap (ring plus two <span data-v="B.clearance" data-scale="1000">2</span> mm clearances).</li>
+      <li><strong>Steel yokes</strong>, <span data-v="yokeT_mm">11.2</span> mm thick and <span data-v="B.barW" data-scale="1000">40</span> mm wide, carry the flux to the neighbouring pole (Fig. 3).</li>
+      <li><strong>Aluminium jaws and bridge</strong> hold the two rows apart against the <span data-v="clampTotal">744</span> N with which the magnets pull them together.</li>
+      <li><strong>The tight dimension</strong>: <span data-v="half_mm">29</span> mm from the ring's face to the outside of the bracket must fit between the disc and the wheel's spokes.</li>
+    </ol>
+    <figcaption>Fig. 2. Section through the bracket at one pole, to scale (4 px per mm). Radius runs up the page and the axle direction runs across it.</figcaption>
+  </figure>
+
+  <p><strong>Why it holds a speed instead of stopping.</strong> Eddy drag is proportional to how fast the metal moves through the field, so it behaves like a viscous fluid. At rest it is zero: the chair can still creep and still needs its parking locks. At speed it grows until it equals the slope's push, and there the speed stops changing. Steeper slopes give proportionally faster steady speeds, and heavier riders do too. It cannot lock a wheel, skid a tyre or fade into nothing, and there is no switch, sensor or battery to fail.</p>
+  <p><strong>What it is not.</strong> It is not a parking brake, it cannot bring the chair to a stop, and on level ground it is a nuisance: switch it off at the bottom of the ramp.</p>
+</section>
+
+<section class="wrap" id="numbers">
+  <h2><span class="sec">§3</span>Feasibility, from first principles</h2>
+  <p>All numbers below come from <code>model.js</code>, which this page carries inline. The base case is a <span data-v="B.massTotal">100</span> kg rider-plus-chair on 24-inch wheels, descending 1:12, with the bracket of §2. Units are SI unless marked.</p>
+
+  <h3>3.1 How hard does the hill push?</h3>
+  <div class="eq">
+    <span class="l"><var>θ</var> = atan(1/12) = <span data-v="thetaDeg">4.76</span>°, &nbsp; <var>W</var> = <var>m g</var> = <span data-v="B.massTotal">100</span> × 9.807 = <span data-v="weight">981</span> N</span>
+    <span class="l"><var>F</var><sub>down</sub> = <var>W</var> sin <var>θ</var> = <span data-v="fDown">81.4</span> N, &nbsp; <var>F</var><sub>roll</sub> = <var>C</var><sub>rr</sub> <var>W</var> cos <var>θ</var> = <span data-v="B.crr">0.012</span> × <span data-v="weight">981</span> × cos <var>θ</var> = <span data-v="fRoll">11.7</span> N</span>
+    <span class="l"><b><var>F</var><sub>net</sub> = <span data-v="fNet">69.7</span> N</b></span>
+    <span class="c"><var>C</var><sub>rr</sub> is the whole chair's rolling-resistance coefficient, casters included. It is my assumption for smooth hard ground; a lower value makes the chair faster (§3.5). Air drag at walking pace is well under 1 N and is ignored.</span>
+  </div>
+  <p>With nothing holding it, the chair accelerates at <var>F</var><sub>net</sub>/<var>m</var><sub>eff</sub> = <span data-v="aFree">0.67</span> m/s², where <var>m</var><sub>eff</sub> = <span data-v="mEff">103.7</span> kg includes the spinning wheels and discs. That is where the <span data-v="rampFree">3.5</span> m/s at the foot of one ramp run comes from.</p>
+
+  <h3>3.2 How strong is the field in the gap?</h3>
+  <p><strong>First, a one-line magnetic circuit.</strong> Follow a loop of flux: out of a magnet, across the gap, through the opposite magnet, along a steel yoke, back through the neighbouring pair and the other yoke. Treat the steel as perfect and apply Ampère's law round the loop. With no current enclosed, <var>H</var><sub>m</sub><var>L</var><sub>m</sub> + <var>H</var><sub>g</sub><var>g</var> = 0. Add flux continuity (the same <var>B</var> in magnet and gap) and the magnet's recoil line, <var>B</var> = <var>B</var><sub>r</sub> + <var>μ</var><sub>0</sub><var>μ</var><sub>rec</sub><var>H</var><sub>m</sub>:</p>
+  <div class="eq">
+    <span class="l"><var>g</var> = <var>d</var> + 2<var>c</var> = <span data-v="B.ringT" data-scale="1000">5</span> + 2 × <span data-v="B.clearance" data-scale="1000">2</span> = <span data-v="g_mm">9</span> mm, &nbsp; <var>L</var><sub>m</sub> = 2 × <span data-v="B.magL" data-scale="1000">10</span> = <span data-v="Lm_mm">20</span> mm of magnet per gap</span>
+    <span class="l"><b><var>B</var><sub>closed</sub> = <var>B</var><sub>r</sub> / (1 + <var>μ</var><sub>rec</sub> <var>g</var>/<var>L</var><sub>m</sub>) = <span data-v="Br">1.44</span> / (1 + <span data-v="C.muRec">1.05</span> × <span data-v="g_mm">9</span>/<span data-v="Lm_mm">20</span>) = <span data-v="bClosed">0.978</span> T</b></span>
+    <span class="c">N52 remanence <var>B</var><sub>r</sub> = <span data-v="Br">1.44</span> T (catalogue typical, ±0.03 T), recoil permeability 1.05. The aluminium ring is non-magnetic, so it counts as air.</span>
+  </div>
+  <p><strong>Then the real shape of the field.</strong> That one number assumes the field fills the pole face exactly and stops at its edge. Real poles are only <span data-v="B.magA" data-scale="1000">25</span> mm across, the gap is <span data-v="g_mm">9</span> mm, and the neighbours of opposite sign are only <span class="n"><span data-v="spacing_mm">7</span> mm</span> away, so field fringes outward and leaks sideways to the neighbours. To get the shape, the model replaces each magnet by its two faces of magnetic charge. The face against a yoke is cancelled by the steel, and the face toward the ring is mirrored in both yokes, an infinite series of images. The field at any point is then a sum of solid angles subtended by squares. This is exact for magnets with <var>μ</var><sub>rec</sub> = 1 and perfect, unsaturated yokes that extend well past the poles, and the model scales the result by <span data-v="bClosed">0.978</span>/<span data-v="bClosed1">0.993</span> to put the recoil permeability back. Check: for a very wide pole the series gives back the one-line answer to four digits.</p>
+  <p>The result: averaged over the ring's thickness, the mean field under a pole face is <strong><var>λ</var> = <span data-v="lambda">0.69</span></strong> of <var>B</var><sub>closed</sub>, about <span data-v="bFoot">0.67</span> T. The rest crosses the ring just outside the footprint, or between neighbours. <code>check.mjs</code> recomputes this field a different way, with a Fourier transfer function between the two iron planes, and the two agree.</p>
+
+  <h3>3.3 The brake law</h3>
+  <p>A conductor moving at speed <var>v</var> through a field <var>B</var> feels an electric drive <b><var>v</var> × <var>B</var></b>. Under a pole it pushes current across the ring, radially. The current has to come back the other way through metal where there is little or no field, and charge piles up at the pole's edges until every current loop closes. Ohm's law with that charge is <b><var>J</var></b> = <var>σ</var>(<b><var>v</var> × <var>B</var></b> − ∇<var>φ</var>), with ∇·<b><var>J</var></b> = 0. The force on the ring is ∫ <b><var>J</var></b> × <b><var>B</var></b> d<var>V</var>, and it equals the heat dissipated divided by <var>v</var>.</p>
+  <div class="eq">
+    <span class="l"><b>One round pole on an unbounded sheet:</b> <var>F</var> = <var>c</var> <var>σ</var> <var>d</var> <var>B</var>² <var>A</var> <var>v</var> &nbsp; with &nbsp; <var>c</var> = ½ exactly</span>
+    <span class="c">Inside a uniformly driven disc of a 2-D conductor, the charge on its rim sets up a uniform back-field of exactly half the drive. This is the 2-D depolarising factor of a circle, the same ½ that appears for a dielectric cylinder. So <var>J</var> = <var>σvB</var>/2 under the pole, and force = <var>J B</var> × volume. In 2-D the two depolarising factors of any shape sum to 1, so a square pole also gets ½ on average. <code>check.mjs</code> runs the model's own current solver on a lone round pole and gets just under ½ on a finite sheet, rising toward ½ as the sheet grows.</span>
+  </div>
+  <p><strong>The real row on the real ring.</strong> The ring is only <span data-v="B.ringW" data-scale="1000">60</span> mm wide, which cramps the return currents. The neighbours alternate, though, so each pole's return current flows through its neighbour's footprint, where the neighbour's own field is pushing it the same way. Both effects matter, so the model solves ∇·<b><var>J</var></b> = 0 numerically. It unrolls the ring into a strip, uses a 1 mm grid with insulated edges, and runs conjugate gradients (<span data-v="kappaIter">306</span> iterations). Four results:</p>
+  <ul class="tight">
+    <li>A lone pole on this narrow ring, with a sharp-edged field: <var>c</var> = <span data-v="cSharpSingle">0.45</span>. The narrow ring costs a little.</li>
+    <li>The row of <span data-v="B.pairs">6</span> alternating poles, sharp-edged field: <var>c</var> = <span data-v="cSharp">0.61</span>. Alternation more than pays it back.</li>
+    <li>The row with the real fringing field of §3.2. Measured against <var>B</var><sub>closed</sub>², it gives the number everything else hangs on: <strong><var>κ</var> = <span data-v="kappa">0.359</span></strong>. The computed dissipation divided by drag × speed is <span data-v="energyCheck">1.0000</span>.</li>
+    <li>The same row with 4 or 10 poles: <var>κ</var> = <span data-v="kappa4">0.351</span> or <span data-v="kappa10">0.366</span>, rising a little as the row grows and its ends matter less.</li>
+  </ul>
+  <div class="eq">
+    <span class="l"><var>F</var><sub>pole</sub> = <var>η κ σ d B</var><sub>closed</sub>² <var>A v</var><sub>ring</sub> = <span data-v="B.eta">0.90</span> × <span data-v="kappa">0.359</span> × <span data-v="sigma_MS">24.9</span>×10⁶ × 0.005 × <span data-v="bClosed">0.978</span>² × <span data-v="area_cm2">6.25</span>×10⁻⁴ × <var>v</var><sub>ring</sub></span>
+    <span class="l"><b><var>k</var><sub>pole</sub> = <span data-v="kPair">24.1</span> N per m/s of ring speed</b></span>
+    <span class="c"><var>σ</var> for 6061-T6 is <span data-v="iacs6061">43</span>% IACS. <var>η</var> = <span data-v="B.eta">0.90</span> is my allowance for what the idealised field leaves out: yokes of finite size instead of infinite planes, glue lines, magnet tolerance, the ring's curvature. It is a guess, and the first experiment measures it.</span>
+  </div>
+  <p><strong>Is the linear law safe?</strong> Eddy currents make their own field, which weakens the brake at high speed. For a thin sheet the speed scale is <var>w</var> = 2/(<var>μ</var><sub>0</sub><var>σd</var>) = <span data-v="w">12.8</span> m/s. On the 1:12 ramp the ring moves at <span data-v="vRing">0.46</span> m/s, <span data-v="vOverW_pct">3.6</span>% of <var>w</var>, so the correction is about the square of that, <span data-v="linearErr_pct">0.1</span>%. The field the ring sees alternates at about <span data-v="poleHz">7</span> Hz, where aluminium's skin depth is <span data-v="skin_mm">38</span> mm, far thicker than the ring. Force ∝ speed holds.</p>
+
+  <figure>
+    <div class="fig-frame">
+      <svg viewBox="0 0 640 270" role="img" aria-label="The bracket unrolled along the arc. The ring runs horizontally across the middle. Six magnet pairs sit above and below it, alternating: north faces down on the first, up on the second, and so on. Steel yokes above and below join poles one and two, three and four, and five and six. Closed flux loops run down through one pole, along the lower yoke, up through the next pole and back along the upper yoke. There is no yoke between poles two and three or four and five, because no flux needs to cross there. Under each pole, eddy current flows radially, marked alternately out of and into the page.">
+        <!-- x = 80 + 2.6 s(mm), ring centre y = 135; pole centres s = 12.5 + 32 k -->
+        <rect x="20" y="128.5" width="600" height="13" class="f-alu s-alu" stroke-width="1"/>
+        <text x="636" y="122" class="t-sm" text-anchor="end">moves →</text>
+        <!-- yokes: tapered, three above and three below -->
+        <g class="f-steel">
+          <path d="M80 101 L145 72 L163.2 72 L228.2 101 Z"/>
+          <path d="M246.4 101 L311.4 72 L329.6 72 L394.6 101 Z"/>
+          <path d="M412.8 101 L477.8 72 L496 72 L561 101 Z"/>
+          <path d="M80 169 L145 198 L163.2 198 L228.2 169 Z"/>
+          <path d="M246.4 169 L311.4 198 L329.6 198 L394.6 169 Z"/>
+          <path d="M412.8 169 L477.8 198 L496 198 L561 169 Z"/>
+        </g>
+        <!-- magnets: 25 mm = 65 px wide, 10 mm = 26 px tall; top y 101..127, bottom 143..169 -->
+        <g>
+          <rect x="80" y="101" width="65" height="13" class="f-south"/><rect x="80" y="114" width="65" height="13" class="f-north"/>
+          <rect x="80" y="143" width="65" height="13" class="f-south"/><rect x="80" y="156" width="65" height="13" class="f-north"/>
+          <rect x="163.2" y="101" width="65" height="13" class="f-north"/><rect x="163.2" y="114" width="65" height="13" class="f-south"/>
+          <rect x="163.2" y="143" width="65" height="13" class="f-north"/><rect x="163.2" y="156" width="65" height="13" class="f-south"/>
+          <rect x="246.4" y="101" width="65" height="13" class="f-south"/><rect x="246.4" y="114" width="65" height="13" class="f-north"/>
+          <rect x="246.4" y="143" width="65" height="13" class="f-south"/><rect x="246.4" y="156" width="65" height="13" class="f-north"/>
+          <rect x="329.6" y="101" width="65" height="13" class="f-north"/><rect x="329.6" y="114" width="65" height="13" class="f-south"/>
+          <rect x="329.6" y="143" width="65" height="13" class="f-north"/><rect x="329.6" y="156" width="65" height="13" class="f-south"/>
+          <rect x="412.8" y="101" width="65" height="13" class="f-south"/><rect x="412.8" y="114" width="65" height="13" class="f-north"/>
+          <rect x="412.8" y="143" width="65" height="13" class="f-south"/><rect x="412.8" y="156" width="65" height="13" class="f-north"/>
+          <rect x="496" y="101" width="65" height="13" class="f-north"/><rect x="496" y="114" width="65" height="13" class="f-south"/>
+          <rect x="496" y="143" width="65" height="13" class="f-north"/><rect x="496" y="156" width="65" height="13" class="f-south"/>
+        </g>
+        <!-- flux loops -->
+        <g fill="none" class="s-honey" stroke-width="2.2">
+          <path d="M112.5 92 L112.5 178 L195.7 178 L195.7 92 Z"/>
+          <path d="M278.9 92 L278.9 178 L362.1 178 L362.1 92 Z"/>
+          <path d="M445.3 92 L445.3 178 L528.5 178 L528.5 92 Z"/>
+        </g>
+        <g class="f-honey">
+          <path d="M112.5 150 l-5 -10 l10 0 z"/><path d="M195.7 120 l-5 10 l10 0 z"/>
+          <path d="M278.9 150 l-5 -10 l10 0 z"/><path d="M362.1 120 l-5 10 l10 0 z"/>
+          <path d="M445.3 150 l-5 -10 l10 0 z"/><path d="M528.5 120 l-5 10 l10 0 z"/>
+        </g>
+        <!-- eddy currents under each pole: out (dot) / in (cross) -->
+        <g class="s-ink" stroke-width="1.3">
+          <circle cx="135" cy="135" r="5" class="f-surface"/><circle cx="135" cy="135" r="1.6" class="f-ink"/>
+          <circle cx="220" cy="135" r="5" class="f-surface"/><path d="M216.5 131.5 l7 7 M223.5 131.5 l-7 7"/>
+          <circle cx="302" cy="135" r="5" class="f-surface"/><circle cx="302" cy="135" r="1.6" class="f-ink"/>
+          <circle cx="386" cy="135" r="5" class="f-surface"/><path d="M382.5 131.5 l7 7 M389.5 131.5 l-7 7"/>
+          <circle cx="469" cy="135" r="5" class="f-surface"/><circle cx="469" cy="135" r="1.6" class="f-ink"/>
+          <circle cx="552" cy="135" r="5" class="f-surface"/><path d="M548.5 131.5 l7 7 M555.5 131.5 l-7 7"/>
+        </g>
+        <text x="20" y="250" class="t-sm">Yokes taper because the flux they carry grows across each magnet and is largest between the pair.</text>
+        <g class="lbl">
+          <text x="20" y="60" class="t-sm">steel yoke</text>
+          <text x="20" y="232" class="t-sm">no yoke needed between pairs: no net flux crosses there</text>
+        </g>
+        <g class="co">
+          <circle cx="154" cy="40" r="12"/><text x="154" y="41">1</text>
+          <circle cx="237" cy="40" r="12"/><text x="237" y="41">2</text>
+          <circle cx="600" cy="158" r="12"/><text x="600" y="159">3</text>
+        </g>
+      </svg>
+    </div>
+    <ol class="legend">
+      <li><strong>One flux loop per two poles.</strong> The yoke between a pair carries a whole pole's flux: <span data-v="yokeFlux_uWb">670</span> µWb, or <span data-v="yokeRel">0.74</span> × <var>B</var><sub>r</sub><var>A</var>, from the same field calculation at the steel face.</li>
+      <li><strong>Nothing crosses between pairs</strong>, so the yokes are split in three. Add up the pole fluxes along a continuous bar (+, −, +, −…) and the running total alternates between a whole pole and nothing.</li>
+      <li><strong>Eddy currents</strong> run radially under each pole (dot: out of the page; cross: into it) and loop back through the neighbours.</li>
+    </ol>
+    <figcaption>Fig. 3. The bracket unrolled along the arc and seen from outside the wheel's rim, to scale along the arc (2.6 px per mm).</figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-frame scroll-x"><div id="currents" class="chart" aria-live="polite"><p class="small muted">Solving the eddy currents…</p></div></div>
+    <figcaption>Fig. 4. Drawn by this page from the model's own solution: the ring unrolled into its <span data-v="B.ringW" data-scale="1000">60</span> mm-wide strip, field in the ring shaded red (north) and blue (south), eddy currents as arrows sized by strength. The currents loop between neighbouring poles, which is why alternation helps.</figcaption>
+  </figure>
+
+  <h3>3.4 From the ring to the ground</h3>
+  <p>The poles sit on a circle of radius <var>r</var> = <span data-v="rRing_mm">160</span> mm; the tyre's radius is <var>R</var> = <span data-v="R_mm">305</span> mm. The ring therefore moves at <var>r</var>/<var>R</var> = <span data-v="speedRatio">0.525</span> of the chair's speed, and its drag acts at the same disadvantage, so the leverage is (<var>r</var>/<var>R</var>)² = <span data-v="speedRatio2">0.275</span>:</p>
+  <div class="eq">
+    <span class="l"><var>k</var><sub>wheel</sub> = <var>N k</var><sub>pole</sub> <var>r</var>²/<var>R</var>² = <span data-v="B.pairs">6</span> × <span data-v="kPair">24.1</span> × <span data-v="speedRatio2">0.275</span> = <span data-v="kWheel">39.8</span> N·s/m &nbsp; (torque: <span data-v="kTau">3.70</span> N·m per rad/s)</span>
+    <span class="l"><b><var>k</var><sub>chair</sub> = 2 <var>k</var><sub>wheel</sub> = <span data-v="kChair">79.6</span> N·s/m</b></span>
+  </div>
+
+  <h3>3.5 The steady speed</h3>
+  <div class="eq">
+    <span class="l"><var>m</var><sub>eff</sub> d<var>v</var>/d<var>t</var> = <var>F</var><sub>net</sub> − <var>k</var><sub>chair</sub> <var>v</var> &nbsp; ⇒ &nbsp; <var>v</var>(<var>t</var>) = <var>v</var><sub>∞</sub> + (<var>v</var><sub>0</sub> − <var>v</var><sub>∞</sub>) e<sup>−<var>t</var>/<var>τ</var></sup></span>
+    <span class="l"><b><var>v</var><sub>∞</sub> = <var>F</var><sub>net</sub>/<var>k</var><sub>chair</sub> = <span data-v="fNet">69.7</span>/<span data-v="kChair">79.6</span> = <span data-v="vT">0.88</span> m/s (<span data-v="vKmh">3.2</span> km/h)</b>, &nbsp; <var>τ</var> = <var>m</var><sub>eff</sub>/<var>k</var><sub>chair</sub> = <span data-v="mEff">103.7</span>/<span data-v="kChair">79.6</span> = <span data-v="tau">1.30</span> s</span>
+    <span class="c"><var>m</var><sub>eff</sub> adds the spinning wheels (<span data-v="B.wheelInertia">0.15</span> kg·m² each) and discs (<span data-v="plateInertia">23</span>×10⁻³ kg·m² each) as 2<var>I</var>/<var>R</var>². The brake converts <span data-v="power">61</span> W of the hill into heat, <span data-v="powerPerRing">31</span> W per disc.</span>
+  </div>
+  <p>The speed is set by the slope and the load, not chosen:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Slope</th><th class="r">Steady speed</th><th>Feels like</th></tr></thead>
+    <tbody>
+      <tr><td>1:20 (5%)</td><td class="r"><span data-v="vT_20">0.47</span> m/s</td><td>a dawdle; you'd probably switch it off</td></tr>
+      <tr><td>1:12 (8.3%), the ADA maximum for new ramps</td><td class="r"><span data-v="vT_12">0.88</span> m/s</td><td>a slow walk</td></tr>
+      <tr><td>1:8 (12.5%)</td><td class="r"><span data-v="vT_8">1.38</span> m/s</td><td>a brisk walk</td></tr>
+      <tr><td>1:5 (20%), a steep street</td><td class="r"><span data-v="vT_5">2.27</span> m/s</td><td>a jog; hands back on the rims</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Sensitivity.</strong> Each row changes one input from the base case and gives the steady speed on 1:12:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Change</th><th class="r">1:12 speed</th></tr></thead>
+    <tbody>
+      <tr><td>Base case</td><td class="r"><span data-v="vT">0.88</span> m/s</td></tr>
+      <tr><td>Rider + chair 70 kg / 130 kg</td><td class="r"><span data-v="vT_m70">0.61</span> / <span data-v="vT_m130">1.14</span></td></tr>
+      <tr><td><var>η</var> = 0.75 / 1.00 (the field model's realism)</td><td class="r"><span data-v="vT_eta75">1.05</span> / <span data-v="vT_eta100">0.79</span></td></tr>
+      <tr><td><var>C</var><sub>rr</sub> = 0.006 / 0.020</td><td class="r"><span data-v="vT_crr6">0.95</span> / <span data-v="vT_crr20">0.78</span></td></tr>
+      <tr><td>Clearances 3 mm instead of 2 (field <span data-v="bClosed_cl3">0.913</span> T, <var>κ</var> <span data-v="kappa_cl3">0.321</span>)</td><td class="r"><span data-v="vT_cl3">1.13</span></td></tr>
+      <tr><td>4 / 8 poles instead of 6</td><td class="r"><span data-v="vT_4pairs">1.35</span> / <span data-v="vT_8pairs">0.65</span></td></tr>
+      <tr><td>Ring 4 mm / 6 mm thick</td><td class="r"><span data-v="vT_t4">0.97</span> / <span data-v="vT_t6">0.82</span></td></tr>
+      <tr><td>1100-H14 aluminium (<span data-v="iacs1100">57</span>% IACS)</td><td class="r"><span data-v="vT_1100">0.66</span></td></tr>
+      <tr><td>Copper disc (<span data-v="massCopper">3.35</span> kg each)</td><td class="r"><span data-v="vT_copper">0.38</span></td></tr>
+      <tr><td>N42SH magnets (heat-tolerant grade, <var>B</var><sub>r</sub> <span data-v="BrSH">1.30</span> T)</td><td class="r"><span data-v="vT_sh">1.07</span></td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>On the flat it is a nuisance.</strong> Pushing at 1 m/s with the brake on costs <span data-v="levelDrag">80</span> N, about <span data-v="levelRatio">7</span>× the chair's rolling resistance of <span data-v="fRollLevel">11.8</span> N. The lever is not optional.</p>
+
+  <h3>3.6 Does it overheat?</h3>
+  <div class="eq">
+    <span class="l">Disc: <span data-v="plateMass">1.01</span> kg of 6061, heat capacity <span data-v="heatCap">911</span> J/K. With no cooling, <span data-v="powerPerRing">31</span> W warms it <span data-v="adiabaticPerMin">2.0</span> K per minute.</span>
+    <span class="l">Cooling: <var>h</var> ≈ <span data-v="B.hConv">8</span> W/m²K over both faces (<span data-v="convArea_m2">0.150</span> m²): <var>UA</var> = <span data-v="UA">1.20</span> W/K, time constant <span data-v="tauThermal_min">13</span> min</span>
+    <span class="l"><b>On an endless 1:12 hill it levels off <span data-v="steadyRise">28</span> K above the air</b>, where the warm disc brakes <span data-v="derateAtSteady_pct">10</span>% less (aluminium's resistance rises 0.4% per K) and the speed creeps to <span data-v="vTHot">0.98</span> m/s.</span>
+    <span class="c"><var>h</var>: a flat plate in laminar flow at walking pace gives <span data-v="hFlat">5.8</span> W/m²K (0.664 <var>k</var> Re<sup>½</sup> Pr<sup>⅓</sup>/<var>L</var>), plus a little from the disc's rotation and natural convection. Bare aluminium radiates almost nothing. Call it uncertain by a factor of two. The steady state is solved with the temperature feedback included.</span>
+  </div>
+  <p>A worst case that needs no convection estimate: a kilometre of 1:12 drops <span data-v="hillDrop">83</span> m and releases <span data-v="hillPot_kJ">81</span> kJ. Rolling resistance takes <span data-v="hillRoll_kJ">12</span> kJ, and each disc gets <span data-v="hillRing_kJ">35</span> kJ over <span data-v="hillMinutes">19</span> minutes. Even with no cooling at all that is <span data-v="hillAdiabatic_K">38</span> K. <strong>Heat is not the problem.</strong></p>
+
+  <h3>3.7 Iron, force, weight, size and cost</h3>
+  <p><strong>The yokes.</strong> Each yoke must carry a whole pole's flux between its two poles: <span data-v="yokeFlux_uWb">670</span> µWb. At <span data-v="C.bSteelMax">1.5</span> T in low-carbon steel, and <span data-v="B.barW" data-scale="1000">40</span> mm wide, that needs <span data-v="yokeT_mm">11.2</span> mm of thickness between the magnets, tapering to nothing at the outer ends. Six tapered yokes weigh <span data-v="yokeMass">0.67</span> kg per wheel; plain bars would weigh <span data-v="yokeMassUniform">1.20</span> kg.</p>
+  <p><strong>The clamp.</strong> The two magnet rows attract each other across the gap. Integrating <var>B</var>²/2<var>μ</var><sub>0</sub> over the mid-plane gives <span data-v="clamp">124</span> N per pole position, <span data-v="clampTotal">744</span> N per bracket. Each <span data-v="B.jawT" data-scale="1000">6</span> mm aluminium jaw carries that as a cantilever from the bridge and bends <span data-v="jawBend_mm">0.06</span> mm at the pole line. The bridge bends too, under the jaws' root moment, and tips each jaw a further <span data-v="bridgeTip_mm">0.10</span> mm: about <span data-v="jawDeflect_mm">0.16</span> mm in all, under a tenth of the <span data-v="B.clearance" data-scale="1000">2</span> mm clearances. It is a steady load, so setting the clearances with the magnets fitted takes most of it out. The ring itself feels no sideways pull: aluminium isn't magnetic, and the forces on its two faces cancel.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Per wheel</th><th class="r">Mass</th></tr></thead>
+    <tbody>
+      <tr><td>Disc (rotates with the wheel)</td><td class="r"><span data-v="plateMass">1.01</span> kg</td></tr>
+      <tr><td><span data-v="magnetsPerWheel">12</span> magnets at <span data-v="magnetMassEach_g">47</span> g</td><td class="r"><span data-v="magnetMass">0.56</span> kg</td></tr>
+      <tr><td>Six tapered steel yokes</td><td class="r"><span data-v="yokeMass">0.67</span> kg</td></tr>
+      <tr><td>Jaws (<span data-v="jawMass">0.44</span> kg), bridge (<span data-v="bridgeMass">0.28</span> kg), slide, lever share, fasteners</td><td class="r"><span data-v="structureMass">0.86</span> kg</td></tr>
+    </tbody>
+    <tfoot><tr><td>Per wheel / per chair</td><td class="r"><span data-v="perWheel">3.1</span> / <span data-v="perChair">6.2</span> kg</td></tr></tfoot>
+  </table></div>
+  <p>Of that, the bracket on the frame is <span data-v="bracketMass">2.10</span> kg per wheel; the rest turns with the wheel. A 4-pole version weighs <span data-v="perWheel4">2.5</span> kg per wheel (<span data-v="perChair4">5.0</span> kg per chair) and holds 1:12 at <span data-v="vT_4pairs">1.35</span> m/s, but runs at <span data-v="vT_4pairs_8">2.12</span> m/s on 1:8.</p>
+  <p><strong>Size.</strong> Across the ring the bracket is <span data-v="stack_mm">63</span> mm thick: jaw, yoke, magnet and clearance on each side, plus the ring. Of that, <span data-v="half_mm">29</span> mm sits on the spoke side of the disc. The bracket spans <span data-v="arcDeg">69</span>° of the disc and slides <span data-v="slide_mm">53</span> mm to switch off. <strong>This is the real design problem</strong> (§7).</p>
+  <p><strong>Living with it.</strong> Four everyday costs that the numbers above don't show:</p>
+  <ul class="tight">
+    <li><strong>Taking a wheel off.</strong> The jaws straddle the ring, so the brake has to be switched off before a wheel comes off its quick-release axle for a car transfer. The disc then comes away with the wheel, adding <span data-v="plateMass">1.01</span> kg to each wheel you lift.</li>
+    <li><strong>Camber.</strong> The disc tilts with the wheel's camber, and the bracket has to sit square to it, so each chair needs a mount matched to its camber.</li>
+    <li><strong>Width.</strong> Unless the chair already leaves room between wheel and frame, the <span data-v="stack_mm">63</span> mm bracket pushes each wheel outward by up to that much, less whatever gap there is now. At worst the chair gets <span data-v="widenMax_cm">13</span> cm wider.</li>
+    <li><strong>Switched off.</strong> Slid off, the poles sit 10 mm clear of the ring. There the field model leaves about <span data-v="offDrag_ppm">13</span> parts per million of the engaged drag, so on the flat the cost is the mass. <span data-v="perChair">6.2</span> kg adds <span data-v="offPushN">0.7</span> N of rolling resistance, about <span data-v="offPushPct">7</span>% more push than the same chair without it. Real yokes leak more field than the ideal ones in the model, so the prototype should check this (§8).</li>
+  </ul>
+  <p><strong>Cost</strong>, one-off, my estimates rather than quotes: <span data-v="magnetsPerWheel">12</span> magnets at about $<span data-v="B.magnetUSD">5</span>, a laser-cut disc at $<span data-v="B.ringUSD">40</span>, yoke steel at $<span data-v="B.steelUSD">20</span>, and jaws, slide and lever at $<span data-v="B.structureUSD">60</span>. That is about $<span data-v="cost">180</span> a wheel, $<span data-v="costChair">360</span> a chair.</p>
+
+  <h3>3.8 The same law on a kitchen table</h3>
+  <p>You can check the physics of §3.3 in a minute with a copper pipe. Use a <strong>magnet sphere</strong>, because a uniformly magnetised sphere has an exactly dipolar field outside itself. (A long cylinder magnet in a close-fitting pipe does not, so the dipole formula doesn't apply to it.) Take a <span data-v="P.sphereD" data-scale="1000">12.7</span> mm N42 sphere (<span data-v="pipeMass_g">8.0</span> g, moment <var>m</var> = <var>B</var><sub>r</sub><var>V</var>/<var>μ</var><sub>0</sub> = <span data-v="pipeMoment">1.11</span> A·m²) and drop it down <span data-v="P.length">1.5</span> m of ½-inch type L copper tube, bore <span data-v="pipeRi_mm">6.92</span> mm radius, outside <span data-v="pipeRo_mm">7.94</span> mm, which leaves the sphere <span data-v="pipeClear_mm">0.57</span> mm of side clearance. Slice the wall into rings. Each ring sees flux Φ = <var>μ</var><sub>0</sub><var>m r</var>²/2(<var>r</var>² + <var>z</var>²)<sup>3/2</sup>, so the EMF is <var>v</var> dΦ/d<var>z</var>. Sum EMF²/<var>R</var> over all the rings:</p>
+  <div class="eq">
+    <span class="l"><var>F</var> = (45/1024) <var>μ</var><sub>0</sub>² <var>m</var>² <var>σ</var> · ⅓(<var>r</var><sub>i</sub><sup>−3</sup> − <var>r</var><sub>o</sub><sup>−3</sup>) · <var>v</var> &nbsp; ⇒ &nbsp; <var>k</var> = <span data-v="pipeK">1.43</span> N·s/m</span>
+    <span class="l"><b><var>v</var><sub>∞</sub> = <var>mg</var>/<var>k</var> = <span data-v="pipeV_cm">5.5</span> cm/s: <span data-v="pipeT">27</span> s to fall <span data-v="P.length">1.5</span> m</b>, against <span data-v="pipeFree">0.55</span> s in free fall</span>
+    <span class="c">The 45/1024 comes from ∫ <var>z</var>²/(<var>r</var>²+<var>z</var>²)<sup>5</sup> d<var>z</var>, a Wallis integral. The thin-wall shortcut using the mean radius reads <span data-v="pipeThinPct">1.6</span>% low. Plumbing copper is about <span data-v="iacsPipe">85</span>% IACS. <code>check.mjs</code> redoes the whole integral by brute-force quadrature.</span>
+  </div>
+  <p><strong>Which way the sphere points matters.</strong> The <span data-v="pipeT">27</span> s assumes its moment lies along the pipe, and nothing makes a sphere do that. With the moment across the pipe, the wall's EMF varies round the pipe, so charge piles up and the currents have to close along it. That leaves <span data-v="pipeTransRatio">0.69</span>× the drag, and the fall takes about <span data-v="pipeTTrans">19</span> s. A sphere pushed off centre or rubbing the wall falls slower. So expect anywhere from about <span data-v="pipeTTrans">19</span> s to <span data-v="pipeT">27</span> s, or longer if it rubs, and don't blame the force law for the spread. <code>check.mjs</code> recomputes the <span data-v="pipeTransRatio">0.69</span> by a Fourier method. This proves nothing about the bracket, but it makes the force law tangible: a magnet that should drop in half a second takes a quarter to half a minute.</p>
+</section>
+
+<section class="wrap" id="felt">
+  <h2><span class="sec">§4</span>The part that can only be felt</h2>
+  <p>Everything in §3 can be proven, or will be by the experiment in §8. Given a slope and a load, the speed is a number. The chart below is the proven half of the feeling: one ADA ramp run, entered at <span data-v="R.v0">0.5</span> m/s, free-rolling against honey-braked.</p>
+  <figure>
+    <div class="fig-frame"><div id="rampchart" class="chart"></div></div>
+    <figcaption>Fig. 5. Speed along a <span data-v="R.run">9.14</span> m, 1:12 ramp run. Free-rolling, the chair leaves the ramp at <span data-v="rampFree">3.5</span> m/s after <span data-v="rampTFree">4.5</span> s. Braked, it settles within a few seconds (<var>τ</var> = <span data-v="tau">1.30</span> s) and leaves at <span data-v="rampEnd">0.88</span> m/s after <span data-v="rampTBrake">11.0</span> s.</figcaption>
+  </figure>
+  <p>What the numbers cannot say:</p>
+  <ul class="tight">
+    <li><strong>Held or dragged?</strong> A brake that never grabs and never lets go is new to a wheelchair user. Some will feel looked after; others will feel the chair resisting them, like walking a dog that won't hurry.</li>
+    <li><strong>Can you let go?</strong> After years of the rims being the only brake, taking your hands off them on a slope is a matter of trust. It may take one run, or it may never happen.</li>
+    <li><strong>Is <span data-v="tau">1.30</span> s the right "give"?</strong> The time constant decides whether the chair eases into its speed or seems to sag. It is set by the mass and the brake, not chosen, and I don't know which feels better.</li>
+    <li><strong>What is the right speed?</strong> I set the design target at no more than <span data-v="X.vTarget">1.25</span> m/s on 1:12, a brisk walk. That number is a feeling written down as a number, and the people who would use this should set it.</li>
+    <li><strong>Steering hands-free.</strong> With both brakes equal the chair runs straight. A light touch on one rim steers by adding to that wheel's braking. Whether that feels natural or fiddly is unknown.</li>
+  </ul>
+  <p>These are why §8 ends with a ramp afternoon rather than a spreadsheet.</p>
+</section>
+
+<section class="wrap wide" id="calculator">
+  <div class="wrap" style="padding:0">
+    <h2><span class="sec">§5</span>Calculator</h2>
+    <p>Move a slider and the model re-solves; changing the bracket's geometry re-runs the field and eddy-current solves (a fraction of a second). This is the same <code>model.js</code> that produced every number above, inlined unchanged.</p>
+  </div>
+  <div class="calc" id="calc">
+    <noscript><p>The calculator needs JavaScript. The base-case results are in §3.</p></noscript>
+    <div class="calc-grid">
+      <div>
+        <div class="btns" id="presets" role="group" aria-label="Presets">
+          <button type="button" data-preset="base">Base case</button>
+          <button type="button" data-preset="light">Light: 4 poles</button>
+          <button type="button" data-preset="steep">Steep street, 1:8</button>
+          <button type="button" data-preset="heavy">130 kg</button>
+          <button type="button" data-preset="draft">The draft's guess</button>
+        </div>
+        <div class="ctl"><label for="c-run"><span>Slope 1:<var>n</var></span><output id="o-run"></output></label><input type="range" id="c-run" min="5" max="30" step="1" value="12"></div>
+        <div class="ctl"><label for="c-mass"><span>Rider + chair + bag</span><output id="o-mass"></output></label><input type="range" id="c-mass" min="50" max="160" step="5" value="100"></div>
+        <div class="ctl"><label for="c-crr"><span>Rolling resistance <var>C</var><sub>rr</sub></span><output id="o-crr"></output></label><input type="range" id="c-crr" min="0.004" max="0.025" step="0.001" value="0.012"></div>
+        <div class="ctl"><label for="c-pairs"><span>Pole positions per wheel</span><output id="o-pairs"></output></label><input type="range" id="c-pairs" min="2" max="10" step="2" value="6"><div class="hint">even: each yoke pairs two poles</div></div>
+        <div class="ctl"><label for="c-cl"><span>Clearance each side</span><output id="o-cl"></output></label><input type="range" id="c-cl" min="1" max="4" step="0.5" value="2"></div>
+        <div class="ctl"><label for="c-t"><span>Disc thickness</span><output id="o-t"></output></label><input type="range" id="c-t" min="3" max="8" step="1" value="5"></div>
+        <div class="ctl"><label for="c-ml"><span>Magnet length</span><output id="o-ml"></output></label><input type="range" id="c-ml" min="5" max="20" step="1" value="10"></div>
+        <div class="ctl"><label for="c-eta"><span>Realism <var>η</var> (the experiment measures this)</span><output id="o-eta"></output></label><input type="range" id="c-eta" min="0.4" max="1.1" step="0.01" value="0.9"></div>
+        <div class="btns" id="alloys" role="group" aria-label="Disc alloy">
+          <button type="button" data-alloy="6061-T6" aria-pressed="true">6061-T6</button>
+          <button type="button" data-alloy="1100-H14" aria-pressed="false">1100-H14</button>
+          <button type="button" data-alloy="C110" aria-pressed="false">copper</button>
+        </div>
+        <div class="btns" id="grades" role="group" aria-label="Magnet grade">
+          <button type="button" data-grade="N52" aria-pressed="true">N52</button>
+          <button type="button" data-grade="N42" aria-pressed="false">N42</button>
+          <button type="button" data-grade="N42SH" aria-pressed="false">N42SH</button>
+        </div>
+      </div>
+      <div>
+        <div class="status" id="status" aria-live="polite"></div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <ul class="warns" id="warns"></ul>
+        <div class="chart" id="sweepchart"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="prior">
+  <h2><span class="sec">§6</span>Prior art</h2>
+  <p>I've only named things I'm confident exist, and I say how sure I am of each. Every part of this idea is old. The closest thing I found is a Korean patent, below.</p>
+  <div class="cards">
+    <div class="card"><h4>Eddy-current brakes everywhere else <span class="tag c">Certain</span></h4>
+      <p>Magnetic-resistance exercise bikes and rowers, which vary resistance by moving magnets relative to a flywheel. Permanent-magnet fin brakes on roller coasters and drop towers. Electromagnetic retarders on trucks and buses. The linear eddy-current brake on Germany's ICE 3 trains. The physics and the engineering are mature. <strong>Difference:</strong> none of these is sized for a 100 kg chair at walking pace, packed between a wheel and a frame.</p></div>
+    <div class="card"><h4>KR 10-1440447, a wheelchair with an eddy-current brake (filed 2013, granted 2014) <span class="tag l">Likely</span></h4>
+      <p>From the abstract: a conductive metal plate turns with the wheel, and a magnet on the chair's body is brought alongside it so eddy currents slow the wheel. That is this concept's core. <strong>I could only read it through a patent aggregator's machine-translated abstract</strong>, not the full text, so I don't know how it is sized or whether it aims at holding a speed on slopes. I found no product. Read this dossier as an independent feasibility check of that idea, with the numbers worked out.</p></div>
+    <div class="card"><h4>Eddy-current speed limits in fall-protection and walking aids <span class="tag l">Likely</span></h4>
+      <p>US 10,864,393 (Burke), "Fall control system and method of controlling a movement during fall event", is not a walker. A trolley runs along a guide rail, tethered to the user. An always-on eddy-current brake against a control track keeps it below walking speed, and a second mechanism slows a fall without stopping it dead. US 12,553,480, "Magnetic braking and speed control system for walker", uses magnetic cores at a walker's wheels to control pace. I have seen their titles and summaries, not their full claims. <strong>Difference:</strong> the rail system limits a person's walking speed rather than carrying their weight on wheels, and a walker carries a fraction of the load at a fraction of the speed.</p></div>
+    <div class="card"><h4>Mechanical descent aids for manual wheelchairs <span class="tag c">Certain</span></h4>
+      <p>US 4,537,415 (Georgia Tech Research Institute, 1985), "Dynamic brake for manual wheelchair": push the handrim inward and a brake ring meets a friction shoe. US 6,102,166, "Wheelchair brake", has an "on-guard" position giving drag braking on downward inclines. US 8,622,178, "In-hub braking system for manual wheelchairs". The Wijit lever-drive wheels include lever-operated brakes (this one I know only from secondary descriptions). Anti-rollback devices such as US 5,845,746 solve the uphill direction. <strong>Difference:</strong> all of these are friction brakes the user modulates. None holds a speed by itself.</p></div>
+    <div class="card"><h4>Power assist <span class="tag l">Likely</span></h4>
+      <p>Hub-motor power-assist wheels can brake with their motors. Rear add-on drives such as the SmartDrive MX2+ (about 5.7 kg) push but do not brake. A Politecnico di Torino paper (Cornagliotto et al., "Evaluation on Implementing an Active Braking System in Wheelchair Rear-Mounted Power-Assisted Device", RAAD 2022) notes that none of the latest rear add-ons has an active braking system. <strong>Difference:</strong> the honey brake needs no battery, though it weighs a little more than that add-on (<span data-v="perChair">6.2</span> kg a chair).</p></div>
+    <div class="card"><h4>The physics references <span class="tag l">Likely</span></h4>
+      <p>For eddy brakes at low speed: J. H. Wouterse, "Critical torque and speed of eddy current brake with widely separated soft iron poles", <i>IEE Proceedings B</i> 138(4), 1991, which I have seen cited but not read. For the falling magnet: Y. Levin, F. L. da Silveira and F. B. Rizzato, "Electromagnetic braking: a simple quantitative model", <i>Am. J. Phys.</i> 74, 815 (2006), which treats the pipe as stacked rings as §3.8 does, and C. MacLatchy, P. Backman and L. Bogan, "A quantitative magnetic braking experiment", <i>Am. J. Phys.</i> 61 (1993). The derivations on this page are my own and are checked numerically. They don't rely on these papers.</p></div>
+    <div class="card"><h4>Standards <span class="tag c">Certain</span></h4>
+      <p>2010 ADA Standards §405.2 (running slope no steeper than 1:12) and §405.6 (no more than 30 inches of rise per ramp run). §405.2's exception lets existing sites that are short of space go steeper: up to 1:10 for at most 6 inches of rise, or 1:8 for at most 3 inches (Table 405.2). Ramps that short are over in a second or two at these speeds. ISO 7176-3 covers how wheelchair brakes are tested.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="premortem">
+  <h2><span class="sec">§7</span>Pre-mortem</h2>
+  <p>Suppose it's 2028 and the honey brake is dead. These are the failure modes I think most likely. Each number is my <strong>separate</strong> estimate of the chance that this failure <em>alone</em> kills the idea. They are not shares of one failure and don't add up to 100%.</p>
+  <div class="cards">
+    <div class="card risk"><div class="p"><span data-v="K.field" data-scale="100">15</span>%<small>technical</small></div><div><h4>The real brake is much weaker than the field solve says</h4>
+      <p><var>κ</var> comes from an idealised field: infinite back iron, a flat strip, magnets exactly at catalogue strength. <var>η</var> = <span data-v="B.eta">0.90</span> is my allowance for everything else. If the real brake is under <span data-v="expKillFrac">41</span>% of the model, even 10 poles can't hold 1:12 at <span data-v="X.vTarget">1.25</span> m/s. I rate this low because the field and current solves agree with independent code and with the textbook limits. <strong>The $<span data-v="X.costUSD">200</span> experiment settles it.</strong></p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.debris" data-scale="100">20</span>%<small>technical</small></div><div><h4>Steel grit, water and ice foul the 2 mm clearances</h4>
+      <p>The poles sit <span data-v="B.clearance" data-scale="1000">2</span> mm from the ring and pull in every staple, screw and filing they pass near the ground. Disc runout and wheel play eat into the same gap: a slightly bent hub flange or the end-float of a quick-release axle takes millimetres away at the ring. A scored ring is a nuisance; a jammed one is a hazard. Mitigations: brush wipers at the bracket's entry, a non-magnetic shroud, wider clearances. 3 mm costs <span data-v="brakeLoss_cl3">22</span>% of the braking (1:12 at <span data-v="vT_cl3">1.13</span> m/s).</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.heatmag" data-scale="100">10</span>%<small>technical</small></div><div><h4>A hot car boot weakens the magnets for good</h4>
+      <p>N52 is rated to about <span data-v="tMaxN52">80</span> °C, and a chair in a closed car in summer can get close to that or past it. Part of the loss would be permanent. The heat-tolerant N42SH grade costs <span data-v="shLoss_pct">18</span>% of the braking (1:12 at <span data-v="vT_sh">1.07</span> m/s), which the base design can afford.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.pull" data-scale="100">5</span>%<small>technical</small></div><div><h4>Left and right brake differently and the chair pulls</h4>
+      <p>A 10% mismatch is a <span data-v="pull10">3.5</span> N difference between the wheels on 1:12, which a touch on one rim corrects. One lever and cable for both wheels, and magnets matched by measured strength, keep it smaller. A bent bracket on one side is the real worry.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.mounting" data-scale="100">40</span>%<small>adoption</small></div><div><h4>It will not fit between the wheel and the frame</h4>
+      <p>The bracket is <span data-v="stack_mm">63</span> mm across the disc, and <span data-v="half_mm">29</span> mm of that must fit between the disc and the wheel's spokes. On most chairs the wheel sits a few centimetres from the side guard and the axle plate, and a <span data-v="B.ringOD" data-scale="1000">380</span> mm disc sweeps right through that space. I expect most chairs would need their wheels spaced outward, making the chair up to <span data-v="widenMax_cm">13</span> cm wider at every doorway (§3.7). The <span data-v="K.mounting" data-scale="100">40</span>% is my chance that packaging kills the idea on both routes: a retrofit that widens the chair, and a frame designed around the brake from the start. A version designed into a new frame is the honest route, and that is a much slower road than a retrofit kit.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.weight" data-scale="100">35</span>%<small>adoption</small></div><div><h4>More than five kilograms is too much for the people who would want it</h4>
+      <p>It adds <span data-v="perChair">6.2</span> kg to a chair that may weigh 10–14 kg (<span data-v="perChair4">5.0</span> kg for a 4-pole version that is faster on 1:12). Every push on the flat and every lift into a car pays for it. A SmartDrive add-on weighs about as much and sells, but it adds power, and this adds drag.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.fit" data-scale="100">20</span>%<small>adoption</small></div><div><h4>The speed it picks is wrong for the hills people actually have</h4>
+      <p>One bracket gives <span data-v="vT_20">0.47</span> m/s on 1:20 and <span data-v="vT_8">1.38</span> m/s on 1:8. A 70 kg rider goes <span data-v="vT_m70">0.61</span> m/s on 1:12; a 130 kg one goes <span data-v="vT_m130">1.14</span>. The obvious fix is partial engagement: slide the bracket part-way off the ring for less braking, as exercise bikes do. It is plausible, but I haven't modelled how braking falls with overlap.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.lever" data-scale="100">15</span>%<small>adoption</small></div><div><h4>Switching it on and off is a chore, so it is left off</h4>
+      <p>On the flat it costs <span data-v="levelDrag">80</span> N at 1 m/s, so it has to come off at the bottom of every ramp, and uphill too. That means <span data-v="slide_mm">53</span> mm of slide, every time. If that needs two hands or a lean, people stop using it. An automatic version (engage only above a speed, or only facing downhill) is future work.</p></div></div>
+    <div class="card risk"><div class="p"><span data-v="K.liability" data-scale="100">20</span>%<small>adoption</small></div><div><h4>Standards and liability</h4>
+      <p>A brake that does not hold the chair at rest fits no existing category. It would need testing (ISO 7176-3 covers brakes), clear labelling that it is not a parking brake, and the chair maker's blessing, or the user's warranty is gone.</p></div></div>
+  </div>
+  <p>Only the first risk is about whether the brake works as §3 says. It leaves <strong><span data-v="pPhysics">85</span>%</strong> that a well-built prototype brakes well enough to clear the experiment's kill line. The other three technical risks are about surviving the street, the car and the matching of two wheels. If I treat the four as independent (they aren't, quite), they leave <strong><span data-v="pTechnical">58</span>%</strong> that a well-built brake both works and survives use. That is the product of one minus each technical risk. Adding the five adoption risks leaves <strong><span data-v="pProduct">12</span>%</strong> that it becomes something people fit to their chairs. The likeliest killers are space and weight, not physics.</p>
+</section>
+
+<section class="wrap" id="experiment">
+  <h2><span class="sec">§8</span>The first experiment: one wheel, two weights</h2>
+  <p>The physics is the cheap part to test, and every other question depends on it. If the brake is much weaker than computed, it needs more magnets, which makes the weight and packaging problems worse. So: build one braked wheel, drive it with falling weights, and measure its brake coefficient <var>k</var><sub>wheel</sub> directly.</p>
+  <div class="cards">
+    <div class="card"><h4>Kit (about $<span data-v="X.costUSD">200</span>)</h4>
+      <p>A used 24-inch wheelchair wheel and axle (or your own); a laser-cut <span data-v="B.ringT" data-scale="1000">5</span> mm 6061 disc; <span data-v="magnetsPerWheel">12</span> N52 blocks of <span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magL" data-scale="1000">10</span> mm; low-carbon steel flat bar for the yokes (plain bars are fine here); plywood or aluminium jaws with shims for the <span data-v="B.clearance" data-scale="1000">2</span> mm clearances; braided fishing line; <span data-v="X.m1">2</span> kg and <span data-v="X.m2">4</span> kg weights; a phone that films at <span data-v="X.fps">240</span> frames per second. <strong>Handle N52 blocks with care</strong>: two snapping together can break a finger.</p></div>
+    <div class="card"><h4>Procedure</h4>
+      <p>Clamp the wheel's axle high, at least <span data-v="expDrop">1.5</span> m plus the weight's height above the floor (a stair landing works), and fix the bracket to the same fixture. Wind the line round the tyre and hang the <span data-v="X.m1">2</span> kg weight. Put tape marks <span data-v="X.runUp">0.5</span> m and <span data-v="expMarkB">1.5</span> m below the release point, beside a metre stick. Hang the weight from a short thread and release it by cutting the thread in shot, so the release frame is unmistakable (see the pass and kill lines below). Film the weight from release past both marks, five drops each with <span data-v="X.m1">2</span> kg and <span data-v="X.m2">4</span> kg. From the video read three frames: release, mark A, mark B. Then spin the wheel by hand with the bracket slid off, and again with it removed: if it coasts noticeably less with the bracket only slid off, the off position needs more travel.</p></div>
+    <div class="card"><h4>Analysis: fit the motion, not the average</h4>
+      <p>From rest the weight obeys <var>x</var>(<var>t</var>) = <var>v</var>(<var>t</var> − <var>τ</var>(1 − e<sup>−<var>t</var>/<var>τ</var></sup>)). The two mark times fix <var>v</var> and <var>τ</var> for each weight, and then <var>k</var><sub>wheel</sub> = (<var>m</var><sub>2</sub> − <var>m</var><sub>1</sub>)<var>g</var>/(<var>v</var><sub>2</sub> − <var>v</var><sub>1</sub>). Bearing and string friction cancel. The analyser below does the fit. <strong>Why not just divide <span data-v="X.timed">1.0</span> m by the time between the marks?</strong> Because a weak brake hasn't settled by mark A. A prototype at <span data-v="expWeakTrue">15.9</span> N·s/m, below the kill line, has <span data-v="expWeakSettled_pct">28</span>% of its transient left at mark A with <span data-v="X.m2">4</span> kg. The naive average reads it as <span data-v="expWeakNaive">22.4</span> N·s/m, comfortably alive. The fit reads <span data-v="expWeakFit">15.9</span>. For a model-perfect wheel the times between the marks would be <span data-v="expT1">2.06</span> s and <span data-v="expT2">1.02</span> s.</p></div>
+    <div class="card"><h4>What the model predicts</h4>
+      <p><var>k</var><sub>wheel</sub> = <span data-v="kWheel">39.8</span> N·s/m. With <span data-v="X.m1">2</span> kg the weight settles at <span data-v="expV1">0.49</span> m/s (<var>τ</var> = <span data-v="expTau1">0.10</span> s) and passes the marks at <span data-v="expTA1">1.13</span> s and <span data-v="expTB1">3.19</span> s. With <span data-v="X.m2">4</span> kg it settles at <span data-v="expV2">0.98</span> m/s (<var>τ</var> = <span data-v="expTau2">0.15</span> s), passing at <span data-v="expTA2">0.66</span> s and <span data-v="expTB2">1.68</span> s. At <span data-v="X.m2">4</span> kg the ring moves at <span data-v="expVRing2">0.51</span> m/s, close to its <span data-v="vRing">0.46</span> m/s on the 1:12 ramp. These times assume <span data-v="X.friction">0.3</span> N of friction, but the fit doesn't need to know it.</p></div>
+    <div class="card kill"><h4>Pass and kill lines, and why a model-perfect wheel passes</h4>
+      <p>Both lines come from what the product needs, not from the model. <strong>Pass: <var>k</var><sub>wheel</sub> ≥ <span data-v="expPass">27.9</span> N·s/m.</strong> That holds a <span data-v="B.massTotal">100</span> kg chair to <span data-v="X.vTarget">1.25</span> m/s on 1:12 with this <span data-v="B.pairs">6</span>-pole bracket. It is <span data-v="expPassFrac">70</span>% of the model's prediction, so a wheel that brakes exactly as modelled passes with room for the ±<span data-v="expRes_pct">1.3</span>% timing error. <strong>Kill: <var>k</var><sub>wheel</sub> &lt; <span data-v="expKill">16.4</span> N·s/m</strong> (<span data-v="expKillFrac">41</span>% of the model). Then even a <span data-v="X.maxPairs">10</span>-pole bracket, <span data-v="arcDeg10">115</span>° of arc and <span data-v="perWheel10">4.4</span> kg per wheel, couldn't hold the target. In between, it works but needs more magnets, so re-weigh it. <code>check.mjs</code> films a simulated model-perfect prototype at <span data-v="X.fps">240</span> fps with 0, 0.3 and 1 N of friction and a one-frame slip in spotting the release, and asserts that every run passes. It also checks that wheels 4% either side of each line land on the right side of it when the release is read to within a frame. <strong>Near the kill line, the release frame matters.</strong> A weak brake is still speeding up at mark A, so the fit leans on when the fall began. Reading the release 3 frames (<span data-v="expSlip3_ms">12.5</span> ms) late puts <var>k</var><sub>wheel</sub> about <span data-v="expSlipKill3_pct">5</span>% high at the kill line, and 6 frames about <span data-v="expSlipKill6_pct">10</span>%, enough to lift a wheel 4% below the line above it. At the model's value the same 6 frames move it only <span data-v="expSlipModel6_pct">0.2</span>%. Three frames after release the <span data-v="X.m2">4</span> kg weight has moved only <span data-v="expRelease3_mm">0.5</span> mm, which is why the procedure cuts a thread instead of letting go by hand. If a reading lands near a line, re-read the release frame before believing it.</p></div>
+  </div>
+
+  <div class="calc" id="analyser">
+    <h3 style="margin-top:0">Experiment analyser</h3>
+    <p class="small muted">Times in seconds from release (mean of your five drops). Pre-filled with the model's prediction.</p>
+    <div class="timing">
+      <label><span data-v="X.m1">2</span> kg, mark A <input type="number" step="0.001" min="0" id="tA1" inputmode="decimal"></label>
+      <label><span data-v="X.m1">2</span> kg, mark B <input type="number" step="0.001" min="0" id="tB1" inputmode="decimal"></label>
+      <label><span data-v="X.m2">4</span> kg, mark A <input type="number" step="0.001" min="0" id="tA2" inputmode="decimal"></label>
+      <label><span data-v="X.m2">4</span> kg, mark B <input type="number" step="0.001" min="0" id="tB2" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="anaout" aria-live="polite"></div>
+  </div>
+
+  <h3>Then: the ramp afternoon (the felt part)</h3>
+  <p>If the wheel passes, build the second one, fit both to a borrowed chair, and spend an afternoon at a 1:12 ramp with six to eight experienced manual-chair users. Each does runs with the brake off (their usual hand-braking), on, and half-engaged, in random order. Film the runs for speed, and ask after each: did you feel in control, and would you leave it on? Cost: a second bracket (about $<span data-v="cost">180</span>) plus paying people for their time. <strong>Kill:</strong> fewer than half would leave it engaged on a second visit, or anyone can't correct its pull one-handed. A model-perfect prototype can't be designed to pass this test, and that is the point of running it.</p>
+</section>
+
+<section class="wrap" id="assumptions">
+  <h2><span class="sec">§9</span>Assumptions register</h2>
+  <div class="tbl assume"><table>
+    <thead><tr><th>Input</th><th>Value</th><th>Basis</th><th>Confidence</th></tr></thead>
+    <tbody>
+      <tr><td>Rider + chair + bag</td><td><span data-v="B.massTotal">100</span> kg</td><td>Round number; the speed scales with it (§3.5)</td><td><span class="tag s">Choice</span></td></tr>
+      <tr><td>Rolling resistance</td><td><span data-v="B.crr">0.012</span></td><td>My assumption for smooth hard ground, with plausible values from about 0.006 to 0.02. Lower makes the chair faster.</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Rear wheel</td><td><span data-v="B.wheelDia" data-scale="1000">610</span> mm, <span data-v="B.wheelInertia">0.15</span> kg·m²</td><td>24-inch (ISO 540) wheel; inertia as about <span data-v="wheelEqMass">1.6</span> kg at the rim</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Disc conductivity</td><td><span data-v="iacs6061">43</span>% IACS (6061-T6)</td><td>Handbook value at 20 °C; 1100-H14 is <span data-v="iacs1100">57</span>%</td><td><span class="tag c">Certain</span></td></tr>
+      <tr><td>Magnets</td><td>N52, <var>B</var><sub>r</sub> <span data-v="Br">1.44</span> T, <var>μ</var><sub>rec</sub> <span data-v="C.muRec">1.05</span></td><td>Catalogue typical, ±0.03 T between suppliers</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Clearance</td><td><span data-v="B.clearance" data-scale="1000">2</span> mm each side</td><td>What a stiff bracket can hold on a true disc; whether it survives the street is a pre-mortem risk</td><td><span class="tag s">Speculative</span></td></tr>
+      <tr><td>Field model</td><td>ideal yokes, <var>μ</var><sub>rec</sub> = 1, then scaled</td><td>Standard idealisation; checked against the 1-D limit and a second method</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Realism allowance <var>η</var></td><td><span data-v="B.eta">0.90</span></td><td>My allowance for finite yokes, glue lines, tolerances and curvature. The experiment measures it.</td><td><span class="tag s">Speculative</span></td></tr>
+      <tr><td>Heat transfer</td><td><span data-v="B.hConv">8</span> W/m²K</td><td>Flat-plate estimate <span data-v="hFlat">5.8</span> plus rotation and natural convection; within a factor of two</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Yoke flux density</td><td><span data-v="C.bSteelMax">1.5</span> T</td><td>Conservative for low-carbon steel</td><td><span class="tag l">Likely</span></td></tr>
+      <tr><td>Jaws, bridge and fittings</td><td><span data-v="structureMass">0.86</span> kg per wheel</td><td>Sketch-level sizing; the jaws and bridge are checked for stiffness only</td><td><span class="tag s">Speculative</span></td></tr>
+      <tr><td>Costs</td><td>$<span data-v="costChair">360</span> per chair</td><td>Guesses at one-off prices, not quotes</td><td><span class="tag s">Speculative</span></td></tr>
+      <tr><td>Target speed on 1:12</td><td>≤ <span data-v="X.vTarget">1.25</span> m/s</td><td>A brisk walk. Really a felt number (§4); sets the experiment's pass line.</td><td><span class="tag s">Speculative</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="wrap" id="revisions">
+  <h2><span class="sec">Revision note</span>What changed from the first draft</h2>
+  <p>Another agent started this dossier and was cut off. Its model had the right architecture and most of the right physics. Rebuilding it, I found and fixed these problems:</p>
+  <ul class="tight">
+    <li><strong>The brake's shape factor was guessed, and guessed in the wrong direction.</strong> The draft assumed <var>c</var> = 0.4, reasoning that a narrow ring must push it below ½, and a leakage factor of 0.75: product <span data-v="draftKappa">0.225</span>. Solving the field and the currents shows that alternating neighbours push <var>c</var> above ½ (<span data-v="cSharp">0.61</span>), while fringing costs field. The net is <var>κ</var> = <span data-v="kappa">0.359</span>, or <span data-v="kappaEta">0.323</span> after my realism allowance. The brake is <span data-v="draftRatio">1.44</span>× stronger than the draft said: 1:12 went from <span data-v="vT_draft">1.26</span> m/s to <span data-v="vT">0.88</span> m/s.</li>
+    <li><strong>The back bars were sized for half the flux they carry.</strong> That is true for an endless row, but in a finite row of six the bar between a pair carries a whole pole's flux and the bar between pairs carries none. The bars are now split yokes, sized from the field at the steel face.</li>
+    <li><strong>The copper-pipe demo used a 1 × ½-inch cylinder with the point-dipole formula.</strong> The formula doesn't hold for a magnet <span data-v="draftCylRatio">3.4</span>× longer than the pipe's radius. It now uses a sphere, for which the dipole field is exact, and integrates across the wall's thickness.</li>
+    <li><strong>The experiment's pass and kill lines were set relative to the model,</strong> with a guessed 1 N friction allowance and a single weight. Now two weights cancel friction, the lines come from what the product needs, and the analysis fits the transient. The naive analysis would have let a dead prototype through.</li>
+    <li><strong>The pre-mortem quoted hard-coded numbers that had drifted:</strong> a "360 mm plate" for a 380 mm disc, "about 2 kg per wheel" when the draft's own model said 2.6, and "1.9 m/s on 1:8" for 1.99. All numbers are now tagged and filled from the model.</li>
+    <li><strong>Smaller fixes:</strong> convection 15 → <span data-v="B.hConv">8</span> W/m²K (the flat-plate estimate is <span data-v="hFlat">5.8</span>), with the temperature feedback iterated; the bracket's thickness, slide travel and jaw stiffness are now computed; the discs' own inertia is included.</li>
+  </ul>
+</section>
+
+<section class="wrap" id="review">
+  <h2><span class="sec">Revision note</span>What an independent review changed</h2>
+  <p>An independent reviewer rebuilt the physics in separate code. It reproduced κ, the field, the clamp force and every downstream number to about three figures, and found these problems, now fixed:</p>
+  <ul class="tight">
+    <li><strong>The headline probability was on the wrong quantity.</strong> The <span data-v="pTechnical">58</span>% was quoted as the chance that a prototype "brakes as this page says", but only one of the four technical risks is about that. It is now <span data-v="pPhysics">85</span>% that the brake clears the kill line, <span data-v="pTechnical">58</span>% that it also survives grit, heat and matching, and <span data-v="pProduct">12</span>% overall. The risk estimates themselves are unchanged.</li>
+    <li><strong>The bracket's bridge was missing from the mass and the stiffness.</strong> With the bridge added, and the jaws taken as the sectors they are, the brake adds <span data-v="perChair">6.2</span> kg a chair, not 5.6, and the jaws deflect <span data-v="jawDeflect_mm">0.16</span> mm, not 0.06.</li>
+    <li><strong>The copper-pipe caveat pointed the wrong way.</strong> A sphere with its moment across the pipe falls faster (<span data-v="pipeTTrans">19</span> s), not slower.</li>
+    <li><strong>The experiment did not warn about the release frame.</strong> Near the kill line a few frames of error move the reading by more than the 4% margin. The procedure now cuts a thread in shot, and the analyser flags readings near a line.</li>
+    <li><strong>Smaller fixes:</strong> US 10,864,393 is a rail-and-trolley fall-control system, not a walker. 1:12 is the ADA maximum for new ramps, not for all ramps. The mounting risk now says what it covers, and §3.7 covers taking a wheel off, camber, width and the cost with the brake switched off.</li>
+  </ul>
+</section>
+</main>
+
+<footer class="wrap">
+  <p><strong>Files.</strong> <code>index.html</code> (this page, with <code>model.js</code> inline); <code>model.js</code> (the model, both solvers and every quoted number); <code>build.mjs</code> (inlines the model and fills the tagged numbers); <code>check.mjs</code> (independent recomputation: a Fourier field, a stream-function current solve, RK4 runs of the ramp and of the experiment, units, and README agreement). Run <code>node ideas/31-honey-brake/check.mjs</code>.</p>
+  <p>Made by Lenzwright for the Idea Bank. Nothing here has been built. Don't fit an untested brake to a chair someone depends on.</p>
+</footer>
+
+<script>
+/*MODEL:BEGIN*/
+/* The Honey Brake: feasibility model.
+ * One file, no dependencies. It runs as a classic <script> in the page (global HoneyBrake)
+ * and in Node (module.exports / vm). Every number quoted in index.html and README.md comes
+ * from quoted() below, and check.mjs recomputes them with separately written code.
+ *
+ * Units are SI unless a name says otherwise. The two numerical solvers (the gap field and
+ * the eddy currents in the ring) work internally in millimetres, because their only output
+ * is a dimensionless shape factor.
+ */
+const HoneyBrake = (() => {
+  'use strict';
+  // Local aliases: global lookups are slow inside Node's vm sandbox, which build.mjs and check.mjs use.
+  const Math = globalThis.Math;
+  const Float64Array = globalThis.Float64Array;
+  const Map = globalThis.Map;
+
+  // ---------------------------------------------------------------- physical constants
+  const PHYS = {
+    g: 9.80665,                 // m/s^2
+    mu0: 4e-7 * Math.PI,        // H/m
+    sigmaIACS: 5.8e7,           // S/m, 100 % IACS (annealed copper standard)
+    muRec: 1.05,                // recoil permeability of sintered NdFeB
+    rhoNd: 7500,                // kg/m^3 sintered NdFeB
+    rhoSteel: 7850,             // kg/m^3 low-carbon steel (back yokes)
+    rhoAl: 2700,                // kg/m^3 aluminium (jaws)
+    eAl: 69e9,                  // Pa, Young's modulus of aluminium
+    bSteelMax: 1.5,             // T, flux density the yokes are sized for
+    kAir: 0.026,                // W/m K
+    nuAir: 1.6e-5,              // m^2/s
+    prAir: 0.71,
+  };
+
+  // Conductor choices for the ring. iacs = conductivity as a fraction of the copper standard at 20 C,
+  // alpha = temperature coefficient of resistivity (1/K).
+  const ALLOYS = {
+    '6061-T6': { iacs: 0.43, rho: 2700, cp: 900, alpha: 0.0040, label: 'aluminium 6061-T6' },
+    '1100-H14': { iacs: 0.57, rho: 2710, cp: 900, alpha: 0.0040, label: 'aluminium 1100-H14' },
+    'C110': { iacs: 1.0, rho: 8940, cp: 385, alpha: 0.0039, label: 'copper C110' },
+  };
+
+  // Sintered NdFeB: typical remanence Br at 20 C in tesla (datasheet spreads are about +-0.03 T),
+  // and the maximum working temperature of the grade.
+  const GRADES = {
+    N42: { br: 1.30, tMax: 80 },
+    N52: { br: 1.44, tMax: 80 },
+    N42SH: { br: 1.30, tMax: 150 },
+  };
+
+  // ---------------------------------------------------------------- base case
+  const BASE = {
+    massTotal: 100,      // kg: rider + chair + bag
+    slopeRun: 12,        // slope written as 1:slopeRun (1:12 is the ADA maximum for new ramps)
+    crr: 0.012,          // rolling-resistance coefficient of the whole chair on smooth hard ground
+    wheelDia: 0.610,     // m, 24-inch rear wheel (ISO 540 rim) tyre outside diameter
+    wheelInertia: 0.15,  // kg m^2 per rear wheel (rim, tyre, spokes, handrim)
+    ringOD: 0.380,       // m, outer diameter of the aluminium disc's braking ring
+    ringW: 0.060,        // m, radial width of the ring (the poles run along its centre line)
+    ringT: 0.005,        // m, ring (plate) thickness
+    spokes: 6,           // plate spokes joining the ring to a hub flange (one laser-cut part)
+    spokeW: 0.020,       // m
+    hubOD: 0.100,        // m
+    hubID: 0.060,        // m
+    alloy: '6061-T6',
+    grade: 'N52',
+    magA: 0.025,         // m, square pole face side
+    magL: 0.010,         // m, magnet length along its magnetisation (one magnet; two per pole)
+    clearance: 0.002,    // m, running clearance between the ring and each pole face
+    pairs: 6,            // pole positions per wheel (one magnet each side), alternating, even
+    pitch: 0.032,        // m, centre-to-centre spacing of the poles along the arc
+    eta: 0.90,           // allowance for what the idealised field model leaves out (see 3.3)
+    tempRise: 0,         // K, ring temperature above 20 C
+    hConv: 8,            // W/m^2 K, heat transfer from the moving disc (see 3.6)
+    barW: 0.040,         // m, yoke width (radial), wider than the magnets to keep the yoke thin
+    jawT: 0.006,         // m, aluminium jaw plate holding the yokes
+    fittingsMass: 0.15,  // kg, slide, lever share, fasteners (estimate)
+    magnetUSD: 5,        // $ per 25 x 25 x 10 mm N52 block, one-off (estimate, not a quote)
+    ringUSD: 40,         // $ laser-cut 5 mm 6061 disc, one-off
+    steelUSD: 20,        // $ yoke steel
+    structureUSD: 60,    // $ jaws, slide, lever, cable, fasteners
+  };
+
+  // Numerical settings for the two solvers (millimetres).
+  const NUM = { h: 1, margin: 50, cutoff: 50, nImg: 8, tol: 1e-9 };
+
+  // Copper-pipe kitchen check: a magnet SPHERE (whose outside field is exactly a dipole)
+  const PIPE = {
+    sphereD: 0.0127,     // m, 1/2-inch sphere
+    grade: 'N42',
+    pipeOD: 0.015875,    // m, 1/2-inch type L copper tube, 0.625 in outside
+    pipeID: 0.01384,     // m, 0.545 in bore (wall 1.02 mm)
+    iacs: 0.85,          // plumbing copper (C12200, phosphorus-deoxidised) is roughly 85 % IACS
+    length: 1.5,         // m, pipe length
+  };
+
+  // The first experiment: a braked wheel driven by falling weights.
+  const EXP = {
+    m1: 2,               // kg, light weight
+    m2: 4,               // kg, heavy weight
+    friction: 0.3,       // N at the tyre, bearing + string (cancels in the two-weight method)
+    runUp: 0.5,          // m, fall before the first mark
+    timed: 1.0,          // m, between the marks
+    fps: 240,            // phone slow-motion video
+    vTarget: 1.25,       // m/s, the most the brake may allow on 1:12 (a brisk walk, 4.5 km/h)
+    maxPairs: 10,        // the largest bracket I'd accept (115 degrees of arc)
+    costUSD: 200,        // whole kit, one wheel (see section 8)
+  };
+
+  // ADA ramp run: 1:12 slope, 30 in (0.76 m) of rise between landings
+  const RAMP = { run: 9.144, v0: 0.5 };
+
+  const SLOPES = [
+    { run: 20, name: '1:20' },
+    { run: 12, name: '1:12' },
+    { run: 8, name: '1:8' },
+    { run: 5, name: '1:5' },
+  ];
+
+  // ---------------------------------------------------------------- helpers
+  function merge(p) {
+    return Object.assign({}, BASE, p || {});
+  }
+  function sigmaOf(p) {
+    const a = ALLOYS[p.alloy] || ALLOYS['6061-T6'];
+    return (a.iacs * PHYS.sigmaIACS) / (1 + a.alpha * p.tempRise);
+  }
+  function brOf(p) {
+    return (GRADES[p.grade] || GRADES.N52).br;
+  }
+
+  // ---------------------------------------------------------------- 3.1 the hill's push
+  function hill(p) {
+    p = merge(p);
+    const theta = Math.atan(1 / p.slopeRun);
+    const W = p.massTotal * PHYS.g;
+    const fDown = W * Math.sin(theta);
+    const fRoll = W * Math.cos(theta) * p.crr;
+    return { theta, thetaDeg: (theta * 180) / Math.PI, gradePct: 100 / p.slopeRun, weight: W, fDown, fRoll, fNet: fDown - fRoll };
+  }
+
+  // ---------------------------------------------------------------- 3.2 the gap field
+  // 1-D magnetic circuit: two magnets in series round a loop with two gaps, ideal iron.
+  // Ampere (no free current) + flux continuity + recoil line B = Br + mu0 muRec H.
+  function circuit(p) {
+    p = merge(p);
+    const Br = brOf(p);
+    const Lm = 2 * p.magL;                    // m, magnet length per gap
+    const g = p.ringT + 2 * p.clearance;      // m, gap: ring plus two clearances (aluminium is non-magnetic)
+    const bClosed = Br / (1 + (PHYS.muRec * g) / Lm);
+    const bClosed1 = Br / (1 + g / Lm);       // same with muRec = 1, the normalisation of the 3-D solve
+    return { Br, Lm, g, bClosed, bClosed1, muScale: bClosed / bClosed1 };
+  }
+
+  // Field of ONE pole position (top magnet's face +M at z=+g2, bottom magnet's face -M at z=-g2),
+  // between ideal back iron at z = +-D (D = g2 + Lm1). Magnetic charge sheets plus their images in
+  // the two iron planes; muRec = 1. Returns the downward field as a fraction of Br. All in mm.
+  function omegaRect(x1, x2, y1, y2, h) {
+    const f = (x, y) => Math.atan2(x * y, h * Math.sqrt(x * x + y * y + h * h));
+    return f(x2, y2) - f(x1, y2) - f(x2, y1) + f(x1, y1);
+  }
+  function poleB(x, y, z, a, g2, Lm1, nImg) {
+    const D = g2 + Lm1;
+    let s = 0;
+    const add = (q, zq) => {
+      const hgt = Math.abs(z - zq);
+      if (hgt < 1e-12) return;
+      const om = omegaRect(-a / 2 - x, a / 2 - x, -a / 2 - y, a / 2 - y, hgt);
+      s += (q * om * (zq > z ? 1 : -1)) / (4 * Math.PI);
+    };
+    for (let n = -nImg; n <= nImg; n++) {
+      add(1, g2 + 4 * n * D);
+      add(-1, 2 * D - g2 + 4 * n * D);
+      add(-1, -g2 + 4 * n * D);
+      add(1, 2 * D + g2 + 4 * n * D);
+    }
+    return s;
+  }
+
+  // Thin-sheet eddy currents at low magnetic Reynolds number. Cell-centred potential phi on an
+  // nx-by-ny grid (spacing h); the sheet moves along +x at unit speed with unit conductivity and
+  // thickness; Bf holds the field on the horizontal cell faces (row jf = 0..ny, edges carry no current).
+  // Ohm's law J = E_s - grad(phi) with E_s = v x B = -B y-hat; div J = 0; solved by conjugate gradients.
+  // Returns the drag (positive) and the dissipation, which must be equal.
+  function sheetSolve(Bf, nx, ny, h, tol) {
+    const N = nx * ny;
+    const rhs = new Float64Array(N);
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        const top = j + 1 < ny ? -Bf[(j + 1) * nx + i] : 0;
+        const bot = j > 0 ? -Bf[j * nx + i] : 0;
+        rhs[j * nx + i] = -h * (top - bot);
+      }
+    }
+    let mean = 0;
+    for (let k = 0; k < N; k++) mean += rhs[k];
+    mean /= N;
+    for (let k = 0; k < N; k++) rhs[k] -= mean;
+    const L = (u, out) => {
+      for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+          const k = j * nx + i;
+          const c = u[k];
+          let s = 0;
+          if (i > 0) s += c - u[k - 1];
+          if (i < nx - 1) s += c - u[k + 1];
+          if (j > 0) s += c - u[k - nx];
+          if (j < ny - 1) s += c - u[k + nx];
+          out[k] = s;
+        }
+      }
+    };
+    const phi = new Float64Array(N);
+    const r = Float64Array.from(rhs);
+    const d = Float64Array.from(rhs);
+    const Ad = new Float64Array(N);
+    let rr = 0;
+    for (let k = 0; k < N; k++) rr += r[k] * r[k];
+    const r0 = Math.sqrt(rr) || 1;
+    let it = 0;
+    for (; it < 20000; it++) {
+      L(d, Ad);
+      let dAd = 0;
+      for (let k = 0; k < N; k++) dAd += d[k] * Ad[k];
+      const alpha = rr / dAd;
+      let rr2 = 0;
+      for (let k = 0; k < N; k++) {
+        phi[k] += alpha * d[k];
+        r[k] -= alpha * Ad[k];
+        rr2 += r[k] * r[k];
+      }
+      if (Math.sqrt(rr2) < tol * r0) break;
+      const beta = rr2 / rr;
+      rr = rr2;
+      for (let k = 0; k < N; k++) d[k] = r[k] + beta * d[k];
+    }
+    let drag = 0;
+    let diss = 0;
+    for (let jf = 1; jf < ny; jf++) {
+      for (let i = 0; i < nx; i++) {
+        const B = Bf[jf * nx + i];
+        const Jy = -B - (phi[jf * nx + i] - phi[(jf - 1) * nx + i]) / h;
+        drag -= Jy * B * h * h;
+        diss += Jy * Jy * h * h;
+      }
+    }
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx - 1; i++) {
+        const Jx = -(phi[j * nx + i + 1] - phi[j * nx + i]) / h;
+        diss += Jx * Jx * h * h;
+      }
+    }
+    return { drag, diss, it, phi };
+  }
+
+  // The array on the ring, unrolled into a straight strip of the ring's width.
+  function arrayGeom(p) {
+    const mm = (x) => x * 1000;
+    const a = mm(p.magA);
+    const pitch = mm(p.pitch);
+    const n = p.pairs;
+    const W = mm(p.ringW);
+    const g2 = mm(p.ringT + 2 * p.clearance) / 2;
+    const Lm1 = mm(p.magL);
+    const t = mm(p.ringT);
+    const h = NUM.h;
+    const L = (n - 1) * pitch + a + 2 * NUM.margin;
+    const nx = Math.round(L / h);
+    const ny = Math.round(W / h);
+    const xc = [];
+    for (let k = 0; k < n; k++) xc.push(NUM.margin + a / 2 + k * pitch);
+    return { a, pitch, n, W, g2, Lm1, t, h, nx, ny, xc, barW: mm(p.barW) };
+  }
+
+  // Ring-thickness-averaged field of the whole alternating row on the strip's faces, plus the
+  // mid-plane field (for the attraction force). Single-pole values are cached by offset.
+  function fieldOnFaces(G) {
+    const { a, n, W, g2, Lm1, t, h, nx, ny, xc } = G;
+    const zg = (Math.sqrt(3 / 5) * t) / 2;
+    const cacheAvg = new Map();
+    const cacheMid = new Map();
+    const one = (dx, dy) => {
+      const key = `${dx.toFixed(6)},${dy.toFixed(6)}`;
+      let v = cacheAvg.get(key);
+      if (v === undefined) {
+        if (Math.abs(dx) > NUM.cutoff) {
+          v = 0;
+          cacheMid.set(key, 0);
+        } else {
+          const m = poleB(dx, dy, 0, a, g2, Lm1, NUM.nImg);
+          v = ((8 / 9) * m + (5 / 9) * (poleB(dx, dy, zg, a, g2, Lm1, NUM.nImg) + poleB(dx, dy, -zg, a, g2, Lm1, NUM.nImg))) / 2;
+          cacheMid.set(key, m);
+        }
+        cacheAvg.set(key, v);
+      }
+      return key;
+    };
+    const Bf = new Float64Array(nx * (ny + 1));
+    const Bm = new Float64Array(nx * (ny + 1));
+    for (let jf = 0; jf <= ny; jf++) {
+      for (let i = 0; i < nx; i++) {
+        const x = (i + 0.5) * h;
+        const y = jf * h - W / 2 - (G.yOff || 0);
+        let s = 0;
+        let sm = 0;
+        for (let k = 0; k < n; k++) {
+          const dx = x - xc[k];
+          if (Math.abs(dx) > NUM.cutoff) continue;
+          const key = one(dx, y);
+          const sign = k % 2 ? -1 : 1;
+          s += sign * cacheAvg.get(key);
+          sm += sign * cacheMid.get(key);
+        }
+        Bf[jf * nx + i] = s;
+        Bm[jf * nx + i] = sm;
+      }
+    }
+    return { Bf, Bm };
+  }
+
+  // Flux carried by one back yoke (between the first two poles), from the field at the iron face,
+  // integrated over the yoke width. Grid aligned to the magnet edges. Fraction of Br * A.
+  function yokeFlux(G) {
+    const { a, n, pitch, g2, Lm1, barW } = G;
+    const D = g2 + Lm1;
+    const h = 0.5;
+    const xs = [];
+    for (let k = 0; k < n; k++) xs.push(k * pitch);
+    const cache = new Map();
+    let cum = 0;
+    const nyy = Math.round(barW / h);
+    for (let i = -Math.round((NUM.cutoff + a / 2) / h); (-a / 2 + (i + 0.5) * h) < pitch / 2; i++) {
+      const x = -a / 2 + (i + 0.5) * h;
+      for (let j = 0; j < nyy; j++) {
+        const y = -barW / 2 + (j + 0.5) * h;
+        let s = 0;
+        for (let k = 0; k < n; k++) {
+          const dx = x - xs[k];
+          if (Math.abs(dx) > NUM.cutoff) continue;
+          const key = `${dx.toFixed(6)},${y.toFixed(6)}`;
+          let v = cache.get(key);
+          if (v === undefined) {
+            v = poleB(dx, y, D - 1e-9, a, g2, Lm1, NUM.nImg);
+            cache.set(key, v);
+          }
+          s += (k % 2 ? -1 : 1) * v;
+        }
+        const inside = Math.abs(x) < a / 2 && Math.abs(y) < a / 2 ? 1 : 0;
+        cum += (s + inside) * h * h;
+      }
+    }
+    return cum / (a * a);
+  }
+
+  // kappa: braking force of the row = eta * kappa * sigma * d * bClosed^2 * A * v per pole position.
+  const KCACHE = new Map();
+  function geomKey(p) {
+    return [p.magA, p.magL, p.clearance, p.ringT, p.ringW, p.pitch, p.pairs, p.barW].join('|');
+  }
+  function kappaSolve(p) {
+    p = merge(p);
+    const key = geomKey(p);
+    if (KCACHE.has(key)) return KCACHE.get(key);
+    const G = arrayGeom(p);
+    const { Bf, Bm } = fieldOnFaces(G);
+    const S = sheetSolve(Bf, G.nx, G.ny, G.h, NUM.tol);
+    const A = G.a * G.a;
+    const bc1 = G.Lm1 / (G.Lm1 + G.g2);      // 1-D closed-circuit field / Br, muRec = 1
+    // mean field over the pole footprints, and the mid-plane attraction integral
+    let foot = 0;
+    let nfoot = 0;
+    let b2 = 0;
+    for (let jf = 1; jf < G.ny; jf++) {
+      for (let i = 0; i < G.nx; i++) {
+        const x = (i + 0.5) * G.h;
+        const y = jf * G.h - G.W / 2;
+        b2 += Bm[jf * G.nx + i] ** 2 * G.h * G.h;
+        for (let k = 0; k < G.n; k++) {
+          if (Math.abs(x - G.xc[k]) < G.a / 2 && Math.abs(y) < G.a / 2) {
+            foot += (k % 2 ? -1 : 1) * Bf[jf * G.nx + i];
+            nfoot++;
+          }
+        }
+      }
+    }
+    const out = {
+      kappa: S.drag / (G.n * A * bc1 * bc1),
+      lambda: foot / nfoot / bc1,
+      clampRel: b2 / (G.n * A),               // integral of B_mid^2 per pole / (Br^2 A)
+      yokeRel: yokeFlux(G),                   // yoke flux / (Br A)
+      energyCheck: S.diss / S.drag,
+      iterations: S.it,
+      grid: { nx: G.nx, ny: G.ny, h: G.h, xc: G.xc, a: G.a, W: G.W },
+      phi: S.phi,
+      Bf,
+    };
+    KCACHE.set(key, out);
+    return out;
+  }
+
+  // The same sheet solve with an idealised field: exactly B under each pole face, zero elsewhere.
+  function sharpFactor(p) {
+    p = merge(p);
+    const G = arrayGeom(p);
+    const Bf = new Float64Array(G.nx * (G.ny + 1));
+    for (let jf = 0; jf <= G.ny; jf++) {
+      for (let i = 0; i < G.nx; i++) {
+        const x = (i + 0.5) * G.h;
+        const y = jf * G.h - G.W / 2;
+        for (let k = 0; k < G.n; k++) if (Math.abs(x - G.xc[k]) < G.a / 2 && Math.abs(y) < G.a / 2) Bf[jf * G.nx + i] = k % 2 ? -1 : 1;
+      }
+    }
+    const S = sheetSolve(Bf, G.nx, G.ny, G.h, NUM.tol);
+    return S.drag / (G.n * G.a * G.a);
+  }
+
+  function gap(p) {
+    p = merge(p);
+    const C = circuit(p);
+    const K = kappaSolve(p);
+    const area = p.magA * p.magA;
+    const bFoot = K.lambda * C.bClosed;                       // T, mean field under a pole face
+    const clamp = (K.clampRel * (C.Br * C.muScale) ** 2 * area) / (2 * PHYS.mu0);  // N per pole position
+    return Object.assign({}, C, { area, kappa: K.kappa, lambda: K.lambda, bFoot, clamp, yokeRel: K.yokeRel });
+  }
+
+  // ---------------------------------------------------------------- 3.3 eddy force per pole position
+  function pair(p) {
+    p = merge(p);
+    const G = gap(p);
+    const sigma = sigmaOf(p);
+    const kPair = p.eta * G.kappa * sigma * p.ringT * G.bClosed * G.bClosed * G.area;  // N per (m/s) of ring speed
+    const w = 2 / (PHYS.mu0 * sigma * p.ringT);               // m/s, thin-sheet characteristic speed
+    return { sigma, kPair, kappa: G.kappa, bClosed: G.bClosed, area: G.area, w };
+  }
+
+  // ---------------------------------------------------------------- 3.4 from the ring to the ground
+  function wheel(p) {
+    p = merge(p);
+    const P = pair(p);
+    const rRing = (p.ringOD - p.ringW) / 2;
+    const R = p.wheelDia / 2;
+    const kTau = p.pairs * P.kPair * rRing * rRing;           // N m s, torque per rad/s
+    const kWheel = kTau / (R * R);                            // N s/m at the ground, one wheel
+    const kChair = 2 * kWheel;
+    const arcDeg = ((p.pairs * p.pitch) / rRing) * (180 / Math.PI);
+    return { rRing, R, speedRatio: rRing / R, kPair: P.kPair, kTau, kWheel, kChair, arcDeg, sigma: P.sigma, w: P.w, kappa: P.kappa };
+  }
+
+  // ---------------------------------------------------------------- 3.5 the steady speed
+  function descent(p) {
+    p = merge(p);
+    const H = hill(p);
+    const Wh = wheel(p);
+    const M = plateMass(p);
+    const vT = Math.max(0, H.fNet) / Wh.kChair;
+    const vRing = vT * Wh.speedRatio;
+    const mEff = p.massTotal + (2 * (p.wheelInertia + M.inertia)) / (Wh.R * Wh.R);
+    const tau = mEff / Wh.kChair;
+    const power = H.fNet * vT;
+    return {
+      vT, vKmh: vT * 3.6, vRing, speedRatioW: vRing / Wh.w, mEff, tau, power, powerPerRing: power / 2,
+      fNet: H.fNet, kChair: Wh.kChair, levelDrag1: Wh.kChair * 1.0,
+    };
+  }
+
+  function speedAt(p, t, v0) {
+    const D = descent(p);
+    const u = v0 || 0;
+    return D.vT + (u - D.vT) * Math.exp(-t / D.tau);
+  }
+
+  // A ramp run, entered at v0: braked (exponential approach) against free rolling.
+  function ramp(p, L, v0) {
+    p = merge(p);
+    L = L || RAMP.run;
+    v0 = v0 === undefined ? RAMP.v0 : v0;
+    const D = descent(p);
+    const H = hill(p);
+    const aFree = H.fNet / D.mEff;
+    const vFree = Math.sqrt(v0 * v0 + 2 * aFree * L);
+    const tFree = (vFree - v0) / aFree;
+    const x = (t) => D.vT * t + (v0 - D.vT) * D.tau * (1 - Math.exp(-t / D.tau));
+    let t = L / Math.max(D.vT, 1e-6);
+    for (let i = 0; i < 60; i++) {
+      const v = D.vT + (v0 - D.vT) * Math.exp(-t / D.tau);
+      t -= (x(t) - L) / v;
+    }
+    const vEnd = D.vT + (v0 - D.vT) * Math.exp(-t / D.tau);
+    const rise = L * Math.sin(H.theta);
+    const eHands = p.massTotal * PHYS.g * rise - H.fRoll * L;  // J the hands absorb holding a crawl
+    return { L, v0, aFree, vFree, tFree, tBrake: t, vEnd, rise, eHands };
+  }
+
+  // ---------------------------------------------------------------- 3.6 heat
+  function plateMass(p) {
+    p = merge(p);
+    const a = ALLOYS[p.alloy];
+    const ro = p.ringOD / 2;
+    const ri = ro - p.ringW;
+    const r1 = p.hubOD / 2;
+    const ringArea = Math.PI * (ro * ro - ri * ri);
+    const hubArea = Math.PI * (r1 ** 2 - (p.hubID / 2) ** 2);
+    const spokeArea = p.spokes * p.spokeW * (ri - r1);
+    const area = ringArea + hubArea + spokeArea;
+    const dens = p.ringT * a.rho;
+    const mass = area * dens;
+    const inertia = dens * (ringArea * (ro * ro + ri * ri) / 2 + hubArea * (r1 ** 2 + (p.hubID / 2) ** 2) / 2 + spokeArea * (ri * ri + ri * r1 + r1 * r1) / 3);
+    return { ringArea, hubArea, spokeArea, area, mass, inertia, heatCap: mass * a.cp, convArea: 2 * area };
+  }
+
+  // Laminar flat-plate forced convection at chair speed (the justification for hConv).
+  function hFlatPlate(v, L) {
+    const Re = (v * L) / PHYS.nuAir;
+    return (0.664 * PHYS.kAir * Math.sqrt(Re) * Math.cbrt(PHYS.prAir)) / L;
+  }
+
+  function thermal(p) {
+    p = merge(p);
+    const a = ALLOYS[p.alloy];
+    const M = plateMass(p);
+    const cold = descent(p);
+    const UA = p.hConv * M.convArea;
+    let rise = cold.powerPerRing / UA;
+    let D = cold;
+    for (let i = 0; i < 200; i++) {
+      D = descent(Object.assign({}, p, { tempRise: rise }));
+      const next = D.powerPerRing / UA;
+      if (Math.abs(next - rise) < 1e-10) {
+        rise = next;
+        break;
+      }
+      rise = next;
+    }
+    return {
+      adiabaticRate: cold.powerPerRing / M.heatCap, UA, steadyRise: rise, tauThermal: M.heatCap / UA,
+      derateAtSteady: 1 - 1 / (1 + a.alpha * rise), vTHot: D.vT, heatCap: M.heatCap, hFlat: hFlatPlate(cold.vT, p.ringOD),
+    };
+  }
+
+  // ---------------------------------------------------------------- 3.7 iron, force, weight, size, cost
+  function hardware(p) {
+    p = merge(p);
+    const G = gap(p);
+    const M = plateMass(p);
+    const Wh = wheel(p);
+    const magnetVol = p.magA * p.magA * p.magL;
+    const magnetsPerWheel = 2 * p.pairs;
+    const magnetMass = magnetsPerWheel * magnetVol * PHYS.rhoNd;
+    // Yokes: each pairs two neighbouring poles; the bar between them carries a whole pole's flux.
+    const yokeFlux = G.yokeRel * G.Br * G.area;                // Wb
+    const yokeT = yokeFlux / (PHYS.bSteelMax * p.barW);        // m, full thickness between the magnets
+    const yokes = p.pairs;                                     // pairs/2 per side, two sides
+    const yokeMassTapered = yokes * p.barW * yokeT * p.pitch * PHYS.rhoSteel;
+    const yokeMassUniform = yokes * p.barW * yokeT * (p.pitch + p.magA) * PHYS.rhoSteel;
+    // Jaws: two aluminium plates, annular sectors over the bracket's arc, from the yoke's inner edge to a
+    // bridge 10 mm past the ring. The bridge is a curved band of the same plate that joins the two jaws
+    // across the whole stack, just outside that radius (Fig. 2).
+    const ro = p.ringOD / 2;
+    const arcLen = p.pairs * p.pitch + 0.020;                  // m, measured along the pole line
+    const span = arcLen / Wh.rRing;                            // rad, the bracket's angular span
+    const rIn = Wh.rRing - p.barW / 2;                         // m, the jaws' inner edge
+    const rBr = ro + 0.010;                                    // m, inner face of the bridge
+    const jawMass = 2 * ((span * (rBr * rBr - rIn * rIn)) / 2) * p.jawT * PHYS.rhoAl;
+    const half = p.jawT + yokeT + p.magL + p.clearance;        // m, one side of the ring
+    const stack = 2 * half + p.ringT;                          // m, whole bracket across the ring
+    const bridgeLen = span * (rBr + p.jawT / 2);                // m, along the arc at the bridge's mid-thickness
+    const bridgeMass = bridgeLen * stack * p.jawT * PHYS.rhoAl;
+    // Stiffness. Each jaw carries the whole attraction at the pole line, a lever arm from its root at the
+    // bridge: it bends as a cantilever, and the bridge, under the constant root moment clampTotal * arm
+    // along its span (jaw centre to jaw centre), lets each root turn by M L / (2 E I), which tips the jaw.
+    const clampTotal = G.clamp * p.pairs;                      // N pulling the jaws together
+    const arm = rBr - Wh.rRing;                                // m, bridge to the pole line
+    const jawI = (arcLen * p.jawT ** 3) / 12;
+    const jawBend = (clampTotal * arm ** 3) / (3 * PHYS.eAl * jawI);   // m, cantilever on a rigid root
+    const bridgeI = (bridgeLen * p.jawT ** 3) / 12;
+    const bridgeTilt = (clampTotal * arm * (stack - p.jawT)) / (2 * PHYS.eAl * bridgeI);  // rad at each end
+    const jawDeflect = jawBend + bridgeTilt * arm;             // m, each jaw toward the ring at the pole line
+    const structureMass = jawMass + bridgeMass + p.fittingsMass;
+    const bracketMass = magnetMass + yokeMassTapered + structureMass;
+    const perWheel = M.mass + bracketMass;
+    const slide = ro - (Wh.rRing - p.magA / 2) + 0.010;        // m, travel to pull the poles 10 mm clear of the ring
+    const cost = magnetsPerWheel * p.magnetUSD + p.ringUSD + p.steelUSD + p.structureUSD;
+    return {
+      magnetVol, magnetsPerWheel, magnetMass, magnetMassEach: magnetVol * PHYS.rhoNd,
+      yokeFlux, yokeT, yokeMassTapered, yokeMassUniform, jawMass, bridgeMass, structureMass, bracketMass,
+      plateMass: M.mass, perWheel, perChair: 2 * perWheel, clampPerPair: G.clamp, clampTotal, jawBend, bridgeTilt, jawDeflect,
+      half, stack, slide, arcDeg: Wh.arcDeg, cost, costChair: 2 * cost,
+    };
+  }
+
+  // Drag left with the bracket slid off: the same field and current solves with the ring offset radially
+  // by the slide travel, as a fraction of the engaged drag. Ideal (infinite) yokes, so this is the field
+  // model's answer, not a bound on what real yokes leak.
+  function offDrag(p) {
+    p = merge(p);
+    const slide = hardware(p).slide;
+    const G = Object.assign(arrayGeom(p), { yOff: slide * 1000 });
+    const { Bf } = fieldOnFaces(G);
+    const S = sheetSolve(Bf, G.nx, G.ny, G.h, NUM.tol);
+    const bc1 = G.Lm1 / (G.Lm1 + G.g2);
+    return S.drag / (kappaSolve(p).kappa * G.n * G.a * G.a * bc1 * bc1);
+  }
+
+  // ---------------------------------------------------------------- 3.8 the copper pipe
+  // A uniformly magnetised sphere is exactly a dipole outside itself, m = Br V / mu0.
+  // Flux through a ring of radius r at axial distance z: Phi = mu0 m r^2 / (2 (r^2 + z^2)^1.5).
+  // A thin shell (radius r, thickness dr) of rings gives drag (45/1024) mu0^2 m^2 sigma dr v / r^4;
+  // integrating dr / r^4 across the wall gives the (1/3)(ri^-3 - ro^-3) below.
+  // A sphere has no marked poles, so it may fall with its moment ACROSS the pipe. Then B_r on a thin shell
+  // of radius a varies as cos(phi) (2a^2 - z^2)/(a^2 + z^2)^2.5, the azimuthal EMF piles charge on the wall,
+  // and the current must close along the pipe. The wall potential is s(z) sin(phi) with
+  // s'' - s/a^2 = g(z)/a; solved here by finite differences, scale-free (a = 1). Returns the drag of the
+  // transverse moment over that of the axial one, which is the same at every radius.
+  let TRANS = null;
+  function pipeTransverseRatio() {
+    if (TRANS !== null) return TRANS;
+    const Z = 60;
+    const n = 12001;
+    const dz = (2 * Z) / (n - 1);
+    const gAx = new Float64Array(n);
+    const gTr = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const z = -Z + i * dz;
+      const r5 = (1 + z * z) ** 2.5;
+      gAx[i] = (3 * z) / r5;
+      gTr[i] = (2 - z * z) / r5;
+    }
+    // tridiagonal (Thomas) solve, s = 0 at both ends
+    const b = new Float64Array(n);
+    const d = new Float64Array(n);
+    const c = 1 / (dz * dz);
+    b[0] = 1;
+    b[n - 1] = 1;
+    for (let i = 1; i < n - 1; i++) {
+      b[i] = -2 * c - 1;
+      d[i] = gTr[i];
+    }
+    for (let i = 1; i < n; i++) {
+      const lo = i < n - 1 ? c : 0;
+      const up = i - 1 > 0 ? c : 0;
+      const m = lo / b[i - 1];
+      b[i] -= m * up;
+      d[i] -= m * d[i - 1];
+    }
+    const sv = new Float64Array(n);
+    sv[n - 1] = d[n - 1] / b[n - 1];
+    for (let i = n - 2; i >= 0; i--) sv[i] = (d[i] - (i > 0 ? c : 0) * sv[i + 1]) / b[i];
+    let ax = 0;
+    let tr = 0;
+    for (let i = 1; i < n - 1; i++) {
+      const sp = (sv[i + 1] - sv[i - 1]) / (2 * dz);
+      ax += 2 * gAx[i] * gAx[i];                               // 2 pi a  ∫ B_r^2 dz, over pi
+      tr += (gTr[i] + sv[i]) ** 2 + sp * sp;                   // pi a ∫ (J_phi^2 + J_z^2) dz, over pi
+    }
+    TRANS = tr / ax;
+    return TRANS;
+  }
+
+  function pipe(q) {
+    q = Object.assign({}, PIPE, q || {});
+    const Br = GRADES[q.grade].br;
+    const rs = q.sphereD / 2;
+    const vol = (4 / 3) * Math.PI * rs ** 3;
+    const moment = (Br * vol) / PHYS.mu0;
+    const mass = vol * PHYS.rhoNd;
+    const ri = q.pipeID / 2;
+    const ro = q.pipeOD / 2;
+    const sigma = q.iacs * PHYS.sigmaIACS;
+    const kPipe = (45 / 1024) * PHYS.mu0 ** 2 * moment ** 2 * sigma * ((ri ** -3 - ro ** -3) / 3);  // N per (m/s)
+    const aMean = (ri + ro) / 2;
+    const kThin = (45 / 1024) * PHYS.mu0 ** 2 * moment ** 2 * sigma * (ro - ri) / aMean ** 4;
+    const vT = (mass * PHYS.g) / kPipe;
+    const transRatio = pipeTransverseRatio();
+    return {
+      Br, vol, moment, mass, ri, ro, sigma, kPipe, kThin, vT, vCmS: vT * 100, tFall: q.length / vT,
+      transRatio, tFallTrans: (q.length * transRatio) / vT,
+      tFree: Math.sqrt((2 * q.length) / PHYS.g), tau: mass / kPipe, clearance: ri - rs,
+    };
+  }
+
+  // ---------------------------------------------------------------- everything at once
+  function run(p) {
+    p = merge(p);
+    return { input: p, hill: hill(p), gap: gap(p), wheel: wheel(p), descent: descent(p), thermal: thermal(p), hardware: hardware(p), plate: plateMass(p), ramp: ramp(p) };
+  }
+
+  // Steady speed against grade for a few pole counts (the calculator's chart).
+  function sweep(p, pairsList, grades) {
+    p = merge(p);
+    return pairsList.map((n) => ({
+      pairs: n,
+      points: grades.map((gp) => ({ gradePct: gp, vT: descent(Object.assign({}, p, { pairs: n, slopeRun: 100 / gp })).vT })),
+    }));
+  }
+
+  // ---------------------------------------------------------------- pre-mortem
+  // Each p is a separate estimate of the chance that this failure ALONE sinks the idea.
+  const RISKS = [
+    { id: 'field', p: 0.15, kind: 'technical', title: 'The real brake is much weaker than the field solve says' },
+    { id: 'debris', p: 0.20, kind: 'technical', title: 'Steel grit, water and ice foul the 2 mm clearances' },
+    { id: 'heatmag', p: 0.10, kind: 'technical', title: 'A hot car boot weakens the magnets for good' },
+    { id: 'pull', p: 0.05, kind: 'technical', title: 'Left and right brake differently and the chair pulls' },
+    { id: 'mounting', p: 0.40, kind: 'adoption', title: 'It will not fit between the wheel and the frame' },
+    { id: 'weight', p: 0.35, kind: 'adoption', title: 'More than five kilograms is too much for the people who would want it' },
+    { id: 'fit', p: 0.20, kind: 'adoption', title: 'The speed it picks is wrong for the hills people actually have' },
+    { id: 'lever', p: 0.15, kind: 'adoption', title: 'Switching it on and off is a chore, so it is left off' },
+    { id: 'liability', p: 0.20, kind: 'adoption', title: 'Standards and liability' },
+  ];
+
+  function premortem() {
+    let tech = 1;
+    let all = 1;
+    for (const r of RISKS) {
+      all *= 1 - r.p;
+      if (r.kind === 'technical') tech *= 1 - r.p;
+    }
+    const field = RISKS.find((r) => r.id === 'field');
+    return { pPhysics: 1 - field.p, pTechnical: tech, pProduct: all };
+  }
+
+  // ---------------------------------------------------------------- the first experiment
+  // A braked wheel on a fixed axle, a string wound round the tyre, a weight hanging from it.
+  // From rest the weight obeys mEff dv/dt = m g - f - kWheel v, so it falls as
+  //   x(t) = v (t - tau (1 - exp(-t / tau))),   v = (m g - f) / kWheel,   tau = mEff / kWheel.
+  // Reading the video frames at release and at two marks gives two points on that curve, which fix
+  // v and tau whether or not the weight has settled. Two weights then give
+  //   kWheel = (m2 - m1) g / (v2 - v1)   (the friction f cancels).
+  function fallPos(v, tau, t) {
+    return v * (t - tau * (1 - Math.exp(-t / tau)));
+  }
+  function fallTime(v, tau, x) {
+    let t = x / v + tau;
+    for (let i = 0; i < 80; i++) t -= (fallPos(v, tau, t) - x) / (v * (1 - Math.exp(-t / tau)));
+    return t;
+  }
+  // Fit v and tau through (t1, L1) and (t2, L2), times measured from release.
+  function fitFall(L1, t1, L2, t2) {
+    const s = (tau, t) => t - tau * (1 - Math.exp(-t / tau));
+    const g = (tau) => s(tau, t2) * L1 - s(tau, t1) * L2;
+    let lo = Math.log(1e-5);
+    let hi = Math.log(1e4);
+    if (g(Math.exp(lo)) > 0) return { v: L2 / t2, tau: 0 };   // no visible transient: straight line
+    for (let i = 0; i < 200; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (g(Math.exp(mid)) > 0) hi = mid;
+      else lo = mid;
+    }
+    const tau = Math.exp(0.5 * (lo + hi));
+    return { v: L1 / s(tau, t1), tau };
+  }
+  function analyse(e, tA1, tB1, tA2, tB2) {
+    e = Object.assign({}, EXP, e || {});
+    const f1 = fitFall(e.runUp, tA1, e.runUp + e.timed, tB1);
+    const f2 = fitFall(e.runUp, tA2, e.runUp + e.timed, tB2);
+    const k = ((e.m2 - e.m1) * PHYS.g) / (f2.v - f1.v);
+    return { f1, f2, k, friction: e.m1 * PHYS.g - k * f1.v };
+  }
+  function experiment(p, e) {
+    p = merge(p);
+    e = Object.assign({}, EXP, e || {});
+    const Wh = wheel(p);
+    const I = p.wheelInertia + plateMass(p).inertia;
+    const one = (m) => {
+      const mEff = m + I / (Wh.R * Wh.R);
+      const v = (m * PHYS.g - e.friction) / Wh.kWheel;
+      const tau = mEff / Wh.kWheel;
+      const tA = fallTime(v, tau, e.runUp);
+      const tB = fallTime(v, tau, e.runUp + e.timed);
+      return { m, v, tau, mEff, tA, tB, tTimed: tB - tA, settled: Math.exp(-tA / tau), vRing: v * Wh.speedRatio };
+    };
+    const A = one(e.m1);
+    const B = one(e.m2);
+    const kRead = analyse(e, A.tA, A.tB, B.tA, B.tB).k;
+    const kMean = ((e.m2 - e.m1) * PHYS.g) / (e.timed / B.tTimed - e.timed / A.tTimed);  // the naive reading
+    const H = hill(p);
+    const kPass = H.fNet / (2 * e.vTarget);
+    const kBig = wheel(Object.assign({}, p, { pairs: e.maxPairs })).kWheel;
+    const kKill = kPass * (Wh.kWheel / kBig);
+    return { A, B, I, kWheel: Wh.kWheel, kRead, kMean, kPass, kKill, passFrac: kPass / Wh.kWheel, killFrac: kKill / Wh.kWheel, drop: e.runUp + e.timed };
+  }
+
+  // Spotting the release frame late (frames > 0) or early shifts all four measured times by the same amount.
+  // Returns the fractional error this puts on kWheel, for a wheel that really brakes at kFrac of the model.
+  function releaseSlip(kFrac, frames, p, e) {
+    p = merge(p);
+    e = Object.assign({}, EXP, e || {});
+    const X = experiment(Object.assign({}, p, { eta: p.eta * kFrac }), e);
+    const d = frames / e.fps;
+    return analyse(e, X.A.tA - d, X.A.tB - d, X.B.tA - d, X.B.tB - d).k / X.kWheel - 1;
+  }
+
+  // ---------------------------------------------------------------- numbers quoted in the page and README
+  function fmt(x, d) {
+    return Number(x).toFixed(d);
+  }
+  function quoted() {
+    const R = run();
+    const T = R.thermal;
+    const Hw = R.hardware;
+    const E = experiment();
+    const Pp = pipe();
+    const PM = premortem();
+    const K = kappaSolve(BASE);
+    const q = {};
+    // hill
+    q.thetaDeg = fmt(R.hill.thetaDeg, 2);
+    q.weight = fmt(R.hill.weight, 0);
+    q.fDown = fmt(R.hill.fDown, 1);
+    q.fRoll = fmt(R.hill.fRoll, 1);
+    q.fNet = fmt(R.hill.fNet, 1);
+    // gap
+    q.Lm_mm = fmt(R.gap.Lm * 1000, 0);
+    q.g_mm = fmt(R.gap.g * 1000, 0);
+    q.g2_mm = fmt(R.gap.g * 500, 1);
+    q.bClosed = fmt(R.gap.bClosed, 3);
+    q.bClosed1 = fmt(R.gap.bClosed1, 3);
+    q.lambda = fmt(R.gap.lambda, 2);
+    q.bFoot = fmt(R.gap.bFoot, 2);
+    q.area_cm2 = fmt(R.gap.area * 1e4, 2);
+    q.clamp = fmt(R.gap.clamp, 0);
+    q.kappa = fmt(R.gap.kappa, 3);
+    q.kappaEta = fmt(R.gap.kappa * BASE.eta, 3);
+    q.cSharp = fmt(sharpFactor(BASE), 2);
+    q.cSharpSingle = fmt(sharpFactor({ pairs: 1 }), 2);
+    q.kappa4 = fmt(kappaSolve({ pairs: 4 }).kappa, 3);
+    q.kappa10 = fmt(kappaSolve({ pairs: 10 }).kappa, 3);
+    q.kappaIter = fmt(K.iterations, 0);
+    q.energyCheck = fmt(K.energyCheck, 4);
+    q.draftKappa = fmt(0.4 * 0.75 * 0.75, 3);
+    q.draftRatio = fmt(R.gap.kappa * BASE.eta / (0.4 * 0.75 * 0.75), 2);
+    // pair and wheel
+    q.sigma_MS = fmt(R.wheel.sigma / 1e6, 1);
+    q.kPair = fmt(R.wheel.kPair, 1);
+    q.w = fmt(R.wheel.w, 1);
+    q.rRing_mm = fmt(R.wheel.rRing * 1000, 0);
+    q.R_mm = fmt(R.wheel.R * 1000, 0);
+    q.speedRatio = fmt(R.wheel.speedRatio, 3);
+    q.speedRatio2 = fmt(R.wheel.speedRatio ** 2, 3);
+    q.kTau = fmt(R.wheel.kTau, 2);
+    q.kWheel = fmt(R.wheel.kWheel, 1);
+    q.kChair = fmt(R.wheel.kChair, 1);
+    q.arcDeg = fmt(R.wheel.arcDeg, 0);
+    // descent
+    q.vT = fmt(R.descent.vT, 2);
+    q.vKmh = fmt(R.descent.vKmh, 1);
+    q.vRing = fmt(R.descent.vRing, 2);
+    q.vOverW_pct = fmt(R.descent.speedRatioW * 100, 1);
+    q.mEff = fmt(R.descent.mEff, 1);
+    q.tau = fmt(R.descent.tau, 2);
+    q.power = fmt(R.descent.power, 0);
+    q.powerPerRing = fmt(R.descent.powerPerRing, 0);
+    q.levelDrag = fmt(R.descent.levelDrag1, 0);
+    q.levelRatio = fmt(R.descent.levelDrag1 / hill({ slopeRun: 1e9 }).fRoll, 0);
+    q.fRollLevel = fmt(hill({ slopeRun: 1e9 }).fRoll, 1);
+    for (const s of SLOPES) q['vT_' + s.run] = fmt(descent({ slopeRun: s.run }).vT, 2);
+    q.vT_m70 = fmt(descent({ massTotal: 70 }).vT, 2);
+    q.vT_m130 = fmt(descent({ massTotal: 130 }).vT, 2);
+    q.vT_4pairs = fmt(descent({ pairs: 4 }).vT, 2);
+    q.vT_8pairs = fmt(descent({ pairs: 8 }).vT, 2);
+    q.vT_4pairs_8 = fmt(descent({ pairs: 4, slopeRun: 8 }).vT, 2);
+    q.vT_cl3 = fmt(descent({ clearance: 0.003 }).vT, 2);
+    q.kappa_cl3 = fmt(kappaSolve({ clearance: 0.003 }).kappa, 3);
+    q.bClosed_cl3 = fmt(circuit({ clearance: 0.003 }).bClosed, 3);
+    q.brakeLoss_cl3 = fmt((1 - wheel({ clearance: 0.003 }).kWheel / R.wheel.kWheel) * 100, 0);
+    q.vT_1100 = fmt(descent({ alloy: '1100-H14' }).vT, 2);
+    q.vT_copper = fmt(descent({ alloy: 'C110' }).vT, 2);
+    q.massCopper = fmt(plateMass({ alloy: 'C110' }).mass, 2);
+    q.vT_sh = fmt(descent({ grade: 'N42SH' }).vT, 2);
+    q.shLoss_pct = fmt((1 - wheel({ grade: 'N42SH' }).kWheel / R.wheel.kWheel) * 100, 0);
+    q.vT_eta75 = fmt(descent({ eta: 0.75 }).vT, 2);
+    q.vT_eta100 = fmt(descent({ eta: 1.0 }).vT, 2);
+    q.vT_crr6 = fmt(descent({ crr: 0.006 }).vT, 2);
+    q.vT_crr20 = fmt(descent({ crr: 0.02 }).vT, 2);
+    q.vT_t4 = fmt(descent({ ringT: 0.004 }).vT, 2);
+    q.vT_t6 = fmt(descent({ ringT: 0.006 }).vT, 2);
+    q.vT_draft = fmt(R.descent.vT * R.gap.kappa * BASE.eta / (0.4 * 0.75 * 0.75), 2);
+    q.pull10 = fmt(0.1 * R.descent.fNet / 2, 1);
+    // ramp run
+    q.rampRun = fmt(RAMP.run, 2);
+    q.rampRise = fmt(R.ramp.rise, 2);
+    q.rampV0 = fmt(RAMP.v0, 1);
+    q.rampFree = fmt(R.ramp.vFree, 1);
+    q.rampFreeKmh = fmt(R.ramp.vFree * 3.6, 0);
+    q.rampTFree = fmt(R.ramp.tFree, 1);
+    q.rampEnd = fmt(R.ramp.vEnd, 2);
+    q.rampTBrake = fmt(R.ramp.tBrake, 1);
+    q.rampHands = fmt(R.ramp.eHands, 0);
+    q.aFree = fmt(R.ramp.aFree, 2);
+    // thermal
+    q.plateMass = fmt(R.plate.mass, 2);
+    q.plateInertia = fmt(R.plate.inertia * 1000, 0);
+    q.heatCap = fmt(T.heatCap, 0);
+    q.adiabaticPerMin = fmt(T.adiabaticRate * 60, 1);
+    q.convArea_m2 = fmt(R.plate.convArea, 3);
+    q.UA = fmt(T.UA, 2);
+    q.hFlat = fmt(T.hFlat, 1);
+    q.steadyRise = fmt(T.steadyRise, 0);
+    q.tauThermal_min = fmt(T.tauThermal / 60, 0);
+    q.derateAtSteady_pct = fmt(T.derateAtSteady * 100, 0);
+    q.vTHot = fmt(T.vTHot, 2);
+    const drop = 1000 / Math.sqrt(1 + BASE.slopeRun ** 2);
+    const ePot = BASE.massTotal * PHYS.g * drop;
+    const eRoll = R.hill.fRoll * 1000;
+    q.hillDrop = fmt(drop, 0);
+    q.hillPot_kJ = fmt(ePot / 1000, 0);
+    q.hillRoll_kJ = fmt(eRoll / 1000, 0);
+    q.hillRing_kJ = fmt((ePot - eRoll) / 2000, 0);
+    q.hillAdiabatic_K = fmt((ePot - eRoll) / 2 / T.heatCap, 0);
+    q.hillMinutes = fmt(1000 / R.descent.vT / 60, 0);
+    // hardware
+    q.magnetMassEach_g = fmt(Hw.magnetMassEach * 1000, 0);
+    q.magnetsPerWheel = fmt(Hw.magnetsPerWheel, 0);
+    q.magnetMass = fmt(Hw.magnetMass, 2);
+    q.yokeRel = fmt(R.gap.yokeRel, 2);
+    q.yokeFlux_uWb = fmt(Hw.yokeFlux * 1e6, 0);
+    q.yokeT_mm = fmt(Hw.yokeT * 1000, 1);
+    q.yokeMass = fmt(Hw.yokeMassTapered, 2);
+    q.yokeMassUniform = fmt(Hw.yokeMassUniform, 2);
+    q.jawMass = fmt(Hw.jawMass, 2);
+    q.bridgeMass = fmt(Hw.bridgeMass, 2);
+    q.jawBend_mm = fmt(Hw.jawBend * 1000, 2);
+    q.bridgeTip_mm = fmt(Hw.bridgeTilt * (BASE.ringOD / 2 + 0.010 - R.wheel.rRing) * 1000, 2);
+    q.structureMass = fmt(Hw.structureMass, 2);
+    q.bracketMass = fmt(Hw.bracketMass, 2);
+    q.perWheel = fmt(Hw.perWheel, 1);
+    q.perChair = fmt(Hw.perChair, 1);
+    q.perWheel4 = fmt(hardware({ pairs: 4 }).perWheel, 1);
+    q.perChair4 = fmt(hardware({ pairs: 4 }).perChair, 1);
+    q.clampTotal = fmt(Hw.clampTotal, 0);
+    q.jawDeflect_mm = fmt(Hw.jawDeflect * 1000, 2);
+    q.stack_mm = fmt(Hw.stack * 1000, 0);
+    q.half_mm = fmt(Hw.half * 1000, 0);
+    q.slide_mm = fmt(Hw.slide * 1000, 0);
+    q.cost = fmt(Hw.cost, 0);
+    q.costChair = fmt(Hw.costChair, 0);
+    q.arcDeg10 = fmt(wheel({ pairs: 10 }).arcDeg, 0);
+    q.perWheel10 = fmt(hardware({ pairs: 10 }).perWheel, 1);
+    // living with it: the brake switched off, and the wheel taken off
+    q.offDrag_ppm = fmt(offDrag(BASE) * 1e6, 0);
+    q.offPushN = fmt(Hw.perChair * BASE.crr * PHYS.g, 1);
+    q.offPushPct = fmt((Hw.perChair / (BASE.massTotal - Hw.perChair)) * 100, 0);
+    q.widenMax_cm = fmt(2 * Hw.stack * 100, 0);
+    // pipe
+    q.pipeMoment = fmt(Pp.moment, 2);
+    q.pipeMass_g = fmt(Pp.mass * 1000, 1);
+    q.pipeRi_mm = fmt(Pp.ri * 1000, 2);
+    q.pipeRo_mm = fmt(Pp.ro * 1000, 2);
+    q.pipeClear_mm = fmt(Pp.clearance * 1000, 2);
+    q.pipeK = fmt(Pp.kPipe, 2);
+    q.pipeThinPct = fmt(Math.abs(Pp.kThin / Pp.kPipe - 1) * 100, 1);   // the thin-wall shortcut reads low
+    q.pipeV_cm = fmt(Pp.vCmS, 1);
+    q.pipeT = fmt(Pp.tFall, 0);
+    q.pipeTransRatio = fmt(Pp.transRatio, 2);
+    q.pipeTTrans = fmt(Pp.tFallTrans, 0);
+    q.pipeFree = fmt(Pp.tFree, 2);
+    q.pipeTau_ms = fmt(Pp.tau * 1000, 1);
+    // experiment
+    q.expV1 = fmt(E.A.v, 2);
+    q.expV2 = fmt(E.B.v, 2);
+    q.expTA1 = fmt(E.A.tA, 2);
+    q.expTB1 = fmt(E.A.tB, 2);
+    q.expTA2 = fmt(E.B.tA, 2);
+    q.expTB2 = fmt(E.B.tB, 2);
+    q.expT1 = fmt(E.A.tTimed, 2);
+    q.expT2 = fmt(E.B.tTimed, 2);
+    q.expTau1 = fmt(E.A.tau, 2);
+    q.expTau2 = fmt(E.B.tau, 2);
+    q.expRead = fmt(E.kRead, 1);
+    q.expPass = fmt(E.kPass, 1);
+    q.expKill = fmt(E.kKill, 1);
+    q.expPassFrac = fmt(E.passFrac * 100, 0);
+    q.expKillFrac = fmt(E.killFrac * 100, 0);
+    q.expVRing2 = fmt(E.B.vRing, 2);
+    q.expDrop = fmt(E.drop, 1);
+    {
+      // a prototype just under the kill line, read the naive way (mean speed between the marks)
+      const weak = experiment({ eta: BASE.eta * 0.97 * E.killFrac });
+      q.expWeakTrue = fmt(weak.kWheel, 1);
+      q.expWeakNaive = fmt(weak.kMean, 1);
+      q.expWeakFit = fmt(weak.kRead, 1);
+      q.expWeakSettled_pct = fmt(weak.B.settled * 100, 0);
+    }
+    {
+      // timing resolution: each of the four times off by one video frame, combined in quadrature
+      const base = analyse(null, E.A.tA, E.A.tB, E.B.tA, E.B.tB).k;
+      const tt = [E.A.tA, E.A.tB, E.B.tA, E.B.tB];
+      let s2 = 0;
+      for (let i = 0; i < 4; i++) {
+        const t2 = tt.slice();
+        t2[i] += 1 / EXP.fps;
+        s2 += (analyse(null, t2[0], t2[1], t2[2], t2[3]).k / base - 1) ** 2;
+      }
+      q.expRes_pct = fmt(Math.sqrt(s2) * 100, 1);
+    }
+    q.expMarkB = fmt(EXP.runUp + EXP.timed, 1);
+    {
+      // how much the fit leans on the release frame, at the kill line and at the model's value
+      q.expSlip3_ms = fmt((3 / EXP.fps) * 1000, 1);
+      q.expSlipKill3_pct = fmt(releaseSlip(E.killFrac, 3) * 100, 0);
+      q.expSlipKill6_pct = fmt(releaseSlip(E.killFrac, 6) * 100, 0);
+      q.expSlipModel6_pct = fmt(releaseSlip(1, 6) * 100, 1);
+      q.expRelease3_mm = fmt(fallPos(E.B.v, E.B.tau, 3 / EXP.fps) * 1000, 1);
+    }
+    // small derived facts quoted in the prose
+    q.Br = fmt(R.gap.Br, 2);
+    q.BrSH = fmt(GRADES.N42SH.br, 2);
+    q.tMaxN52 = fmt(GRADES.N52.tMax, 0);
+    q.iacs6061 = fmt(ALLOYS['6061-T6'].iacs * 100, 0);
+    q.iacs1100 = fmt(ALLOYS['1100-H14'].iacs * 100, 0);
+    q.iacsPipe = fmt(PIPE.iacs * 100, 0);
+    q.spacing_mm = fmt((BASE.pitch - BASE.magA) * 1000, 0);
+    const fPole = R.descent.vRing / (2 * BASE.pitch);                       // Hz, field reversal rate seen by the ring
+    q.poleHz = fmt(fPole, 0);
+    q.skin_mm = fmt(Math.sqrt(1 / (Math.PI * fPole * PHYS.mu0 * R.wheel.sigma)) * 1000, 0);
+    q.linearErr_pct = fmt((R.descent.vRing / R.wheel.w) ** 2 * 100, 1);
+    q.wheelEqMass = fmt(BASE.wheelInertia / (R.wheel.R * R.wheel.R), 1);
+    q.draftCylRatio = fmt(0.0254 / ((0.0138 + 0.001) / 2), 1);              // the draft's 1 in magnet / its pipe's mean radius
+    // pre-mortem
+    q.pPhysics = fmt(PM.pPhysics * 100, 0);
+    q.pTechnical = fmt(PM.pTechnical * 100, 0);
+    q.pProduct = fmt(PM.pProduct * 100, 0);
+    return q;
+  }
+
+  return {
+    PHYS, ALLOYS, GRADES, BASE, NUM, PIPE, EXP, RAMP, SLOPES, RISKS,
+    merge, hill, circuit, poleB, sheetSolve, kappaSolve, sharpFactor, gap, pair, wheel, descent, speedAt, ramp,
+    plateMass, hFlatPlate, thermal, hardware, offDrag, pipeTransverseRatio, pipe, run, sweep, premortem,
+    fallPos, fallTime, fitFall, analyse, experiment, releaseSlip, quoted,
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = HoneyBrake;
+/*MODEL:END*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var M = HoneyBrake;
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, cls, anchor) {
+    var t = el('text', { x: x, y: y, 'class': cls || 't-sm' }, parent);
+    if (anchor) t.setAttribute('text-anchor', anchor);
+    t.textContent = s;
+    return t;
+  }
+  function f(x, d) { return Number(x).toFixed(d); }
+  var later = window.requestAnimationFrame ? function (fn) { window.requestAnimationFrame(function () { setTimeout(fn, 0); }); } : function (fn) { setTimeout(fn, 0); };
+
+  // ---------------------------------------------------------------- Fig. 4: computed currents
+  function drawCurrents() {
+    var box = document.getElementById('currents');
+    var K = M.kappaSolve(M.BASE);
+    var G = K.grid, nx = G.nx, ny = G.ny, h = G.h;
+    var s = 2;
+    var W = nx * h * s, H = ny * h * s;
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + (H + 26), role: 'img', 'aria-label': 'Computed eddy currents in the unrolled ring: six alternating field patches with current arrows circulating between neighbours.' });
+    el('rect', { x: 0, y: 0, width: W, height: H, 'class': 'f-alu', opacity: 0.35 }, svg);
+    var blk = 3, bmax = 0, i, j;
+    for (i = 0; i < K.Bf.length; i++) bmax = Math.max(bmax, Math.abs(K.Bf[i]));
+    for (j = 0; j + blk <= ny; j += blk) {
+      for (i = 0; i + blk <= nx; i += blk) {
+        var sum = 0, c = 0;
+        for (var jj = j; jj < j + blk; jj++) for (var ii = i; ii < i + blk; ii++) { sum += K.Bf[(jj + 1) * nx + ii]; c++; }
+        var b = sum / c / bmax;
+        if (Math.abs(b) < 0.04) continue;
+        el('rect', { x: i * h * s, y: j * h * s, width: blk * h * s + 0.3, height: blk * h * s + 0.3, 'class': b > 0 ? 'f-north' : 'f-south', opacity: Math.min(0.7, Math.abs(b) * 0.75) }, svg);
+      }
+    }
+    var phi = K.phi, Bf = K.Bf, step = 5, arrows = [], jmax = 0;
+    for (j = 2; j < ny - 1; j += step) {
+      for (i = 2; i < nx - 1; i += step) {
+        var jx = -(phi[j * nx + i + 1] - phi[j * nx + i - 1]) / (2 * h);
+        var bc = 0.5 * (Bf[j * nx + i] + Bf[(j + 1) * nx + i]);
+        var jy = -bc - (phi[(j + 1) * nx + i] - phi[(j - 1) * nx + i]) / (2 * h);
+        var m = Math.hypot(jx, jy);
+        jmax = Math.max(jmax, m);
+        arrows.push([i, j, jx, jy, m]);
+      }
+    }
+    var g = el('g', { 'class': 's-ink', 'stroke-width': 1.1 }, svg);
+    arrows.forEach(function (a) {
+      if (a[4] < 0.03 * jmax) return;
+      var L = 4.2 * step * (0.25 + 0.75 * a[4] / jmax);
+      var ux = a[2] / a[4], uy = a[3] / a[4];
+      var x0 = (a[0] + 0.5) * h * s, y0 = (a[1] + 0.5) * h * s;
+      var x1 = x0 - ux * L / 2, y1 = y0 - uy * L / 2, x2 = x0 + ux * L / 2, y2 = y0 + uy * L / 2;
+      el('line', { x1: f(x1, 1), y1: f(y1, 1), x2: f(x2, 1), y2: f(y2, 1) }, g);
+      var hx = -ux * 3.2, hy = -uy * 3.2;
+      el('path', { d: 'M' + f(x2, 1) + ' ' + f(y2, 1) + ' l' + f(hx - uy * 2.2, 1) + ' ' + f(hy + ux * 2.2, 1) + ' M' + f(x2, 1) + ' ' + f(y2, 1) + ' l' + f(hx + uy * 2.2, 1) + ' ' + f(hy - ux * 2.2, 1), fill: 'none' }, g);
+    });
+    el('rect', { x: 0, y: 0, width: W, height: H, fill: 'none', 'class': 's-alu', 'stroke-width': 1.2 }, svg);
+    txt(svg, 4, H + 18, 'ring edge to ring edge: ' + f(G.W, 0) + ' mm; ring moves to the right; κ = ' + f(K.kappa, 3), 't-sm');
+    box.innerHTML = '';
+    box.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- generic line chart
+  function lineChart(box, opts) {
+    var narrow = (box.clientWidth || 640) < 520;
+    var W = narrow ? 400 : 640, H = narrow ? 280 : 300, L = 48, R = 12, T = 18, B = 46;
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': opts.aria });
+    var X = function (x) { return L + (x - opts.x0) / (opts.x1 - opts.x0) * (W - L - R); };
+    var Y = function (y) { return T + (1 - (y - opts.y0) / (opts.y1 - opts.y0)) * (H - T - B); };
+    var gr = el('g', { 'class': 's-rule', 'stroke-width': 1 }, svg);
+    opts.xt.forEach(function (x) { el('line', { x1: X(x), y1: T, x2: X(x), y2: H - B }, gr); txt(svg, X(x), H - B + 16, String(x), 't-sm', 'middle'); });
+    opts.yt.forEach(function (y) { el('line', { x1: L, y1: Y(y), x2: W - R, y2: Y(y) }, gr); txt(svg, L - 6, Y(y) + 4, String(y), 't-sm', 'end'); });
+    if (opts.band) el('rect', { x: L, y: Y(opts.band[1]), width: W - L - R, height: Y(opts.band[0]) - Y(opts.band[1]), 'class': 'f-honey-soft', opacity: 0.6 }, svg);
+    txt(svg, (L + W - R) / 2, H - 8, opts.xl, 't-sm', 'middle');
+    var yl = txt(svg, 14, (T + H - B) / 2, opts.yl, 't-sm', 'middle');
+    yl.setAttribute('transform', 'rotate(-90 14 ' + (T + H - B) / 2 + ')');
+    opts.series.forEach(function (sr) {
+      // stop each line where it leaves the top of the chart instead of flattening it
+      var pts = [], k;
+      for (k = 0; k < sr.pts.length; k++) {
+        var p = sr.pts[k];
+        if (p[1] <= opts.y1) { pts.push(p); continue; }
+        if (k > 0 && sr.pts[k - 1][1] < opts.y1) {
+          var q0 = sr.pts[k - 1], fr = (opts.y1 - q0[1]) / (p[1] - q0[1]);
+          pts.push([q0[0] + fr * (p[0] - q0[0]), opts.y1]);
+        }
+        break;
+      }
+      sr.pts = pts;
+      var d = sr.pts.map(function (p, k) { return (k ? 'L' : 'M') + f(X(p[0]), 1) + ' ' + f(Y(p[1]), 1); }).join(' ');
+      el('path', { d: d, fill: 'none', 'class': sr.cls, 'stroke-width': sr.w || 2.4, 'stroke-dasharray': sr.dash || '' }, svg);
+      if (sr.label) {
+        var last = sr.labelAt || sr.pts[sr.pts.length - 1];
+        txt(svg, X(last[0]) - 4, Y(Math.min(last[1], opts.y1)) - 7, sr.label, 't-b', 'end');
+      }
+    });
+    box.innerHTML = '';
+    box.appendChild(svg);
+  }
+
+  // ---------------------------------------------------------------- Fig. 5: ramp run
+  function rampPts(p) {
+    var D = M.descent(p), H = M.hill(p), Rr = M.ramp(p);
+    var free = [], brake = [], n = 120, k;
+    for (k = 0; k <= n; k++) { var x = Rr.L * k / n; free.push([x, Math.sqrt(Rr.v0 * Rr.v0 + 2 * (H.fNet / D.mEff) * x)]); }
+    var t = 0, dt = 0.01, xx = 0, v = Rr.v0;
+    brake.push([0, v]);
+    while (xx < Rr.L && t < 120) { v = D.vT + (v - D.vT) * Math.exp(-dt / D.tau); xx += v * dt; t += dt; if (Math.round(t / dt) % 5 === 0) brake.push([Math.min(xx, Rr.L), v]); }
+    return { free: free, brake: brake, R: Rr };
+  }
+  function drawRamp(box, p) {
+    var r = rampPts(p);
+    lineChart(box, {
+      aria: 'Speed against distance down a 9.14 metre 1:12 ramp: free-rolling rises to about 3.5 metres per second, honey-braked settles near 0.9 metres per second.',
+      x0: 0, x1: 9.2, y0: 0, y1: 4, xt: [0, 2, 4, 6, 8], yt: [0, 1, 2, 3, 4], xl: 'distance down the ramp (m)', yl: 'speed (m/s)',
+      band: [0, M.EXP.vTarget],
+      series: [
+        { pts: r.free, cls: 's-ink', dash: '6 5', label: 'free-rolling' },
+        { pts: r.brake, cls: 's-honey', w: 3.2, label: 'honey brake', labelAt: [r.R.L, r.R.vEnd + 0.18] },
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------- calculator
+  var state = Object.assign({}, M.BASE);
+  var ids = ['run', 'mass', 'crr', 'pairs', 'cl', 't', 'ml', 'eta'];
+  var ctl = {};
+  ids.forEach(function (k) { ctl[k] = document.getElementById('c-' + k); });
+  function readControls() {
+    state.slopeRun = Number(ctl.run.value);
+    state.massTotal = Number(ctl.mass.value);
+    state.crr = Number(ctl.crr.value);
+    state.pairs = Number(ctl.pairs.value);
+    state.clearance = Number(ctl.cl.value) / 1000;
+    state.ringT = Number(ctl.t.value) / 1000;
+    state.magL = Number(ctl.ml.value) / 1000;
+    state.eta = Number(ctl.eta.value);
+  }
+  function writeControls() {
+    ctl.run.value = state.slopeRun; ctl.mass.value = state.massTotal; ctl.crr.value = state.crr; ctl.pairs.value = state.pairs;
+    ctl.cl.value = state.clearance * 1000; ctl.t.value = state.ringT * 1000; ctl.ml.value = state.magL * 1000; ctl.eta.value = state.eta;
+    document.querySelectorAll('#alloys button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.alloy === state.alloy)); });
+    document.querySelectorAll('#grades button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.grade === state.grade)); });
+  }
+  function labels() {
+    document.getElementById('o-run').textContent = '1:' + state.slopeRun + ' (' + f(100 / state.slopeRun, 1) + '%)';
+    document.getElementById('o-mass').textContent = state.massTotal + ' kg';
+    document.getElementById('o-crr').textContent = f(state.crr, 3);
+    document.getElementById('o-pairs').textContent = state.pairs + ' (' + 2 * state.pairs + ' magnets)';
+    document.getElementById('o-cl').textContent = f(state.clearance * 1000, 1) + ' mm';
+    document.getElementById('o-t').textContent = f(state.ringT * 1000, 0) + ' mm';
+    document.getElementById('o-ml').textContent = f(state.magL * 1000, 0) + ' mm';
+    document.getElementById('o-eta').textContent = f(state.eta, 2);
+  }
+  function ro(v, k, hero) { return '<div class="ro' + (hero ? ' hero' : '') + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>'; }
+  function compute() {
+    var p = state;
+    var D = M.descent(p), Wh = M.wheel(p), T = M.thermal(p), Hw = M.hardware(p), C = M.circuit(p), Rr = M.ramp(p), Pr = M.pair(p);
+    var html = '';
+    html += ro(f(D.vT, 2) + ' m/s', 'steady speed down 1:' + p.slopeRun + ' (' + f(D.vKmh, 1) + ' km/h), hands off', true);
+    html += ro(f(D.tau, 2) + ' s', 'time constant: how fast it settles');
+    html += ro(f(Wh.kChair, 1) + ' N·s/m', 'brake coefficient, both wheels');
+    html += ro(f(Wh.kappa, 3), 'κ from the field + current solves');
+    html += ro(f(C.bClosed, 3) + ' T', '1-D closed-circuit field');
+    html += ro(f(Rr.vEnd, 2) + ' / ' + f(Rr.vFree, 1) + ' m/s', 'foot of one 9.14 m run: braked / free');
+    html += ro(f(D.powerPerRing, 0) + ' W', 'heat into each disc');
+    html += ro('+' + f(T.steadyRise, 0) + ' K', 'disc temperature on an endless hill');
+    html += ro(f(Wh.kChair * 1, 0) + ' N', 'drag on the flat at 1 m/s (switch it off)');
+    html += ro(f(Hw.perChair, 1) + ' kg', 'added to the chair');
+    html += ro(f(Hw.stack * 1000, 0) + ' mm', 'bracket thickness across the disc');
+    html += ro('$' + f(Hw.costChair, 0), 'one-off parts, both wheels (guess)');
+    document.getElementById('readout').innerHTML = html;
+    var w = [];
+    if (D.vT > M.EXP.vTarget) w.push(['Faster than the ' + M.EXP.vTarget + ' m/s target: hands back on the rims.', 0]);
+    else if (D.vT < 0.4 && D.vT > 0) w.push(['Slower than a stroll. Most people would switch it off here.', 0]);
+    if (D.vT === 0) w.push(['Rolling resistance beats the slope: the chair does not roll by itself.', 1]);
+    if (Hw.perChair > 5) w.push(['More than 5 kg added to the chair (pre-mortem: weight).', 0]);
+    if (Hw.stack > 0.055) w.push(['Bracket over 55 mm thick: hard to fit between wheel and frame (pre-mortem: mounting).', 0]);
+    if (D.vRing / Pr.w > 0.1) w.push(['Ring speed above 10% of w: the linear brake law starts to sag.', 0]);
+    if (p.clearance < 0.0015) w.push(['Under 1.5 mm clearance: any wobble or grit and the disc rubs.', 0]);
+    if (T.steadyRise > 50) w.push(['Disc runs hot on a long hill; magnets nearby need a heat-tolerant grade.', 0]);
+    if (!w.length) w.push(['Inside the target, under 5 kg and a fittable bracket.', 1]);
+    document.getElementById('warns').innerHTML = w.map(function (x) { return '<li' + (x[1] ? ' class="good"' : '') + '>' + x[0] + '</li>'; }).join('');
+    var grades = [], gp;
+    for (gp = 2; gp <= 20.01; gp += 0.5) grades.push(gp);
+    var list = [p.pairs];
+    if (p.pairs - 2 >= 2) list.unshift(p.pairs - 2);
+    if (p.pairs + 2 <= 10) list.push(p.pairs + 2);
+    var sw = M.sweep(p, list, grades);
+    lineChart(document.getElementById('sweepchart'), {
+      aria: 'Steady speed against slope for the current design and for two fewer or two more poles.',
+      x0: 2, x1: 20, y0: 0, y1: 3, xt: [2, 5, 8.3, 12.5, 16, 20], yt: [0, 0.5, 1, 1.5, 2, 2.5, 3], xl: 'slope (%); 8.3 = 1:12', yl: 'steady speed (m/s)',
+      band: [0, M.EXP.vTarget],
+      series: sw.map(function (s) {
+        return { pts: s.points.map(function (q) { return [q.gradePct, q.vT]; }), cls: s.pairs === p.pairs ? 's-honey' : 's-muted', w: s.pairs === p.pairs ? 3.2 : 1.6, dash: s.pairs === p.pairs ? '' : '5 4', label: s.pairs + ' poles' };
+      }),
+    });
+  }
+  var timer = null, lastKey = '';
+  function schedule() {
+    readControls();
+    labels();
+    var key = [state.pairs, state.clearance, state.ringT, state.magL].join('|');
+    var status = document.getElementById('status');
+    if (key !== lastKey) status.textContent = 'Re-solving the field and the eddy currents…';
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      later(function () {
+        try { compute(); status.textContent = ''; } catch (e) { status.textContent = 'Could not solve this case: ' + e.message; }
+        lastKey = key;
+      });
+    }, key !== lastKey ? 120 : 10);
+  }
+  ids.forEach(function (k) { ctl[k].addEventListener('input', schedule); });
+  document.querySelectorAll('#alloys button').forEach(function (b) { b.addEventListener('click', function () { state.alloy = b.dataset.alloy; writeControls(); schedule(); }); });
+  document.querySelectorAll('#grades button').forEach(function (b) { b.addEventListener('click', function () { state.grade = b.dataset.grade; writeControls(); schedule(); }); });
+  var PRESETS = {
+    base: {},
+    light: { pairs: 4 },
+    steep: { slopeRun: 8 },
+    heavy: { massTotal: 130 },
+    draft: { eta: Math.round((0.4 * 0.75 * 0.75) / M.kappaSolve(M.BASE).kappa * 100) / 100 },
+  };
+  document.querySelectorAll('#presets button').forEach(function (b) {
+    b.addEventListener('click', function () { state = Object.assign({}, M.BASE, PRESETS[b.dataset.preset]); writeControls(); schedule(); });
+  });
+
+  // ---------------------------------------------------------------- experiment analyser
+  var E0 = M.experiment();
+  var tIds = ['tA1', 'tB1', 'tA2', 'tB2'];
+  var tDefault = [E0.A.tA, E0.A.tB, E0.B.tA, E0.B.tB];
+  tIds.forEach(function (id, k) { var inp = document.getElementById(id); inp.value = f(tDefault[k], 3); inp.addEventListener('input', analyse); });
+  function analyse() {
+    var t = tIds.map(function (id) { return Number(document.getElementById(id).value); });
+    var out = document.getElementById('anaout');
+    if (t.some(function (x) { return !(x > 0); }) || !(t[1] > t[0]) || !(t[3] > t[2])) { out.innerHTML = 'Enter four positive times, with mark B later than mark A for each weight.'; return; }
+    var r = M.analyse(null, t[0], t[1], t[2], t[3]);
+    if (!(r.k > 0) || !isFinite(r.k)) { out.innerHTML = 'These times do not fit a braked fall: the heavy weight must fall faster than the light one.'; return; }
+    var verdict = r.k >= E0.kPass ? '<b class="pass">PASS</b>: holds 1:12 within ' + M.EXP.vTarget + ' m/s with this bracket.' : r.k < E0.kKill ? '<b class="kill">KILL</b>: even ' + M.EXP.maxPairs + ' poles could not hold the target.' : '<b class="grey">GREY ZONE</b>: works, but needs more poles; re-weigh it.';
+    var near = Math.abs(r.k / E0.kKill - 1) < 0.1 || Math.abs(r.k / E0.kPass - 1) < 0.1 ? ' Close to a line: re-read the release frame before believing this (§8).' : '';
+    out.innerHTML = 'Speeds ' + f(r.f1.v, 3) + ' and ' + f(r.f2.v, 3) + ' m/s (τ ' + f(r.f1.tau, 3) + ', ' + f(r.f2.tau, 3) + ' s); friction ' + f(r.friction, 2) + ' N.<br><strong>k<sub>wheel</sub> = ' + f(r.k, 1) + ' N·s/m</strong>, ' + f(100 * r.k / E0.kWheel, 0) + '% of the model (so η ≈ ' + f(M.BASE.eta * r.k / E0.kWheel, 2) + '). ' + verdict + near;
+  }
+
+  // ---------------------------------------------------------------- start
+  analyse();
+  writeControls();
+  labels();
+  later(function () {
+    try { drawCurrents(); } catch (e) { document.getElementById('currents').textContent = 'Could not draw the currents: ' + e.message; }
+    drawRamp(document.getElementById('rampchart'), M.BASE);
+    schedule();
+  });
+})();
+</script>
+</body>
+</html>

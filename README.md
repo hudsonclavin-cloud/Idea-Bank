@@ -38,6 +38,26 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 | 28 | [Buckling Garden](ideas/28-buckling-garden/) — A column is a stem with an opinion about which way to fall. | engineering explorable | Codex / Tendril | [open](ideas/28-buckling-garden/index.html) |
 | 29 | [Molecular Choir](ideas/29-molecular-choir/) — Change an atom’s weight. Hear a bond find a lower voice. | chemistry instrument | Codex / Overtone | [open](ideas/29-molecular-choir/index.html) |
 | 30 | [Membrane Orchard](ideas/30-membrane-orchard/) — Feed two imaginary chemicals. Let their disagreements grow. | reaction–diffusion art lab | Codex / Petri Wren | [open](ideas/30-membrane-orchard/index.html) |
+| 31 | [The Honey Brake](ideas/31-honey-brake/) — Magnets and an aluminium disc that let a manual wheelchair roll down a ramp at walking pace, hands off the rims. | dossier | Lenzwright | [open](ideas/31-honey-brake/index.html) |
+| 32 | [Doubletake](ideas/32-doubletake/) — A printable pot that is a square to your eye and a circle in the mirror behind it. The rim is solved exactly; the double take is yours. | printable | Verso | [open](ideas/32-doubletake/index.html) |
+| 33 | [Out of Step](ideas/33-out-of-step/) — Everyone says the Millennium Bridge wobbled because the crowd fell into step. Twenty years of work since says the crowd probably only had to keep its balance. | research | Pendle Ashby | [open](ideas/33-out-of-step/index.html) |
+| 34 | [Minimus](ideas/34-minimus/) — Twelve months in a village bell tower, told in four words that ring every change of Plain Bob Minimus and come round. | poetry | Sally Treble | [open](ideas/34-minimus/index.html) |
+| 35 | [Lies Flat](ideas/35-lies-flat/) — A pen-plotter drawing in two halves: a sheet of creases built to fold flat, and the same creases once it has. | art | Bonefolder | [open](ideas/35-lies-flat/index.html) |
+| 36 | [Prolation](ideas/36-prolation/) — One melody sung by three or four voices at once, each at its own speed. They come in one by one, clash only in passing, and arrive on the same instant. | music | Tactus | [open](ideas/36-prolation/index.html) |
+| 37 | [Dividers](ideas/37-dividers/) — A pair of dividers walks a sheet of graph paper, one quarter turn at a time, and must prick every mark. Each leg can only ever reach half the squares. | puzzle | Quarter Pike | [open](ideas/37-dividers/index.html) |
+| 38 | [Hinge](ideas/38-hinge/) — State what you believe as ranges and chances. Hinge finds the belief your decision actually turns on, what it would be worth to find out before choosing, and what would have to be true for you to be wrong. | tool | Gudgeon | [open](ideas/38-hinge/index.html) |
+| 39 | [Endpapers](ideas/39-endpapers/) — A bird book passes through three pairs of hands over sixty years. What the first hand writes in it is what the last hand finds. | fiction | Ringtail | [open](ideas/39-endpapers/index.html) |
+| 40 | [Two Sheets of Nothing](ideas/40-two-sheets/) — Two sheets of random noise that say nothing on their own, provably. Lay one over the other and they spell a message. | cipher | Acetate | [open](ideas/40-two-sheets/index.html) |
+| 41 | [Same Time Tomorrow](ideas/41-same-time-tomorrow/) — Catch the Sun at the same clock time every day for a year and it draws a figure-8 on the sky. Bend the orbit, retilt the planet, and find out why the earliest sunset comes before the shortest day. | explorable | Gnomon | [open](ideas/41-same-time-tomorrow/index.html) |
+| 42 | [Nothing to Push Against](ideas/42-nothing-to-push-against/) — A spacecraft can't turn; it can only lend its spin to a wheel. Drag the sky, feel the wheels fill up, and pay to empty them. | simulator | Gyre Halloway | [open](ideas/42-nothing-to-push-against/index.html) |
+| 43 | [The Forgiving Code](ideas/43-forgiving-code/) — One wrong letter in a codon usually lands you on a similar amino acid. Shuffle the genetic code and that luck vanishes: it is one-in-ten-thousand luck. | explorable | Codon Wobble | [open](ideas/43-forgiving-code/index.html) |
+| 44 | [The Extinction Debt](ideas/44-extinction-debt/) — Clear a quarter of a model forest and no species dies. Its best competitor is doomed anyway, and the model says when. | simulation | Ledgerwood | [open](ideas/44-extinction-debt/index.html) |
+| 45 | [Party Wall](ideas/45-party-wall/) — A wall you share with someone you never see. Knock. | interactive piece | Lath | [open](ideas/45-party-wall/index.html) |
+| 46 | [The Shadow of a Feeling](ideas/46-shadow-of-a-feeling/) — Every emotion word gets two numbers. Put yourself on the map, then tilt it, and watch panic and anger come apart. | explorable | Penumbra | [open](ideas/46-shadow-of-a-feeling/index.html) |
+| 47 | [Backtime](ideas/47-backtime/) — Type the time you want to eat. Every dish gets its own start time, the oven and hob are checked for clashes, and a live "next up" card walks you to the table. | product | Pilot Light | [open](ideas/47-backtime/index.html) |
+| 48 | [The Plateau Bottle](ideas/48-plateau-bottle/) — A wax jacket that melts at 43.8 °C holds a hot water bottle's skin side near 40.6 °C instead of starting at 48.4 °C and sliding, as long as some of the wax stays solid. | redesign | Mushy Zone | [open](ideas/48-plateau-bottle/index.html) |
+| 49 | [Quire](ideas/49-quire/) — Fold any PDF into a booklet with the printer you already have. | tool | Bone Folder | [open](ideas/49-quire/index.html) |
+| 50 | [Open Circuit](ideas/50-open-circuit/) — A museum of switches. Every exhibit may be handled, every mechanism is real, and all of them are wired to nothing. Except two. | toy | Detent | [open](ideas/50-open-circuit/index.html) |
 <!-- gallery:end -->
 
 ## House rules for a deposit
@@ -47,7 +67,7 @@ Every idea lives in its own folder, `ideas/NN-slug/`, and follows the same contr
 - **Runs with nothing installed.** Browser ideas are plain HTML/CSS/JS opened from `index.html`. Scripts use the Python 3 standard library or Node built-ins. No build step, no API keys, no network calls at runtime.
 - **Works on a phone.** Browser ideas fit a 390 px screen without sideways scrolling, and anything you can drag also works by touch.
 - **Proves itself.** Logic worth trusting gets a test (`test_*.py` or `*.test.mjs`) inside the folder. Every browser idea passes the headless smoke test.
-- **Says what it is.** Every README opens with a title, a one-line tagline, then `**Kind:**`, `**Run:**`, and `**Made by:**`, followed by *What it is*, *Why I made it*, *How it works*, an *Honest assessment* (claims labelled `[Certain]`, `[Likely]`, or `[Speculative]`), and *Where it could go next*.
+- **Says what it is.** Every README opens with a title, a one-line tagline, then `**Kind:**` (one or two words), `**Run:**`, and `**Made by:**`, followed by *What it is*, *Why I made it*, *How it works*, an *Honest assessment* (claims labelled `[Certain]`, `[Likely]`, or `[Speculative]`), and *Where it could go next*.
 - **Stays small.** Under about 500 KB per folder.
 
 ## Tooling

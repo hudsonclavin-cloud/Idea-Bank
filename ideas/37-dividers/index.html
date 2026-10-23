@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dividers</title>
+  <meta name="description" content="A puzzle game: a pair of dividers walks a sheet of graph paper, one quarter turn at a time, and must prick every mark. One leg can never reach half the squares.">
+  <meta name="theme-color" content="#f5f1e8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1c26" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M8 24 L24 8' stroke='%232a2d3a' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='24' r='5' fill='%23e4573f'/%3E%3Ccircle cx='24' cy='8' r='5' fill='%233b7fd6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="top">
+      <button class="btn icon" id="levelsBtn" aria-label="Choose a level (L)" title="Levels (L)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      </button>
+      <div class="title" aria-live="polite">
+        <span class="no" id="levelNo">1</span>
+        <span class="name" id="levelName">Swing</span>
+      </div>
+      <div class="moves" aria-label="Moves"><b id="moveCount">0</b><span class="par">/ par <span id="par">–</span></span></div>
+      <div class="tools">
+        <button class="btn icon" id="undoBtn" aria-label="Undo (Z)" title="Undo (Z)" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 11l5 4" fill="none"/><path d="M4 11h9a6 6 0 1 1 0 12" fill="none"/></svg>
+        </button>
+        <button class="btn icon" id="restartBtn" aria-label="Restart level (R)" title="Restart (R)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7" fill="none"/><path d="M20 4v5h-5" fill="none"/></svg>
+        </button>
+        <button class="btn icon" id="soundBtn" aria-label="Sound on" aria-pressed="true" title="Sound (M)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none"/><path class="cross" d="M16 9l6 6M22 9l-6 6" fill="none"/></svg>
+        </button>
+        <button class="btn icon" id="helpBtn" aria-label="How to play (?)" title="How to play (?)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.5" fill="none"/><circle cx="12" cy="17.2" r=".9" stroke="none"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="board-wrap" id="boardWrap">
+      <svg id="board" role="img" aria-label="The sheet: a pair of dividers on graph paper"></svg>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <footer class="foot">
+      <p class="hint" id="hint"></p>
+      <p class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd> swing the ringed leg &middot; <kbd>Tab</kbd> other leg &middot; <kbd>Z</kbd> undo &middot; <kbd>R</kbd> restart</p>
+    </footer>
+
+    <section class="overlay hidden" id="win" aria-labelledby="winTitle">
+      <div class="card">
+        <h2 id="winTitle">Every mark pricked</h2>
+        <p class="result" id="winResult"></p>
+        <p class="sub" id="winSub"></p>
+        <div class="row">
+          <button class="btn cta" id="nextBtn">Next <kbd>Enter</kbd></button>
+          <button class="btn" id="replayBtn">Again <kbd>R</kbd></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="overlay hidden" id="levels" aria-labelledby="levelsTitle">
+      <div class="card wide">
+        <h2 id="levelsTitle">Levels</h2>
+        <p class="sub">A filled ring means solved; gold means solved in par.</p>
+        <div class="grid" id="levelGrid"></div>
+        <div class="row"><button class="btn" id="closeLevels">Close <kbd>Esc</kbd></button></div>
+      </div>
+    </section>
+
+    <section class="overlay hidden" id="help" aria-labelledby="helpTitle">
+      <div class="card">
+        <h2 id="helpTitle">Dividers</h2>
+        <p class="lede">A pair of dividers stands on graph paper. Prick every mark.</p>
+        <ul class="rules">
+          <li><b>One move:</b> plant one leg, swing the other a quarter turn round it. Tap a dot, or use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> with <kbd>Tab</kbd> to pick the leg.</li>
+          <li><b>Pins</b> <i class="ico pin" aria-hidden="true"></i> stop a leg landing <em>and</em> stop a swing that passes through their corner.</li>
+          <li><b>Holes</b> <i class="ico hole" aria-hidden="true"></i> stop a leg landing. A leg may swing over them.</li>
+          <li><b>Marks</b> <i class="ico mark" aria-hidden="true"></i> are pricked when a leg lands on them.</li>
+          <li>You can never get stuck: every swing can be swung back. <kbd>Z</kbd> undoes, <kbd>R</kbd> restarts.</li>
+        </ul>
+        <p class="sub">Par is the shortest solution the built-in solver can find. Beating it is impossible; matching it is the game.</p>
+        <div class="row"><button class="btn cta" id="closeHelp">Play <kbd>Esc</kbd></button></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="rules.js"></script>
+  <script src="levels.js"></script>
+  <script src="solver.js"></script>
+  <script src="progress.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

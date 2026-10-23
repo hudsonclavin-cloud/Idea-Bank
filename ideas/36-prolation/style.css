@@ -1,0 +1,121 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f1ea;
+  --bg2: #eae6dc;
+  --fg: #1c1f26;
+  --muted: #6a7080;
+  --line: #d6d1c5;
+  --accent: #2f4fd1;
+  --accent-fg: #ffffff;
+  --card: #fbfaf6;
+  --v0: #3457d5;
+  --v1: #0f9a78;
+  --v2: #c9781c;
+  --v3: #d4386a;
+  --shadow: 0 18px 50px rgba(20, 24, 40, 0.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161d;
+    --fg: #e8e5dc;
+    --muted: #8d93a1;
+    --line: #262a35;
+    --accent: #e9c98f;
+    --accent-fg: #14161c;
+    --card: #171a22;
+    --v0: #6f8cff;
+    --v1: #52d1b0;
+    --v2: #f0b35a;
+    --v3: #ff7f9c;
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  overflow: hidden;
+}
+.app {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+}
+h1, h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 500; margin: 0; }
+h1 { font-size: 24px; letter-spacing: 0.01em; line-height: 1.1; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.meta { margin: 0; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 0; }
+
+.stage { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+canvas { display: block; width: 100%; touch-action: none; border-radius: 10px; }
+.strip { height: 72px; flex: none; background: var(--bg2); }
+.roll { flex: 1; min-height: 120px; background: var(--bg2); cursor: pointer; }
+.status {
+  margin: 0; min-height: 1.4em; display: flex; justify-content: space-between; gap: 12px;
+  color: var(--muted); font-size: 13px;
+}
+.status .time { font-variant-numeric: tabular-nums; flex: none; }
+.status .words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button {
+  font: inherit; font-size: 14px; color: var(--fg); background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer;
+  min-height: 40px; touch-action: manipulation;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; min-width: 88px; }
+button.round { width: 40px; padding: 0; }
+button[disabled] { opacity: 0.45; cursor: default; }
+.spacer { flex: 1; }
+
+.help {
+  position: fixed; inset: auto 16px calc(70px + env(safe-area-inset-bottom)) 16px; max-width: 560px; margin: 0 auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px;
+  box-shadow: var(--shadow); font-size: 14px; max-height: 70vh; overflow: auto; z-index: 5;
+}
+.help p { margin: 0 0 8px; }
+.help p:last-of-type { margin-bottom: 10px; }
+.help kbd { font: 12px/1 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
+
+.intro {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(6px);
+  padding: 16px; z-index: 10; cursor: pointer;
+}
+.intro[hidden] { display: none; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px 22px;
+  max-width: 420px; width: 100%; box-shadow: var(--shadow); text-align: center;
+}
+.card h2 { font-size: 30px; margin-bottom: 8px; }
+.card p { margin: 0 0 14px; color: var(--muted); }
+.card .start { font-size: 17px; padding: 12px 26px; }
+.card .fine { font-size: 12.5px; margin: 14px 0 0; }
+
+@media (min-width: 720px) {
+  .app { padding: 16px 24px; gap: 10px; }
+  h1 { font-size: 28px; }
+  .strip { height: 88px; }
+  .meta { font-size: 14px; }
+}
+@media (max-width: 440px) {
+  .bar { gap: 6px; }
+  button { padding: 8px 11px; }
+  button.primary { min-width: 74px; }
+  .status { align-items: flex-start; min-height: 2.8em; }
+  .status .words { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro { backdrop-filter: none; }
+}

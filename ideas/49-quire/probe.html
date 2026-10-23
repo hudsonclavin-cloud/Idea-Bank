@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Quire probe</title>
+<style>
+  :root { --bg: #f5f1e8; --card: #fcfaf5; --ink: #201c17; --muted: #6d6459; --line: #d9d2c4; --accent: #b4461c; --paper: #fffdf7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17140f; --card: #211d17; --ink: #ece5d8; --muted: #a79d8e; --line: #3b352c; --accent: #e8895c; --paper: #efe7d6; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow-x: hidden; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1, h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; }
+  h1 { font-size: 2.2rem; margin: 0.4em 0 0.2em; }
+  h2 { font-size: 1.3rem; margin: 1.4em 0 0.5em; }
+  a { color: var(--accent); }
+  ol, ul { padding-left: 1.3em; }
+  li { margin: 6px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  button { font: inherit; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 10px 18px; cursor: pointer; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { button { color: #1b120c; } }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* The four printed sides. On screen they are shown small, as a check. */
+  .sides { display: grid; gap: 14px; }
+  .side {
+    background: var(--paper); color: #2a251e; border: 1px solid var(--line); border-radius: 8px;
+    display: grid; grid-template-columns: 1fr 1fr; position: relative; aspect-ratio: 297 / 210; overflow: hidden;
+  }
+  .half { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6%; text-align: center; min-width: 0; }
+  .half .num { font-family: Georgia, "Iowan Old Style", serif; font-size: clamp(48px, 18vw, 150px); line-height: 1; font-weight: 600; }
+  .half .cap { font-size: clamp(9px, 2.4vw, 15px); color: #6d6459; margin-top: 0.6em; }
+  .half .up { font-size: clamp(12px, 3vw, 22px); color: #6d6459; margin-bottom: 0.3em; }
+  .side .foldline { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed #b4461c; opacity: 0.7; }
+  .side .sidecap { position: absolute; left: 0; right: 0; bottom: 2%; text-align: center; font-size: clamp(8px, 2vw, 12px); color: #6d6459; }
+
+  @page { size: landscape; margin: 10mm; }
+  @media print {
+    body { background: #fff; color: #000; }
+    .screen-only { display: none !important; }
+    .wrap { max-width: none; padding: 0; margin: 0; }
+    .sides { display: block; }
+    .side { border: none; border-radius: 0; aspect-ratio: auto; height: 180mm; width: 100%; page-break-after: always; break-after: page; background: #fff; }
+    .side:last-child { page-break-after: auto; break-after: auto; }
+    .half .num { font-size: 150pt; }
+    .half .cap { font-size: 14pt; }
+    .half .up { font-size: 20pt; }
+    .side .sidecap { font-size: 10pt; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="screen-only">
+    <h1>Quire probe</h1>
+    <p>Two sheets of paper that find out how your printer flips. These four sides are already in booklet order, so there is no page list to type: just print all four. <a href="index.html">Back to Quire.</a></p>
+    <p><button type="button" onclick="window.print()">Print the probe</button></p>
+
+    <div class="card">
+      <h2 style="margin-top:0">Printer that prints both sides</h2>
+      <ol>
+        <li>Print this page. Set <b>two-sided</b> on, <b>flip on the short edge</b> (“short-edge binding”). Pages per sheet 1; the page is already landscape. If asked, print all 4 pages at 100% or fit-to-page.</li>
+        <li>Two sheets come out. Fold each in half, left half behind the right, and slide sheet 2 inside sheet 1.</li>
+        <li>Read it. You should see 1, 2, 3, 4, 5, 6, 7, 8, every one the right way up.</li>
+      </ol>
+      <table>
+        <tr><th>What you see</th><th>What it means</th><th>For the real job</th></tr>
+        <tr><td>1 to 8 in order, all upright</td><td>Your driver's “short edge” is the right one.</td><td>Use exactly these settings.</td></tr>
+        <tr><td>2, 4, 5, 7 upside down and out of place: behind 1 you find 7, behind 3 you find 5</td><td>The back was flipped on the long edge.</td><td>Choose the other two-sided option (“long edge”, or whatever remains).</td></tr>
+        <tr><td>Only two sides printed</td><td>Two-sided printing was off, or the printer cannot.</td><td>Use the one-side-at-a-time route below.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Printer that prints one side at a time</h2>
+      <ol>
+        <li>Print pages <code>1, 3</code> of this document (the two fronts), single-sided, landscape, 1 per sheet.</li>
+        <li>Take the two sheets out as a stack, do not shuffle them, turn the stack over and put it back in the tray so the printer prints on the blank sides.</li>
+        <li>Print pages <code>2, 4</code> (the two backs). Fold both sheets, nest sheet 2 inside sheet 1, and read.</li>
+      </ol>
+      <table>
+        <tr><th>What you see</th><th>What it means</th><th>For the real job</th></tr>
+        <tr><td>1 to 8 in order, all upright</td><td>You turned the stack the right way.</td><td>Turn it the same way every time.</td></tr>
+        <tr><td>The backs printed over the fronts</td><td>The stack went in printed side towards the print head.</td><td>Turn the stack over the other way (printed side up instead of down, or the reverse).</td></tr>
+        <tr><td>2, 4, 5, 7 upside down and out of place: behind 1 you find 7, behind 3 you find 5</td><td>The stack went in rotated.</td><td>Also spin the stack half a turn before re-feeding.</td></tr>
+        <tr><td>Everything upright, but behind 1 you find 4, not 2 (and behind 3, 2)</td><td>Your printer stacks output face up, so the sheet printed first was re-fed last.</td><td>Use the “pass 2, reversed” list or PDF, or reverse the stack by hand.</td></tr>
+        <tr><td>2, 4, 5, 7 upside down, and behind 1 you find 5 (behind 3, 7)</td><td>Both of the last two: the stack went in rotated, and your printer stacks face up.</td><td>Spin the stack half a turn, and reverse it (or use the reversed list).</td></tr>
+      </table>
+      <p>Two of these can happen at once; fix them one at a time, two sheets each time.</p>
+    </div>
+
+    <h2>The four sides, as they will print</h2>
+    <p>Sheet 1 front, sheet 1 back, sheet 2 front, sheet 2 back. Each is one landscape page; the dashed line is the fold.</p>
+  </div>
+
+  <div class="sides">
+    <div class="side"><div class="half"><div class="up">↑ this way up</div><div class="num">8</div><div class="cap">back cover</div></div><div class="half"><div class="up">↑ this way up</div><div class="num">1</div><div class="cap">cover</div></div><div class="foldline"></div><div class="sidecap">Quire probe · sheet 1, front · fold on the dashed line, this side out</div></div>
+    <div class="side"><div class="half"><div class="up">↑ this way up</div><div class="num">2</div><div class="cap">behind 1</div></div><div class="half"><div class="up">↑ this way up</div><div class="num">7</div><div class="cap">behind 8</div></div><div class="foldline"></div><div class="sidecap">Quire probe · sheet 1, back</div></div>
+    <div class="side"><div class="half"><div class="up">↑ this way up</div><div class="num">6</div><div class="cap">faces 7</div></div><div class="half"><div class="up">↑ this way up</div><div class="num">3</div><div class="cap">faces 2</div></div><div class="foldline"></div><div class="sidecap">Quire probe · sheet 2, front · nests inside sheet 1</div></div>
+    <div class="side"><div class="half"><div class="up">↑ this way up</div><div class="num">4</div><div class="cap">behind 3</div></div><div class="half"><div class="up">↑ this way up</div><div class="num">5</div><div class="cap">the middle, faces 4</div></div><div class="foldline"></div><div class="sidecap">Quire probe · sheet 2, back</div></div>
+  </div>
+</div>
+</body>
+</html>

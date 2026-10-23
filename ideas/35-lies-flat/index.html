@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lies Flat</title>
+  <meta name="description" content="Seeded crease patterns for a pen plotter, each one checked to fold flat, drawn beside the rosette its creases make once it is folded.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <h1>Lies Flat</h1>
+      <p class="tag">A sheet of creases built to fold flat, and beside it the same creases once it has.</p>
+    </header>
+
+    <figure class="stage">
+      <div class="paper" id="paper">
+        <img id="art" alt="" width="420" height="297">
+        <p class="status" id="status" aria-live="polite">Folding…</p>
+      </div>
+      <figcaption class="legend">
+        <span><i class="sw black"></i>mountain fold</span>
+        <span><i class="sw red"></i>valley fold</span>
+        <span class="where">left: the sheet · right: the same creases, folded</span>
+      </figcaption>
+    </figure>
+
+    <section class="controls" aria-label="Seed">
+      <div class="seedrow">
+        <button type="button" id="prev" class="icon" aria-label="Previous seed" title="Previous seed (←)">&#8249;</button>
+        <form id="seedForm" class="seedform" autocomplete="off">
+          <label for="seed">Seed</label>
+          <input id="seed" name="seed" type="text" inputmode="text" spellcheck="false" maxlength="40">
+        </form>
+        <button type="button" id="next" class="icon" aria-label="Next seed" title="Next seed (→)">&#8250;</button>
+      </div>
+      <div class="btnrow">
+        <button type="button" id="roll" class="primary" title="New random seed (R)">New sheet</button>
+        <button type="button" id="save" title="Download the plotter file (S)">Download SVG</button>
+      </div>
+    </section>
+
+    <section class="panels">
+      <div class="card">
+        <h2>What is proven</h2>
+        <dl class="facts" id="proof"></dl>
+        <p class="note">Every vertex inside the sheet is tested, not sampled. Those tests say each vertex can fold flat on its own; the two-stage folding below says the whole sheet can, and the code checks that argument's preconditions every time.</p>
+      </div>
+      <div class="card">
+        <h2>For the plotter</h2>
+        <dl class="facts" id="plot"></dl>
+        <p class="note">Times assume the pen draws at 40 mm/s, travels at 80 mm/s with the pen up, and takes 0.25 s to lift and lower. Black is drawn first, then the pen is changed for red: each pen is its own layer in the file, and the red layer is named so that AxiDraw software pauses before it.</p>
+      </div>
+      <div class="card wide">
+        <h2>How it folds</h2>
+        <ol class="steps">
+          <li>The straight lines are all mountain or all valley in turn. Pleat them like a paper fan, and the sheet becomes a narrow strip many layers thick. In each strip the zigzags mirror those of the strip beside it, so in the thick strip every layer's zigzag creases fall on the same straight lines.</li>
+          <li>Pleat the thick strip along those lines, one after another, each time folding the rest of the strip up and over onto what is already folded. Nothing ever has to pass through anything.</li>
+          <li>Those lines are not parallel, so every pleat turns the strip a little. It winds round and round; seen through the paper, the creases draw the figure on the right, each in its own colour.</li>
+        </ol>
+        <p class="note">This is the idealised paper of mathematics, with no thickness. Real paper would not take hundreds of layers, and the drawing is not meant to be cut out and folded; it is meant to be looked at.</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p><kbd>←</kbd> <kbd>→</kbd> step seeds · <kbd>R</kbd> new sheet · <kbd>S</kbd> save SVG. The seed lives in the address bar, so a link reproduces the drawing exactly.</p>
+    </footer>
+  </main>
+
+  <script src="fold.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
