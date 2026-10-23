@@ -168,6 +168,29 @@ let exported = null;
   await settle(page, 1200);
   check((await page.locator('#hinge-title').innerText()).includes('uncertainty comes from'), 'an estimate example shows the variance table');
   check((await page.locator('#strips').innerText()).includes('Target 12 weeks'), 'the target line appears for an estimate');
+  check((await page.locator('#hinges tr.total td.name').innerText()) === 'the rest', 'an estimate labels what the shares leave over "the rest" (interactions plus slicing loss)');
+  // one uncertain input: it carries all the variance, and there is no interactions row
+  await page.evaluate(() => window.hinge.loadExample('blank'));
+  await settle(page, 900);
+  check((await page.locator('#hinges tr.total').count()) === 0, 'with one uncertain input there is no interactions row');
+  const share1 = await page.locator('#hinges tr.hrow td.bar span').first().innerText();
+  check(parseFloat(share1) >= 98, `one uncertain input carries all the variance (${share1})`);
+  // a normal range that starts at zero says how often it goes below zero
+  const li0 = page.locator('#rows .row').nth(0);
+  await li0.locator('.lo').fill('0');
+  await li0.locator('.hi').fill('3');
+  check(/5% chance below 0/.test(await li0.locator('.dist-note').innerText()), 'a range from 0 to 3 warns that it goes below zero 5% of the time');
+  // a decision shows each row's share of the variance under its bar
+  await page.evaluate(() => window.hinge.loadExample('house'));
+  await settle(page, 1300);
+  const shareTxt = await page.locator('#hinges tr.hrow', { hasText: 'market_return' }).locator('small.share').innerText();
+  check(/^7(\.\d)?% of variance$/.test(shareTxt), `a decision shows each row's share of the variance (market_return: ${shareTxt})`);
+  // three options: each stretch of the flip set names the option that wins there
+  await page.evaluate(() => window.hinge.importText(JSON.stringify({ title: 'Three ways', rows: [{ name: 'x', kind: 'range', lo: -1.5449, hi: 1.7449, shape: 'normal' }], options: [{ name: 'A', expr: 'x' }, { name: 'B', expr: '0.3' }, { name: 'C', expr: '-x' }] })));
+  await settle(page, 1200);
+  const flipCell = await page.locator('#hinges tr.hrow td.flip').first().innerText();
+  check(/below −0\.3 → C \(34%\)/.test(flipCell) && /above 0\.3 → A \(42%\)/.test(flipCell), `three options: each stretch names its own winner (${flipCell.replace(/\n/g, ' / ')})`);
+  check(!/big wins/.test(await summary(page)), 'and the verdict does not blame big wins for a constant option');
   check(errors.length === 0, `no console errors on desktop${errors.length ? ': ' + errors.join(' | ') : ''}`);
   await ctx.close();
 }

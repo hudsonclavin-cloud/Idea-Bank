@@ -19,13 +19,13 @@
       { id: 'r_startup', name: 'startup_comp', kind: 'range', lo: 135e3, hi: 150e3, shape: 'auto', note: 'per year; the offer is 140k' },
       { id: 'r_equity', name: 'equity', kind: 'range', lo: 0.001, hi: 0.003, shape: 'auto', pct: true, note: 'my share at exit; 0.25% granted, dilution expected' },
       { id: 'r_survives', name: 'survives', kind: 'chance', p: 0.6, note: 'the company is still alive in four years' },
-      { id: 'r_exit', name: 'exit', kind: 'chance', p: 0.4, note: 'a liquidity event by then, given that it survives' },
+      { id: 'r_exit', name: 'exit_if_alive', kind: 'chance', p: 0.4, note: 'a liquidity event by then, if it is still alive (so 24% overall)' },
       { id: 'r_value', name: 'exit_value', kind: 'range', lo: 100e6, hi: 1e9, shape: 'auto', note: 'company value at that exit; pure guess' },
       { id: 'r_gap', name: 'gap_months', kind: 'range', lo: 1, hi: 4, shape: 'auto', note: 'months without pay if it folds' },
     ],
     options: [
       { id: 'o_stay', name: 'Stay', expr: 'stay_comp * years' },
-      { id: 'o_go', name: 'Startup', expr: 'startup_comp * years - if(survives, 0, gap_months / 12 * startup_comp) + if(survives and exit, equity * exit_value, 0)' },
+      { id: 'o_go', name: 'Startup', expr: 'startup_comp * years - if(survives, 0, gap_months / 12 * startup_comp) + if(survives and exit_if_alive, equity * exit_value, 0)' },
     ],
   };
 

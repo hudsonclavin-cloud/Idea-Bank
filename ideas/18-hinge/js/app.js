@@ -116,7 +116,9 @@
     const d = H.makeDist(row);
     const f = (x) => H.fmt(x, '', { pct: row.pct });
     if (shape === 'lognormal') return `90% interval; lognormal, median ${f(d.median)}, 1-in-100 tail at ${f(d.quantile(0.99))}`;
-    return `90% interval; normal, mean ${f(d.median)}`;
+    const below0 = row.lo >= 0 ? d.cdf(0) : 0;
+    const spill = below0 >= 0.001 ? `; ${H.fmtPct(below0)} chance below 0 (choose uniform if it cannot be negative)` : '';
+    return `90% interval; normal, mean ${f(d.median)}${spill}`;
   }
 
   function optHTML(opt, j) {
@@ -537,20 +539,27 @@
     };
     if (r.mode === 'decision') {
       $('#hinge-title').textContent = 'Where it hinges';
-      $('#hinge-blurb').textContent = 'If you could learn one assumption exactly before choosing: what that would be worth, and the values at which the best option switches. Tap a row to see the curve.';
+      $('#hinge-blurb').textContent = 'If you could learn one assumption exactly before choosing: what that would be worth, and the values at which the best option switches. The small figure under each bar is its share of the variance of the best option\'s lead. Tap a row to see the curve.';
       const total = r.evpi;
       const floor = total * 0.005;
       const body = rows.map((x) => {
         const d = rowDef(x);
         const frac = total > 0 ? Math.min(1, x.evpi / total) : 0;
         const small = x.evpi <= floor;
-        const flip = H.flipText(x, unit, d.pct);
-        const win = x.flip.p > 0 && x.flip.winner != null ? `<span class="win"> → ${esc(r.options[x.flip.winner].name)}</span>` : '';
         const chance = x.flip.p > 0 ? H.fmtPct(x.flip.p) : '—';
+        const winners = H.flipWinners(x);
+        let flipHTML;
+        if (winners.length > 1) {
+          // different options win on different stretches: name each one
+          flipHTML = H.flipParts(x, unit, d.pct).map((s) => `<span class="part">${esc(s.text)}<span class="win"> → ${esc(r.options[s.winner].name)}</span> <span class="part-p">(${esc(H.fmtPct(s.p))})</span></span>`).join('');
+        } else {
+          const win = x.flip.p > 0 && winners.length ? `<span class="win"> → ${esc(r.options[winners[0]].name)}</span>` : '';
+          flipHTML = `${esc(H.flipText(x, unit, d.pct))}${win}${x.flip.p > 0 ? ` <span class="chance">(${esc(chance)})</span>` : ''}`;
+        }
         return `<tr class="hrow${x.id === selectedRow ? ' selected' : ''}" data-id="${esc(x.id)}" role="button" tabindex="0" aria-pressed="${x.id === selectedRow}">
           <td class="name">${esc(x.name)}<small>${esc(rangeText(x))}</small></td>
-          <td class="bar"><div class="track"><div class="rail"><i class="${small ? 'zero' : ''}" style="width:${(frac * 100).toFixed(1)}%"></i></div><span>${small ? '≈0' : esc(H.fmt(x.evpi, unit))}</span></div></td>
-          <td class="flip">${esc(flip)}${win}${x.flip.p > 0 ? ` <span class="chance">(${esc(chance)})</span>` : ''}</td>
+          <td class="bar"><div class="track"><div class="rail"><i class="${small ? 'zero' : ''}" style="width:${(frac * 100).toFixed(1)}%"></i></div><span>${small ? '≈0' : esc(H.fmt(x.evpi, unit))}</span></div><small class="share">${esc(H.fmtPct(Math.max(0, x.share)))} of variance</small></td>
+          <td class="flip">${flipHTML}</td>
           <td class="num">${esc(chance)}</td>
         </tr>`;
       }).join('');
@@ -564,14 +573,16 @@
       $('#hinge-blurb').textContent = 'Share of the variance each assumption is responsible for, and how far the expected outcome moves between its 5th and 95th percentile. Tap a row to see the curve.';
       const body = rows.map((x) => `<tr class="hrow${x.id === selectedRow ? ' selected' : ''}" data-id="${esc(x.id)}" role="button" tabindex="0" aria-pressed="${x.id === selectedRow}">
           <td class="name">${esc(x.name)}<small>${esc(rangeText(x))}</small></td>
-          <td class="bar"><div class="track"><div class="rail"><i class="${x.share < 0.005 ? 'zero' : ''}" style="width:${(Math.min(1, x.share) * 100).toFixed(1)}%"></i></div><span>${x.share < 0.005 ? '≈0' : esc(H.fmtPct(x.share))}</span></div></td>
+          <td class="bar"><div class="track"><div class="rail"><i class="${x.share < 0.005 ? 'zero' : ''}" style="width:${(Math.min(1, x.share) * 100).toFixed(1)}%"></i></div><span>${x.share < 0.005 ? '≈0' : esc(H.fmtPct(Math.min(1, x.share)))}</span></div></td>
           <td class="num swing">${esc((x.swing >= 0 ? '+' : '−') + H.fmt(Math.abs(x.swing), unit))}<small>${x.kind === 'chance' ? 'if it happens' : 'from its 5% to its 95%'}</small></td>
         </tr>`).join('');
+      // What the first-order shares leave over: interactions (only when several move together) plus the
+      // little that slicing an input averages away. With a single uncertain input there is nothing to interact.
       const rest = 1 - r.sumShare;
+      const restRow = rows.length < 2 ? '' : `<tr class="total"><td class="name">the rest</td><td class="bar"><div class="track"><div class="rail"><i class="${rest < 0.005 ? 'zero' : ''}" style="width:${(Math.max(0, Math.min(1, rest)) * 100).toFixed(1)}%"></i></div><span>${rest < 0.005 ? '≈0' : esc(H.fmtPct(rest))}</span></div></td><td class="flip">interactions, when several move together, plus a little lost to slicing</td></tr>`;
       host.innerHTML = `<table class="hinge-table three">
         <thead><tr><th>Assumption</th><th>Share of uncertainty</th><th>Moves the expected outcome</th></tr></thead>
-        <tbody>${body}
-        <tr class="total"><td class="name">interactions</td><td class="bar"><div class="track"><div class="rail"><i class="${rest < 0.005 ? 'zero' : ''}" style="width:${(Math.max(0, Math.min(1, rest)) * 100).toFixed(1)}%"></i></div><span>${rest < 0.005 ? '≈0' : esc(H.fmtPct(rest))}</span></div></td><td class="flip">only when several move together</td></tr>
+        <tbody>${body}${restRow}
         </tbody></table>`;
     }
   }

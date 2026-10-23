@@ -720,22 +720,40 @@
 
   const QS = [0.05, 0.25, 0.5, 0.75, 0.95];
 
+  // The per-row analysis cuts each continuous assumption into G equal-probability slices, and cuts the
+  // two outer slices finer still (at 1/4, 1/16, 1/64 and 1/256 of a slice from the end), because with a
+  // long-tailed input most of what an outer slice averages away sits in its last few per cent.
+  const TAIL_CUTS = [1 / 4, 1 / 16, 1 / 64, 1 / 256];
+  function baseCuts(G) {
+    const out = [];
+    for (let g = 0; g <= G; g++) out.push(g / G);
+    for (const f of TAIL_CUTS) out.push(f / G, 1 - f / G);
+    return out.sort((a, b) => a - b);
+  }
+  /** Keep a probability strictly inside (0, 1), so that quantiles stay finite. */
+  const openU = (u) => (u <= 0 ? Number.MIN_VALUE : u >= 1 ? 1 - Number.EPSILON / 2 : u);
+
   /**
    * The whole analysis. opts: { n = 5000, seed = 1, slices = 32 }.
    *
    * Decision mode (two or more options): the "best" option is the one with the
    * highest expected value (lowest, if goal is 'min'). For each uncertain row i,
    * with CRN (the same joint samples of every other row) the engine computes
-   *   m_j(x)  = E[option j | row i = x]           (point conditional means)
-   *   m_j(g)  = E[option j | row i in slice g]    (slice conditional means; G equal-probability slices)
-   * and from them
-   *   evpi_i  = Σ_g (1/G) max_j m_j(g) − max_j Σ_g (1/G) m_j(g)
-   *             (the value of learning which slice row i is in before choosing;
-   *              for a chance row the two slices are its two states, weighted by p)
-   *   share_i = Var_g(E[margin | slice g]) / Var(margin), margin = best − runner-up
-   *   flip    = the set of values x of row i where argmax_j m_j(x) is not the best,
-   *             found by scanning m_j(x) at the slice medians and bisecting, with
-   *             its probability under row i's own distribution.
+   *   m_j(x)  = E[option j | row i = x]           (point conditional means, on a 36-point grid)
+   *   switch points: where argmax_j m_j(x) changes between grid points, bisected
+   *   m_j(c)  = E[option j | row i in cell c]     (cell conditional means; the cells are G
+   *             equal-probability slices, the outer two cut finer, and every cell that
+   *             contains a switch point cut there)
+   * and from them, with w_c the probability of cell c,
+   *   evpi_i  = Σ_c w_c max_j m_j(c) − max_j Σ_c w_c m_j(c)
+   *             (the value of learning which cell row i is in before choosing; since the best
+   *              option does not change inside a cell, this is the exact partial EVPI up to
+   *              Monte Carlo error whenever the scan found every switch point; for a chance
+   *              row the cells are its two states, weighted by p)
+   *   share_i = Σ_c w_c (E[margin | c] − E[margin])² / Var(margin), margin = best − max of the rest
+   *   flip    = the set of values x of row i where argmax_j m_j(x) is not the best, as
+   *             segments with the option that wins on each, and its probability under
+   *             row i's own distribution.
    * Estimate mode (one option): share_i and swing_i = m(q95) − m(q05) replace
    * the decision quantities.
    */
@@ -799,6 +817,19 @@
       eMax /= n;
       result.evpi = eMax - means[best];
       result.margin = { mean: mean(D), pPositive: wins[best] / n, q: quantiles(D, QS) };
+      // Head to head against each other option: how often the best is ahead and how often behind, and,
+      // in the runs where it is ahead, how far above its own mean it is (its upside) and how far below
+      // its own mean the other one is (their downside). The verdict uses these to say where a lead that
+      // rests on a minority of runs comes from.
+      result.headToHead = options.map((o, j) => {
+        if (j === best) return null;
+        let ahead = 0, behind = 0, up = 0, down = 0;
+        for (let k = 0; k < n; k++) {
+          const vb = V[best][k], vj = V[j][k];
+          if (vb > vj) { ahead++; up += vb - means[best]; down += means[j] - vj; } else if (vb < vj) behind++;
+        }
+        return { pAhead: ahead / n, pBehind: behind / n, up: ahead ? up / ahead : 0, down: ahead ? down / ahead : 0 };
+      });
       if (m === 2) {
         // the margin of the best option over the other, in the user's units, positive when the best is ahead
         const other = 1 - best;
@@ -865,6 +896,13 @@
       return mj[best] - other;
     };
 
+    // The best option given conditional means mj: the overall best keeps ties; another option has to be strictly better.
+    const winnerOf = (mj) => {
+      let w = best;
+      for (let j = 0; j < m; j++) if (mj[j] > mj[w]) w = j;
+      return w;
+    };
+
     for (let i = 0; i < nRows; i++) {
       const row = rows[i];
       if (row.kind !== 'range' && row.kind !== 'chance') continue;
@@ -889,11 +927,13 @@
           const maxE = Math.max(...options.map((o, j) => w[0] * at0.mj[j] + w[1] * at1.mj[j]));
           entry.evpi = Math.max(0, eMax - maxE);
           const flips = [];
-          states.forEach((st, s) => { if (gap(st.mj) < 0) flips.push(s); });
+          states.forEach((st, s) => { if (winnerOf(st.mj) !== best) flips.push(s); });
+          const segments = flips.map((s) => ({ state: s, p: w[s], winner: winnerOf(states[s].mj) }));
           entry.flip = {
             kind: flips.length === 0 ? 'none' : flips.length === 2 ? 'always' : flips[0] === 1 ? 'yes' : 'no',
             p: flips.reduce((acc, s) => acc + w[s], 0),
-            winner: flips.length ? argmax(states[flips[0]].mj) : null,
+            segments,
+            winner: segments.length ? segments.reduce((a, s) => (s.p > a.p ? s : a)).winner : null,
           };
         } else {
           entry.swing = (at1.mD - at0.mD) * sign;
@@ -903,24 +943,14 @@
         continue;
       }
 
-      // Continuous row: G equal-probability slices (CRN; every sample's u is mapped into the slice).
-      const slices = [];
-      for (let g = 0; g < G; g++) {
-        const r = condMeans(i, (k) => dist.quantile((g + (U[k] * G - Math.floor(U[k] * G))) / G));
-        slices.push({ g, w: 1 / G, uMid: (g + 0.5) / G, x: dist.quantile((g + 0.5) / G), mj: r.mj, mD: r.mD });
-      }
-      entry.slices = slices;
-      const mDbar = slices.reduce((a, s) => a + s.mD, 0) / G;
-      entry.share = varD > 0 ? slices.reduce((a, s) => a + (s.mD - mDbar) ** 2, 0) / G / varD : 0;
-
-      // Point curve at a fixed grid of quantiles: slice medians plus the tails and the 5%/95% marks.
+      // Continuous row. First the point curve at a fixed grid of quantiles: slice medians plus the tails and the 5%/95% marks.
       const grid = [0.001, 0.05, 0.95, 0.999];
       for (let g = 0; g < G; g++) grid.push((g + 0.5) / G);
       grid.sort((a, b) => a - b);
       const curve = grid.map((u) => {
         const x = dist.quantile(u);
         const r = condMeans(i, () => x);
-        return { u, x, mj: r.mj, mD: r.mD, gap: gap(r.mj) };
+        return { u, x, mj: r.mj, mD: r.mD, gap: gap(r.mj), win: winnerOf(r.mj) };
       });
       entry.curve = curve;
       const at = (u) => curve.find((c) => c.u === u);
@@ -928,35 +958,59 @@
       entry.q05 = at(0.05).x;
       entry.q95 = at(0.95).x;
 
+      // Switch points: wherever the best option at the pinned value differs between two neighbouring grid
+      // points, bisect in quantile space (20 steps) for the value where it changes. Segments between switch
+      // points carry the option that is best on them; the first and last extend to the ends of the distribution.
+      const cuts = [];
+      const segments = [];
       if (m >= 2) {
-        const eMax = slices.reduce((a, s) => a + Math.max(...s.mj), 0) / G;
-        const maxE = Math.max(...options.map((o, j) => slices.reduce((a, s) => a + s.mj[j], 0) / G));
+        const winAt = (u) => winnerOf(condMeans(i, () => dist.quantile(u)).mj);
+        let segLo = 0;
+        for (let a = 0; a + 1 < curve.length; a++) {
+          const wa = curve[a].win, wb = curve[a + 1].win;
+          if (wa === wb) continue;
+          let lo = curve[a].u, hi = curve[a + 1].u;
+          for (let it = 0; it < 20; it++) {
+            const mid = (lo + hi) / 2;
+            if (winAt(mid) === wa) lo = mid; else hi = mid;
+          }
+          const cut = (lo + hi) / 2;
+          segments.push({ lo: segLo, hi: cut, winner: wa });
+          cuts.push(cut);
+          segLo = cut;
+        }
+        segments.push({ lo: segLo, hi: 1, winner: curve[curve.length - 1].win });
+      }
+
+      // Cells (CRN: every sample's own uniform for this row is mapped into the cell). Cutting at the switch
+      // points means the best option does not change inside a cell, so the cell analysis loses nothing there.
+      const bounds = [...baseCuts(G), ...cuts].sort((a, b) => a - b).filter((u, k, arr) => k === 0 || u - arr[k - 1] > 1e-12);
+      const frac = new Float64Array(n);
+      for (let k = 0; k < n; k++) frac[k] = U[k] * G - Math.floor(U[k] * G);
+      const slices = [];
+      for (let c = 0; c + 1 < bounds.length; c++) {
+        const lo = bounds[c], hi = bounds[c + 1], w = hi - lo;
+        const r = condMeans(i, (k) => dist.quantile(openU(lo + frac[k] * w)));
+        slices.push({ lo, hi, w, x: dist.quantile((lo + hi) / 2), mj: r.mj, mD: r.mD });
+      }
+      entry.slices = slices;
+      const mDbar = slices.reduce((a, s) => a + s.w * s.mD, 0);
+      entry.share = varD > 0 ? slices.reduce((a, s) => a + s.w * (s.mD - mDbar) ** 2, 0) / varD : 0;
+
+      if (m >= 2) {
+        const eMax = slices.reduce((a, s) => a + s.w * Math.max(...s.mj), 0);
+        const maxE = Math.max(...options.map((o, j) => slices.reduce((a, s) => a + s.w * s.mj[j], 0)));
         entry.evpi = Math.max(0, eMax - maxE);
 
-        // Flip set in u-space: intervals where the best option is no longer best.
-        const gu = (u) => { const x = dist.quantile(u); return gap(condMeans(i, () => x).mj); };
-        const roots = [];
-        for (let a = 0; a + 1 < curve.length; a++) {
-          const ga = curve[a].gap, gb = curve[a + 1].gap;
-          if (ga === 0) roots.push({ u: curve[a].u, dir: Math.sign(gb) });
-          if (ga * gb < 0) {
-            let lo = curve[a].u, hi = curve[a + 1].u, glo = ga;
-            for (let it = 0; it < 20; it++) {
-              const mid = (lo + hi) / 2;
-              const gm = gu(mid);
-              if (gm === 0) { lo = hi = mid; break; }
-              if ((gm < 0) === (glo < 0)) { lo = mid; glo = gm; } else hi = mid;
-            }
-            roots.push({ u: (lo + hi) / 2, dir: Math.sign(gb) });
-          }
-        }
+        // The flip set: the segments where another option is best, merged into intervals where they touch.
+        const xAt = (lo, hi) => [lo === 0 ? null : dist.quantile(lo), hi === 1 ? null : dist.quantile(hi)];
+        const flipSegs = segments.filter((s) => s.winner !== best).map((s) => ({ lo: s.lo, hi: s.hi, p: s.hi - s.lo, winner: s.winner, at: xAt(s.lo, s.hi) }));
         const intervals = [];
-        let open = curve[0].gap < 0 ? 0 : null;
-        for (const r of roots) {
-          if (r.dir > 0 && open !== null) { intervals.push([open, r.u]); open = null; }
-          else if (r.dir < 0 && open === null) open = r.u;
+        for (const s of flipSegs) {
+          const last = intervals[intervals.length - 1];
+          if (last && last[1] === s.lo) last[1] = s.hi;
+          else intervals.push([s.lo, s.hi]);
         }
-        if (open !== null) intervals.push([open, 1]);
         const p = intervals.reduce((a, [lo, hi]) => a + (hi - lo), 0);
         let kind = 'none';
         if (intervals.length === 1) {
@@ -966,9 +1020,10 @@
         else if (intervals.length >= 2) kind = 'several';
         entry.flip = {
           kind, p,
-          intervals: intervals.map(([lo, hi]) => [lo, hi]),
-          at: intervals.map(([lo, hi]) => [lo === 0 ? null : dist.quantile(lo), hi === 1 ? null : dist.quantile(hi)]),
-          winner: intervals.length ? argmax(condMeans(i, () => dist.quantile((intervals[0][0] + intervals[0][1]) / 2)).mj) : null,
+          intervals,
+          at: intervals.map(([lo, hi]) => xAt(lo, hi)),
+          segments: flipSegs,
+          winner: flipSegs.length ? flipSegs.reduce((a, s) => (s.p > a.p ? s : a)).winner : null,
         };
       }
       restoreColumn(i);
@@ -982,13 +1037,16 @@
     return result;
   }
 
-  function argmax(a) {
-    let b = 0;
-    for (let i = 1; i < a.length; i++) if (a[i] > a[b]) b = i;
-    return b;
-  }
-
   // ------------------------------------------------------------ words
+
+  /** One stretch of values in words: "below 3", "above 7", "between 3 and 7". `at` is [low or null, high or null]. */
+  function stretchText(at, fx) {
+    const [lo, hi] = at;
+    if (lo == null && hi == null) return 'at any value';
+    if (lo == null) return `below ${fx(hi)}`;
+    if (hi == null) return `above ${fx(lo)}`;
+    return `between ${fx(lo)} and ${fx(hi)}`;
+  }
 
   /** Describe a flip set in words, e.g. "below $253M". */
   function flipText(entry, unit, pctRow) {
@@ -1008,8 +1066,57 @@
       case 'above': return `above ${fx(a[0][0])}`;
       case 'between': return `between ${fx(a[0][0])} and ${fx(a[0][1])}`;
       case 'outside': return `outside ${fx(a[0][1])} to ${fx(a[1][0])}`;
-      default: return 'in several ranges';
+      default: return a.map((x) => stretchText(x, fx)).join(' or ');
     }
+  }
+
+  /** The flip set piece by piece, each with its own probability and the option that wins there: [{ text, p, winner }]. */
+  function flipParts(entry, unit, pctRow) {
+    const f = entry.flip;
+    if (!f || !f.segments) return [];
+    const fx = (x) => fmt(x, '', { pct: pctRow });
+    return f.segments.map((s) => ({
+      text: entry.kind === 'chance' ? (s.state === 1 ? 'if it happens' : 'if it does not happen') : stretchText(s.at, fx),
+      p: s.p,
+      winner: s.winner,
+    }));
+  }
+
+  /** The options that win somewhere in a row's flip set, most probable first. */
+  function flipWinners(entry) {
+    const f = entry.flip;
+    if (!f || !f.segments) return [];
+    const by = new Map();
+    for (const s of f.segments) by.set(s.winner, (by.get(s.winner) || 0) + s.p);
+    return [...by.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w);
+  }
+
+  /**
+   * Why the option that is best on average comes out ahead in fewer than half of the runs.
+   * Two different reasons, which call for different words: a lopsided margin against one rival
+   * (the lead rests on a minority of runs, and the head-to-head numbers say whether those are the
+   * best option's own big wins or the rival's big losses), or, with three or more options, losses
+   * that are split among several rivals although it beats each of them more often than not.
+   */
+  function rarelyAhead(result, pb) {
+    const h2h = result.headToHead || [];
+    const name = (k) => `**${result.options[k].name}**`;
+    let j = -1;
+    h2h.forEach((h, k) => { if (h && (j < 0 || h.pAhead < h2h[j].pAhead)) j = k; });
+    if (j < 0) return `But it actually comes out ahead in only **${fmtPct(pb)}** of runs.`;
+    const h = h2h[j];
+    if (h.pAhead >= 0.5) {
+      const rivals = result.options.map((o, k) => k).filter((k) => k !== result.best && result.pBest[k] > 0)
+        .sort((a, c) => result.pBest[c] - result.pBest[a]).map((k) => `${name(k)} in ${fmtPct(result.pBest[k])}`);
+      return `But it comes out ahead of all the others at once in only **${fmtPct(pb)}** of runs. That is not a long tail: it beats each of them head to head more often than not, but the runs it loses are split among them (best instead: ${rivals.join(', ')}).`;
+    }
+    const vs = result.options.length > 2 ? `, and ahead of ${name(j)} in only **${fmtPct(h.pAhead)}**` : '';
+    let why;
+    if (h.up >= 2 * h.down) why = 'its average is carried by a minority of big wins';
+    else if (h.down >= 2 * h.up) why = `its lead on average comes from the minority of runs in which ${name(j)} turns out very badly`;
+    else why = `its lead on average comes from a minority of runs in which it does very well or ${name(j)} does very badly`;
+    const worse = h.pBehind > 0.5 ? `, and most of the time you would end up ${result.goal === 'min' ? 'paying more' : 'worse off'}` : '';
+    return `But it actually comes out ahead in only **${fmtPct(pb)}** of runs${vs}: ${why}${worse}.`;
   }
 
   /** The plain-language summary. Returns an array of strings with **bold** markers. */
@@ -1026,7 +1133,7 @@
       const pb = result.pBest[result.best];
       const verb = result.goal === 'min' ? 'is cheaper than' : 'beats';
       out.push(`On expected value, **${b.name}** ${verb} **${runner.name}** by ${money(lead)}.`);
-      if (pb < 0.5) out.push(`But it actually comes out ahead in only **${fmtPct(pb)}** of runs: its average is carried by a minority of big wins, and most of the time you would end up ${result.goal === 'min' ? 'paying more' : 'worse off'}.`);
+      if (pb < 0.5) out.push(rarelyAhead(result, pb));
       else if (pb < 0.8) out.push(`It comes out ahead in **${fmtPct(pb)}** of runs, so there is a real chance you would regret it.`);
       else out.push(`It comes out ahead in **${fmtPct(pb)}** of runs.`);
       const evpi = result.evpi;
@@ -1042,10 +1149,18 @@
       if (flippers.length) {
         const f = flippers[0];
         const row = rowOf(f);
-        const w = f.flip.winner != null ? result.options[f.flip.winner].name : runner.name;
-        out.push(`The most likely single thing to change the answer: **${f.name}** ${flipText(f, unit, row.pct)} — you put that at **${fmtPct(f.flip.p)}** — and then **${w}** wins.`);
+        const winners = flipWinners(f);
+        if (winners.length > 1) {
+          const parts = flipParts(f, unit, row.pct).map((s) => `${s.text} (${fmtPct(s.p)}), and then **${result.options[s.winner].name}** wins`);
+          out.push(`The most likely single thing to change the answer: **${f.name}**, which you give a **${fmtPct(f.flip.p)}** chance of landing where another option is best: ${parts.join('; ')}.`);
+        } else {
+          const w = winners.length ? result.options[winners[0]].name : runner.name;
+          out.push(`The most likely single thing to change the answer: **${f.name}** ${flipText(f, unit, row.pct)} — you put that at **${fmtPct(f.flip.p)}** — and then **${w}** wins.`);
+        }
       } else if (result.rows.length) {
-        out.push(`No single assumption can change the answer on its own within the ranges you gave; only combinations can.`);
+        if (pb >= 1 || !(evpi > 0)) out.push(`Nothing within the ranges you gave changes the answer, alone or in combination: **${b.name}** comes out ahead in every run.`);
+        else if (result.rows.length === 1) out.push(`**${result.rows[0].name}** does change the answer in some runs, but only in a stretch of values too narrow for the scan to locate (it checks ${result.rows[0].curve ? result.rows[0].curve.length : 2} points across the range), so its row shows no switch and too little worth knowing; the value of perfect information above does count it.`);
+        else out.push(`No single assumption can change the answer on its own within the ranges you gave (unless in a stretch too narrow for the scan to see); only combinations can.`);
       }
       const cannot = result.rows.filter((r) => r.flip && r.flip.p === 0).map((r) => r.name);
       if (cannot.length && flippers.length) out.push(`${cannot.map((c) => `**${c}**`).join(', ')} cannot change it alone, however ${cannot.length > 1 ? 'they turn' : 'it turns'} out.`);
@@ -1104,6 +1219,6 @@
     normCdf, normPdf, normQuantile, makeDist, rangeShape,
     tokenize, parse, compile, compileFast, emitJS, evalExpr, astVars, FUNCTIONS,
     compileModel, rng, stratifiedUniforms, simulate, mean, variance, quantiles, histogram,
-    analyze, narrate, flipText, normalizeModel, ROW_KINDS,
+    analyze, narrate, flipText, flipParts, flipWinners, baseCuts, normalizeModel, ROW_KINDS,
   };
 });
