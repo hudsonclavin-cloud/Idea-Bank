@@ -178,7 +178,7 @@ textarea#code:focus { outline: none; }
 }
 .output div { padding: 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .output div.now { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
-.output .empty { color: var(--muted); font-family: system-ui, sans-serif; }
+.output .empty, .output .note { color: var(--muted); font-family: system-ui, sans-serif; }
 
 .stage-wrap canvas, .timeline-wrap canvas {
   display: block;

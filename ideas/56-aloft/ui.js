@@ -14,8 +14,14 @@
   };
   const reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const TRACE_BEATS = 400;
-  const MAX_OUTPUT = 2000;
-  const MAX_MILLIS = 600; // wall-clock guard so a heavy program never freezes the page while you type
+  // Output caps, applied by the interpreter and again by the renderer: a few bytes of
+  // program can say tens of megabytes, and putting that in the page would freeze it.
+  const MAX_OUTPUT = 2000; // lines
+  const MAX_OUTPUT_CHARS = 200000; // characters (string length)
+  // Wall-clock guard on interpretation only (rendering is bounded by the caps above and below).
+  const MAX_MILLIS = 600;
+  const MAX_DRAWN = 200; // balls drawn in the juggle and the timeline: the first to land
+  const fmtInt = (k) => k.toLocaleString('en-US');
   const DWELL = 0.4; // beats a ball spends in the hand at the end of its flight (drawing only)
   const PALETTE = ['#d9531e', '#2b7bb9', '#c98a12', '#5f8f1f', '#a23b72', '#1f9e75', '#7b5ea7', '#c2304a', '#00798c', '#8a6d1d'];
   const STORE_KEY = 'aloft.v1';
@@ -168,7 +174,7 @@
     return Number.isFinite(v) ? Math.min(100000, Math.max(1, v)) : 10000;
   }
   function update(autoplay) {
-    const r = A.run(el.code.value, { maxBeats: limitValue(), maxOutput: MAX_OUTPUT, maxMillis: MAX_MILLIS, traceBeats: TRACE_BEATS });
+    const r = A.run(el.code.value, { maxBeats: limitValue(), maxOutput: MAX_OUTPUT, maxOutputChars: MAX_OUTPUT_CHARS, maxMillis: MAX_MILLIS, traceBeats: TRACE_BEATS });
     S.result = r;
     S.model = r.info && r.trace ? buildModel(r) : null;
     S.tau = 0;
@@ -191,13 +197,25 @@
     if (text != null) d.textContent = text;
     return d;
   }
+  // Text for the page, at most n characters (long numbers and long messages are cut with …).
+  function clip(text, n) {
+    const s = String(text);
+    return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
+  }
+  // A value for the page: in full up to 40 characters, otherwise its first digits and its length.
+  function numText(v) {
+    const s = String(v);
+    if (s.length <= 40) return s;
+    const digits = s.length - (s[0] === '-' ? 1 : 0);
+    return `${s.slice(0, 16)}… (${fmtInt(digits)} digits)`;
+  }
   function renderVerdict(r) {
     const v = el.verdict;
     v.textContent = '';
     if (r.error && r.error.kind !== 'runtime') {
       v.className = 'verdict bad';
       v.appendChild(el$('div', 'head', r.error.kind === 'syntax' ? "Can't read this yet" : "Can't juggle this yet"));
-      v.appendChild(el$('div', '', `Line ${r.error.line}, column ${r.error.col}: ${r.error.message}`));
+      v.appendChild(el$('div', '', `Line ${r.error.line}, column ${r.error.col}: ${clip(r.error.message, 2000)}`));
       const b = el$('button', '', `Go to line ${r.error.line}`);
       b.type = 'button';
       b.addEventListener('click', () => goTo(r.error.line, r.error.col));
@@ -208,7 +226,7 @@
     v.className = 'verdict ok';
     v.appendChild(el$('div', 'head', 'Jugglable'));
     const hs = info.heights.flat();
-    const sum = hs.length ? hs.join(' + ') : '0';
+    const sum = hs.length > 40 ? `${hs.length} heights adding up to ${info.heightSum}` : hs.length ? hs.join(' + ') : '0';
     const f = el$('div', 'formula', `siteswap ${info.siteswap} · ${info.ballCount} ball${info.ballCount === 1 ? '' : 's'} in the air = (${sum}) / ${info.period} beat${info.period === 1 ? '' : 's'}`);
     v.appendChild(f);
   }
@@ -218,14 +236,16 @@
     const groups = [];
     for (const s of r.info.schedule) {
       const last = groups[groups.length - 1];
-      const item = `${s.catchName} = ${s.value}`;
+      const item = `${s.catchName} = ${numText(s.value)}`;
       if (last && last.time === s.time) last.items.push(item);
       else groups.push({ time: s.time, items: [item] });
     }
-    const shown = groups.slice(0, 8).map((g) => `t=${g.time}: ${g.items.join(', ')}`);
+    const shown = groups.slice(0, 8).map((g) => `t=${g.time}: ${g.items.slice(0, 12).join(', ')}${g.items.length > 12 ? `, … ${g.items.length - 12} more` : ''}`);
     if (groups.length > 8) shown.push(`… ${groups.length - 8} more beats`);
     el.start.textContent = `In the air at the start: ${shown.join(' · ')}`;
   }
+  // The panel shows at most MAX_OUTPUT lines and MAX_OUTPUT_CHARS characters, whatever
+  // the run produced, and says so when it stops short.
   function renderOutput(r) {
     el.output.textContent = '';
     if (!r.output.length) {
@@ -233,11 +253,28 @@
       return;
     }
     const frag = document.createDocumentFragment();
-    r.output.forEach((line, i) => {
+    let chars = 0;
+    let shown = 0;
+    let cut = false;
+    for (let i = 0; i < r.output.length; i++) {
+      if (shown >= MAX_OUTPUT || chars >= MAX_OUTPUT_CHARS) {
+        cut = true;
+        break;
+      }
+      let line = r.output[i];
+      if (chars + line.length > MAX_OUTPUT_CHARS) {
+        line = line.slice(0, MAX_OUTPUT_CHARS - chars);
+        cut = true;
+      }
+      chars += line.length;
+      shown++;
       const d = el$('div', '', line);
       d.dataset.t = String(r.outputBeats[i]);
       frag.appendChild(d);
-    });
+    }
+    const capText = `${fmtInt(MAX_OUTPUT)} lines or ${fmtInt(MAX_OUTPUT_CHARS)} characters`;
+    if (cut) frag.appendChild(el$('div', 'note', `(the page shows at most ${capText} of output)`));
+    else if (r.status === 'output-limit') frag.appendChild(el$('div', 'note', `(output stops here: the playground keeps at most ${capText})`));
     el.output.appendChild(frag);
     el.output.scrollTop = 0;
   }
@@ -251,7 +288,11 @@
     const beats = `${r.beats} beat${r.beats === 1 ? '' : 's'}`;
     if (r.status === 'stopped') s.textContent = `stopped after ${beats}`;
     else if (r.status === 'limit') s.textContent = `no stop within the beat limit (${beats}): still juggling`;
-    else if (r.status === 'output-limit') s.textContent = `output limit (${MAX_OUTPUT} lines) reached after ${beats}`;
+    else if (r.status === 'output-limit') {
+      s.textContent = r.output.length >= MAX_OUTPUT
+        ? `output limit (${fmtInt(MAX_OUTPUT)} lines) reached after ${beats}`
+        : `output limit (${fmtInt(MAX_OUTPUT_CHARS)} characters) reached after ${beats}`;
+    }
     else if (r.status === 'work-limit') s.textContent = `halted after ${beats}: the work budget (${A.DEFAULTS.maxWork.toLocaleString('en-US')} steps) ran out`;
     else if (r.status === 'time-limit') s.textContent = `halted after ${beats}: the run took longer than ${MAX_MILLIS / 1000} s`;
     else if (r.status === 'error') {
@@ -367,6 +408,7 @@
     ctx.clearRect(0, 0, W, H);
     const m = S.model;
     const g = stageGeometry(W, H, m ? m.maxH : 3);
+    const drawn = m ? Math.min(m.flights.length, MAX_DRAWN) : 0;
     // hands
     const tb = Math.floor(S.tau + 1e-9);
     for (let hnd = 0; hnd < 2; hnd++) {
@@ -403,8 +445,10 @@
     const fontPx = g.r <= 12 ? 10 : 11;
     ctx.font = `600 ${fontPx}px ui-monospace, Menlo, Consolas, monospace`;
     ctx.textBaseline = 'middle';
+    // Thousands of balls would make every frame take a second; past MAX_DRAWN, only the
+    // first balls to land are drawn (the rest are still in the program, just not on screen).
     m.flights.forEach((fl, id) => {
-      if (!fl.length) return;
+      if (!fl.length || id >= drawn) return;
       const p = ballPos(fl, tau, g);
       ctx.fillStyle = ballColor(id);
       ctx.beginPath();
@@ -437,7 +481,8 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = c.muted;
     ctx.font = '12px system-ui, sans-serif';
-    ctx.fillText(`siteswap ${m.info.siteswap} · ${m.info.ballCount} ball${m.info.ballCount === 1 ? '' : 's'}`, W - 12, 20);
+    ctx.fillText(`siteswap ${clip(m.info.siteswap, 24)} · ${m.info.ballCount} ball${m.info.ballCount === 1 ? '' : 's'}`, W - 12, 20);
+    if (m.flights.length > drawn) ctx.fillText(`drawing the first ${drawn} to land`, W - 12, 36);
     if (S.tau >= m.end) {
       ctx.textAlign = 'center';
       ctx.fillStyle = m.status === 'error' ? c.err : c.accent;
@@ -496,6 +541,7 @@
     ctx.font = '600 10px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'middle';
     m.flights.forEach((fl, id) => {
+      if (id >= MAX_DRAWN) return;
       for (const f of fl) {
         if (f.land < tA || f.s > tB) continue;
         if (f.s > m.end) continue;
@@ -533,6 +579,13 @@
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
+    if (m.flights.length > MAX_DRAWN) {
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = c.muted;
+      ctx.fillText(`arcs of the first ${MAX_DRAWN} balls to land`, 8, 14);
+    }
   }
 
   function wrapText(ctx, text, x, y, maxW, lh, maxLines) {
@@ -580,11 +633,13 @@
     b.textContent = `t = ${t}`;
     el.desc.appendChild(b);
     parts.push(`beat on line ${m.info.beats[rec.beat].line}`);
-    parts.push(rec.caught.length ? `caught ${rec.caught.map((x, i) => `${names[i]} = ${x.value}`).join(', ')}` : 'caught nothing (an empty beat)');
-    if (rec.thrown.length) parts.push(`threw ${rec.thrown.map((x) => `${x.value} up ${x.height}`).join(', ')}`);
-    if (rec.said.length) parts.push(`said ${rec.said.map((s) => `“${s}”`).join(', ')}`);
+    // A beat can catch thousands of balls with thousand-digit values: the description lists a few, briefly.
+    const few = (xs, f) => xs.slice(0, 8).map(f).join(', ') + (xs.length > 8 ? `, … ${xs.length - 8} more` : '');
+    parts.push(rec.caught.length ? `caught ${few(rec.caught, (x, i) => `${names[i]} = ${numText(x.value)}`)}` : 'caught nothing (an empty beat)');
+    if (rec.thrown.length) parts.push(`threw ${few(rec.thrown, (x) => `${numText(x.value)} up ${x.height}`)}`);
+    if (rec.said.length) parts.push(`said ${few(rec.said, (s) => `“${clip(s, 120)}”`)}`);
     if (rec.stopped) parts.push('stop');
-    if (rec.error) parts.push(`error: ${S.result.error.message}`);
+    if (rec.error) parts.push(`error: ${clip(S.result.error.message, 400)}`);
     el.desc.appendChild(document.createTextNode(` · ${parts.join(' · ')}`));
     // output highlight, scrolling the panel only (never the page)
     let first = null;

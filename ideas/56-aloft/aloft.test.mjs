@@ -134,6 +134,17 @@ test('parser: format and parse round-trip on every lesson', () => {
   }
 });
 
+test('parser: deep but valid source formats to valid source (nested minus prints as "- -x")', () => {
+  for (const k of [1, 2, 3, 150, 199]) {
+    const src = `catch\n  say ${'-'.repeat(k)}1, 2 - -3, - -(4 + 1)\n  stop\n`;
+    const p = A.parse(src);
+    const f = A.format(p);
+    assert.deepEqual(strip(A.parse(f)), strip(p), `${k} minus signs`);
+    assert.deepEqual(A.run(f).output, A.run(src).output, `${k} minus signs`);
+  }
+  assert.equal(A.format(A.parse('catch\n  say - - -x\n')).trim().split('\n')[1], '  say - - -x');
+});
+
 test('parser: positions, comments, CRLF, tabs, continuation and wide characters', () => {
   const p = A.parse('# c\r\nballs 1 -2\r\n\tcatch  a b # two\r\n  say "é😀", a when (a\r\n  > 0)\r\n  throw a up 1\r\n  throw b up 1\r\n');
   assert.deepEqual(p.balls.map((b) => b.value), [1n, -2n]);
@@ -239,6 +250,59 @@ test('errors: the checker reports the first pass that fails, in the documented o
   assert.ok(errorOf('catch x\n  say y\n').message.includes("isn't in your hand"));
   assert.ok(errorOf('balls 1\ncatch x\ncatch y\n  throw y up 5\n').message.includes('throws 0'));
   assert.ok(errorOf('catch x\n  throw x up 1\ncatch y\n  throw y up 1\ncatch z\n  throw z up 2\n').message.includes('land'));
+});
+
+test('errors: within the syntax pass the first failure in reading order wins, lexical or grammatical', () => {
+  // The lexer is lazy, so a bad character or an unterminated string on a later line
+  // can't hide a grammar error (and its teaching message) on an earlier one.
+  const cases = [
+    ['catch\n  x = 3\n  say "oops\n', 2, 3, 'There are no variables in Aloft'],
+    ['catch\n  say 1 +\n  say (2\n', 2, 10, 'Expected a value but found the end of the line'],
+    ['catch\n  say 1 2\n  say 12ab\n', 2, 9, 'each statement goes on its own line'],
+    ['catch\n  frob\n  say 1 @ 2\n', 2, 3, 'Each line starts with one of'],
+    ['catch\n  x 3abc\n', 2, 3, 'Each line starts with one of'], // the lookahead token is unreadable, but x comes first
+    // ...and a lexical error still wins when it comes first.
+    ['catch\n  say "oops\n  x = 3\n', 2, 7, 'never ends'],
+    ['catch\n  say 1 @ 2\n  say 1 2\n', 2, 9, 'Unexpected character "@"'],
+    // A "(" that is never closed counts as failing at the bracket, so a forgotten ")"
+    // is named as such instead of as a puzzling error on a later line.
+    ['catch\n  say (1 +\n  2\n', 2, 7, 'never closed'],
+    ['catch\n  say (1\n  say 2\n', 2, 7, 'never closed'],
+    ['catch\n  let x = (1 + 2\n  throw x up 1\n', 2, 11, 'never closed'],
+    ['catch\n  say "(" # (\n  say (2 @\n', 3, 7, 'never closed'], // brackets in strings and comments don't count
+    ['catch\n  say "😀(", (1\n', 2, 13, 'never closed'],
+    ['catch\n  say 1 +\n  say (2 @\n', 2, 10, 'Expected a value'], // ...and an earlier error still wins
+  ];
+  for (const [src, line, col, frag] of cases) {
+    const e = errorOf(src);
+    assert.equal(e.kind, 'syntax', JSON.stringify(src));
+    assert.deepEqual(pos(e), [line, col], `${JSON.stringify(src)}: ${e.message}`);
+    assert.ok(e.message.includes(frag), `${JSON.stringify(src)}: "${e.message}" lacks "${frag}"`);
+  }
+  // The eager token list is the same stream.
+  assert.deepEqual(A.lex('catch\n  say (1\n  + 2)\n').map((t) => t.type), ['kw', 'nl', 'kw', 'op', 'int', 'op', 'int', 'op', 'nl', 'eof']);
+  // Remove one ")" from a valid program: the parser names the same unclosed bracket as the
+  // eager lexer, which only finds it at the end of the input.
+  const r = rng(1729);
+  let tried = 0;
+  for (let i = 0; i < 400; i++) {
+    const src = printProgram(genProgram(r));
+    const closers = [...src.matchAll(/\)/g)].map((m) => m.index);
+    if (!closers.length) continue;
+    const at = pick(r, closers);
+    const broken = src.slice(0, at) + src.slice(at + 1);
+    let eager = null;
+    try {
+      A.lex(broken);
+    } catch (e) {
+      eager = e.info;
+    }
+    const e = errorOf(broken);
+    assert.ok(eager && eager.message.includes('never closed'), broken);
+    assert.deepEqual([e.message, e.line, e.col], [eager.message, eager.line, eager.col], broken);
+    tried++;
+  }
+  assert.ok(tried > 300, `${tried} programs`);
 });
 
 // ---------------------------------------------------------------- semantics
@@ -379,6 +443,48 @@ test('runaways: every kind of runaway stops cleanly and quickly', () => {
   const huge = A.analyze(`catch ${Array.from({ length: 400 }, (_, i) => `a${i}`).join(' ')}\n${Array.from({ length: 400 }, (_, i) => `  throw a${i} up 9999`).join('\n')}\n`);
   assert.ok(huge.error.message.includes('3999600 balls'));
   assert.ok(Date.now() - t0 < 8000, `took ${Date.now() - t0} ms`);
+});
+
+test('runaways: output is capped in characters as well as lines, so a tiny program cannot flood the page', () => {
+  const PLAY = { maxBeats: 10000, maxOutput: 2000, maxOutputChars: 200000, maxMillis: 600 }; // the playground's options
+  const ui = fs.readFileSync(path.join(HERE, 'ui.js'), 'utf8');
+  assert.match(ui, /const MAX_OUTPUT = 2000;/);
+  assert.match(ui, /const MAX_OUTPUT_CHARS = 200000;/);
+  assert.match(ui, /maxOutputChars: MAX_OUTPUT_CHARS/);
+  // A 328-byte form of the reviewer's program: 60 copies of a 978-digit number per line. Without a
+  // character cap it said about 28 MB inside the 0.6 s time guard.
+  const b8 = (x) => Array(8).fill(x).join('*');
+  const digits = `balls 0\ncatch k\n  let a = 3\n  let b = ${b8('a')}\n  let c = ${b8('b')}\n  let d = ${b8('c')}\n  let e = d*d*d*d\n  say ${Array(60).fill('e').join(', ')}\n  throw k + 1 up 1\n`;
+  assert.equal(digits.length, 328);
+  const t0 = Date.now();
+  const r = A.run(digits, PLAY);
+  assert.equal(r.status, 'output-limit');
+  assert.equal(r.outputChars, 200000);
+  assert.equal(r.output.reduce((n, l) => n + l.length, 0), 200000);
+  assert.equal(r.beats, 4);
+  assert.equal(r.output[0], Array(60).fill((3n ** 2048n).toString()).join(' '));
+  assert.ok(r.output[3].length < r.output[0].length, 'the line that reached the limit is cut');
+  // Strings cost no work units, so only the character cap stops this one (it said 160 MB before).
+  const strings = `catch\n  say "${'x'.repeat(40000)}", "${'x'.repeat(40000)}"\n`;
+  const s = A.run(strings, PLAY);
+  assert.deepEqual([s.status, s.beats, s.outputChars], ['output-limit', 3, 200000]);
+  // A line that reaches the limit stops there: its later items are not evaluated.
+  const cut = A.run(`catch\n  say "${'y'.repeat(150)}", 1 / 0\n`, { maxOutputChars: 100 });
+  assert.deepEqual([cut.status, cut.output, cut.error], ['output-limit', ['y'.repeat(100)], null]);
+  // The trace (what the replay shows) holds the cut line too.
+  const tr = A.run(`catch\n  say "${'z'.repeat(150)}"\n`, { maxOutputChars: 100, traceBeats: 5 });
+  assert.equal(tr.trace.beats[0].said[0].length, 100);
+  // A cut never splits a character outside the Basic Multilingual Plane.
+  const emoji = A.run('catch\n  say "😀😀😀"\n', { maxOutputChars: 3 });
+  assert.deepEqual([emoji.status, emoji.output], ['output-limit', ['😀']]);
+  // Exactly reaching the limit counts as reaching it, as with lines.
+  const exact = A.run('catch\n  say "abcd"\n', { maxOutputChars: 4 });
+  assert.deepEqual([exact.status, exact.output, exact.beats], ['output-limit', ['abcd'], 1]);
+  // The module's own default is larger, and every lesson is far below both caps.
+  assert.equal(A.DEFAULTS.maxOutputChars, 1000000);
+  assert.equal(A.run(digits).outputChars, 1000000);
+  for (const ex of LESSONS) assert.ok(A.run(ex.src, PLAY).outputChars < 2000, ex.id);
+  assert.ok(Date.now() - t0 < 3000, `took ${Date.now() - t0} ms`);
 });
 
 // ------------------------------------------------------- generated programs
@@ -794,6 +900,10 @@ test('theorem: there are (b+1)^n - b^n such programs with n beats and b balls (B
       assert.equal(count, (b + 1) ** n - b ** n, `n=${n} b=${b}`);
     }
   }
+  // The count is of height patterns, and only while b·n <= 9999: a juggling sequence can
+  // contain a throw as high as b·n, and heights above 9999 can't be written. For n = 1 and
+  // b = 10000 the formula counts the sequence [10000], which Aloft can't express.
+  assert.ok(errorOf('catch a\n  throw a up 10000\n').message.includes('at most 9999'));
 });
 
 test('theorem: a checked program never drops a ball, and holds exactly (sum of heights)/n balls at every moment', () => {
@@ -861,8 +971,37 @@ test('theorem: a pattern the checker rejects collides or drops within (max heigh
   assert.ok(rejected > 200, `only ${rejected} rejected patterns tried`);
 });
 
-// A Minsky register machine, compiled to a one-beat Aloft program with one ball per register.
+// A Minsky register machine compiled to a one-beat Aloft program, pattern [11…1]: one
+// ball for the instruction counter s and one per register. Each instruction adds one
+// flat `let` to the sum that picks the next instruction and one to its register's change,
+// so every expression stays a few levels deep however long the machine is.
+// Instructions: ['inc', j, next] and ['dec', j, nextIfPositive, nextIfZero]; s >= length halts.
 function compileMinsky(prog, regs, start) {
+  const H = prog.length;
+  const names = regs.map((_, i) => `r${i}`);
+  const lines = [
+    `balls ${start} ${regs.join(' ')}`,
+    `catch s ${names.join(' ')}`,
+    `  say ${names.join(', ')} when s >= ${H}`,
+    `  stop when s >= ${H}`,
+    '  let n0 = 0',
+    ...names.map((r) => `  let d${r}_0 = 0`),
+  ];
+  const d = regs.map(() => 0); // how many change lets each register has so far
+  prog.forEach((ins, k) => {
+    const j = ins[1];
+    const to = ins[0] === 'inc' ? `${ins[2]}` : `(if r${j} > 0 then ${ins[2]} else ${ins[3]})`;
+    lines.push(`  let n${k + 1} = n${k} + (s == ${k}) * ${to}`);
+    const change = ins[0] === 'inc' ? `+ (s == ${k})` : `- (s == ${k} and r${j} > 0)`;
+    lines.push(`  let dr${j}_${d[j] + 1} = dr${j}_${d[j]} ${change}`);
+    d[j]++;
+  });
+  lines.push(`  throw n${H} up 1`, ...names.map((r, i) => `  throw ${r} + d${r}_${d[i]} up 1`));
+  return `${lines.join('\n')}\n`;
+}
+// The first construction tried: one nested if-chain per register. It is correct, but each
+// instruction adds a level, so at 100 instructions it passes the parser's 200-level limit.
+function compileMinskyNested(prog, regs, start) {
   const H = prog.length;
   const names = regs.map((_, i) => `r${i}`);
   const nextState = prog.reduceRight((acc, ins, s) => {
@@ -899,7 +1038,7 @@ function runMinsky(prog, regs) {
   return r;
 }
 
-test('universality: Minsky machines compiled to [1111…] agree with a direct simulation', () => {
+test('universality: Minsky machines compiled to [11…1] (one ball per register plus the counter) agree with a direct simulation', () => {
   const add = [['dec', 1, 1, 2], ['inc', 0, 0]]; // r0 += r1
   const mul = [['dec', 0, 1, 6], ['dec', 1, 2, 4], ['inc', 2, 3], ['inc', 3, 1], ['dec', 3, 5, 0], ['inc', 1, 4]]; // r2 = r0 * r1
   const swap = [['dec', 0, 1, 2], ['inc', 2, 0], ['dec', 1, 3, 4], ['inc', 0, 2], ['dec', 2, 5, 6], ['inc', 1, 4]]; // swap r0, r1
@@ -907,11 +1046,39 @@ test('universality: Minsky machines compiled to [1111…] agree with a direct si
     for (let a = 0; a <= 5; a++) {
       for (let b = 0; b <= 5; b++) {
         const regs = [a, b, ...Array(nregs - 2).fill(0)];
+        const want = [runMinsky(prog, regs).join(' ')];
         const res = A.run(compileMinsky(prog, regs, 0), { maxBeats: 100000 });
         assert.equal(res.status, 'stopped');
-        assert.deepEqual(res.output, [runMinsky(prog, regs).join(' ')]);
+        assert.equal(res.info.ballCount, nregs + 1, 'one ball per register, plus one for the counter');
+        assert.deepEqual(res.output, want);
+        assert.deepEqual(A.run(compileMinskyNested(prog, regs, 0), { maxBeats: 100000 }).output, want);
       }
     }
+  }
+  // Long machines: blocks that each move one register into the next, round a ring of R registers.
+  const chain = (blocks, R) => {
+    const p = [];
+    for (let i = 0; i < blocks; i++) {
+      const at = p.length;
+      p.push(['dec', i % R, at + 1, at + 2], ['inc', (i + 1) % R, at]);
+    }
+    return p;
+  };
+  const twelve = [2, 7, 1, 8, 2, 8, 1, 8, 2, 8, 4, 5];
+  const ring = chain(30, 12);
+  const r12 = A.run(compileMinsky(ring, twelve, 0), { maxBeats: 100000 });
+  assert.deepEqual([r12.status, r12.info.ballCount, r12.output], ['stopped', 13, [runMinsky(ring, twelve).join(' ')]]);
+  const regs = [3, 1, 4, 1, 5];
+  for (const blocks of [49, 50, 60]) { // 98, 100 and 120 instructions
+    const prog = chain(blocks, 5);
+    const res = A.run(compileMinsky(prog, regs, 0), { maxBeats: 100000 });
+    assert.equal(res.status, 'stopped', `${prog.length} instructions: ${res.status}`);
+    assert.equal(res.info.ballCount, 6);
+    assert.deepEqual(res.output, [runMinsky(prog, regs).join(' ')], `${prog.length} instructions`);
+    // The nested form works at 98 instructions and is too deep from 100 on.
+    const nested = A.run(compileMinskyNested(prog, regs, 0), { maxBeats: 100000 });
+    if (prog.length < 100) assert.deepEqual(nested.output, res.output);
+    else assert.ok(nested.error && nested.error.message.includes('nested too deeply'), `${prog.length}: nested form`);
   }
 });
 
@@ -950,4 +1117,6 @@ test('README: header, spec and examples agree with the code', () => {
   for (const ex of LESSONS) assert.ok(md.includes(ex.title.replace(/'/g, '’')) || md.includes(ex.title), ex.title);
   assert.ok(md.includes(`${A.MAX_HEIGHT}`) && md.includes(`2^${A.MAX_BITS}`) && md.includes(`${A.MAX_DEPTH} levels`));
   assert.ok(md.includes(`${A.DEFAULTS.maxWork.toLocaleString('en-US')}`), 'work budget documented');
+  assert.ok(md.includes(`${A.DEFAULTS.maxOutputChars.toLocaleString('en-US')} characters by default, 200,000 in the playground`), 'character cap documented');
+  assert.ok(md.includes('10,000 lines by default, 2,000 in the playground'), 'line cap documented');
 });

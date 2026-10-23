@@ -16,8 +16,10 @@
   const MAX_BITS = 4096;
   const LIMIT = 1n << BigInt(MAX_BITS); // |value| must stay below 2^4096
   const MAX_DEPTH = 200; // deepest expression nesting the parser accepts
-  // maxMillis is a wall-clock guard for interactive use; by default there is none, so runs are deterministic.
-  const DEFAULTS = { maxBeats: 10000, maxOutput: 10000, maxWork: 5000000, maxMillis: Infinity, traceBeats: 0 };
+  // maxOutput caps lines and maxOutputChars caps characters (string length) of output, so a
+  // short program can't produce more text than a page can show. maxMillis is a wall-clock guard
+  // on interpretation for interactive use; by default there is none, so runs are deterministic.
+  const DEFAULTS = { maxBeats: 10000, maxOutput: 10000, maxOutputChars: 1000000, maxWork: 5000000, maxMillis: Infinity, traceBeats: 0 };
 
   function err(kind, message, line, col) {
     return { kind, message, line, col };
@@ -35,8 +37,9 @@
   // ---------------------------------------------------------------- lexer
   // Token types: int, name, kw, str, op, nl, eof. Lines and columns count from 1;
   // a column is one character (a surrogate pair counts once).
-  function lex(src) {
-    const toks = [];
+  // The lexer is lazy: each call returns the next token, so the parser meets a bad
+  // character only when it gets there, and an earlier grammar error is reported first.
+  function lexer(src) {
     const open = []; // positions of unclosed "(": line breaks inside brackets are ignored
     let i = 0;
     let line = 1;
@@ -51,82 +54,87 @@
       i++;
       col++;
     };
-    while (i < n) {
-      const ch = src[i];
-      if (ch === '\r' || ch === '\n') {
-        if (!open.length) toks.push({ type: 'nl', value: '\n', line, col });
-        if (ch === '\r' && src[i + 1] === '\n') i++;
-        i++;
-        line++;
-        col = 1;
-        continue;
-      }
-      if (ch === ' ' || ch === '\t' || ch === '\f' || ch === '\v') {
-        adv();
-        continue;
-      }
-      if (ch === '#') {
-        while (i < n && src[i] !== '\n' && src[i] !== '\r') adv();
-        continue;
-      }
-      const sl = line;
-      const sc = col;
-      if (ch >= '0' && ch <= '9') {
-        let j = i;
-        while (j < n && src[j] >= '0' && src[j] <= '9') j++;
-        if (j < n && /[A-Za-z_]/.test(src[j])) {
-          fail('syntax', `A number can't run into letters: "${src.slice(i, j + 1)}"`, sl, sc);
+    return function nextToken() {
+      while (i < n) {
+        const ch = src[i];
+        if (ch === '\r' || ch === '\n') {
+          const tok = open.length ? null : { type: 'nl', value: '\n', line, col };
+          if (ch === '\r' && src[i + 1] === '\n') i++;
+          i++;
+          line++;
+          col = 1;
+          if (tok) return tok;
+          continue;
         }
-        const text = src.slice(i, j);
-        const value = BigInt(text);
-        if (value >= LIMIT) fail('syntax', `That number is too big (Aloft numbers stay below 2^${MAX_BITS})`, sl, sc);
-        toks.push({ type: 'int', value, text, line: sl, col: sc });
-        col += j - i;
-        i = j;
-        continue;
+        if (ch === ' ' || ch === '\t' || ch === '\f' || ch === '\v') {
+          adv();
+          continue;
+        }
+        if (ch === '#') {
+          while (i < n && src[i] !== '\n' && src[i] !== '\r') adv();
+          continue;
+        }
+        const sl = line;
+        const sc = col;
+        if (ch >= '0' && ch <= '9') {
+          let j = i;
+          while (j < n && src[j] >= '0' && src[j] <= '9') j++;
+          if (j < n && /[A-Za-z_]/.test(src[j])) {
+            fail('syntax', `A number can't run into letters: "${src.slice(i, j + 1)}"`, sl, sc);
+          }
+          const text = src.slice(i, j);
+          const value = BigInt(text);
+          if (value >= LIMIT) fail('syntax', `That number is too big (Aloft numbers stay below 2^${MAX_BITS})`, sl, sc);
+          col += j - i;
+          i = j;
+          return { type: 'int', value, text, line: sl, col: sc };
+        }
+        if (/[A-Za-z_]/.test(ch)) {
+          let j = i;
+          while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+          const word = src.slice(i, j);
+          col += j - i;
+          i = j;
+          return { type: KEYWORDS.has(word) ? 'kw' : 'name', value: word, line: sl, col: sc };
+        }
+        if (ch === '"') {
+          adv();
+          const start = i;
+          while (i < n && src[i] !== '"' && src[i] !== '\n' && src[i] !== '\r') adv();
+          if (i >= n || src[i] !== '"') fail('syntax', 'This string never ends: close it with " on the same line', sl, sc);
+          const value = src.slice(start, i);
+          adv();
+          return { type: 'str', value, line: sl, col: sc };
+        }
+        const two = src.slice(i, i + 2);
+        if (two === '==' || two === '!=' || two === '<=' || two === '>=') {
+          i += 2;
+          col += 2;
+          return { type: 'op', value: two, line: sl, col: sc };
+        }
+        if ('+-*/%(),=<>'.includes(ch)) {
+          if (ch === '(') open.push({ line: sl, col: sc });
+          if (ch === ')') open.pop();
+          adv();
+          return { type: 'op', value: ch, line: sl, col: sc };
+        }
+        const shown = String.fromCodePoint(src.codePointAt(i));
+        if (/\s/.test(shown)) {
+          const code = shown.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+          fail('syntax', `Unexpected invisible character U+${code}: only ordinary spaces and tabs can separate words`, sl, sc);
+        }
+        if (ch === '!') fail('syntax', 'Unexpected "!": "not equal" is written !=, and "not" is a word', sl, sc);
+        fail('syntax', `Unexpected character "${shown}"`, sl, sc);
       }
-      if (/[A-Za-z_]/.test(ch)) {
-        let j = i;
-        while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
-        const word = src.slice(i, j);
-        toks.push({ type: KEYWORDS.has(word) ? 'kw' : 'name', value: word, line: sl, col: sc });
-        col += j - i;
-        i = j;
-        continue;
-      }
-      if (ch === '"') {
-        adv();
-        const start = i;
-        while (i < n && src[i] !== '"' && src[i] !== '\n' && src[i] !== '\r') adv();
-        if (i >= n || src[i] !== '"') fail('syntax', 'This string never ends: close it with " on the same line', sl, sc);
-        toks.push({ type: 'str', value: src.slice(start, i), line: sl, col: sc });
-        adv();
-        continue;
-      }
-      const two = src.slice(i, i + 2);
-      if (two === '==' || two === '!=' || two === '<=' || two === '>=') {
-        toks.push({ type: 'op', value: two, line: sl, col: sc });
-        i += 2;
-        col += 2;
-        continue;
-      }
-      if ('+-*/%(),=<>'.includes(ch)) {
-        if (ch === '(') open.push({ line: sl, col: sc });
-        if (ch === ')') open.pop();
-        toks.push({ type: 'op', value: ch, line: sl, col: sc });
-        adv();
-        continue;
-      }
-      const shown = String.fromCodePoint(src.codePointAt(i));
-      if (/\s/.test(shown)) {
-        const code = shown.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
-        fail('syntax', `Unexpected invisible character U+${code}: only ordinary spaces and tabs can separate words`, sl, sc);
-      }
-      if (ch === '!') fail('syntax', 'Unexpected "!": "not equal" is written !=, and "not" is a word', sl, sc);
-      fail('syntax', `Unexpected character "${shown}"`, sl, sc);
-    }
-    if (open.length) fail('syntax', 'This "(" is never closed', open[0].line, open[0].col);
-    toks.push({ type: 'eof', value: '', line, col });
+      if (open.length) fail('syntax', 'This "(" is never closed', open[0].line, open[0].col);
+      return { type: 'eof', value: '', line, col };
+    };
+  }
+  // All the tokens at once (the parser itself pulls them one at a time).
+  function lex(src) {
+    const next = lexer(src);
+    const toks = [];
+    do toks.push(next()); while (toks[toks.length - 1].type !== 'eof');
     return toks;
   }
 
@@ -154,13 +162,67 @@
     return max;
   }
 
+  // The first "(" that is never closed, or null. Brackets inside strings and comments
+  // don't count, and strings and comments end at a line break, as in the lexer.
+  function firstUnclosed(src) {
+    const open = [];
+    let line = 1;
+    let col = 1;
+    let mode = 'code'; // or 'string', 'comment'
+    const n = src.length;
+    for (let i = 0; i < n;) {
+      const ch = src[i];
+      if (ch === '\r' || ch === '\n') {
+        if (ch === '\r' && src[i + 1] === '\n') i++;
+        i++;
+        line++;
+        col = 1;
+        mode = 'code';
+        continue;
+      }
+      if (mode === 'code') {
+        if (ch === '#') mode = 'comment';
+        else if (ch === '"') mode = 'string';
+        else if (ch === '(') open.push({ line, col });
+        else if (ch === ')') open.pop();
+      } else if (mode === 'string' && ch === '"') mode = 'code';
+      const c = src.charCodeAt(i);
+      const pair = c >= 0xd800 && c <= 0xdbff && i + 1 < n && src.charCodeAt(i + 1) >= 0xdc00 && src.charCodeAt(i + 1) <= 0xdfff;
+      i += pair ? 2 : 1;
+      col++;
+    }
+    return open.length ? open[0] : null;
+  }
+
+  // Tokens are pulled from the lexer only as the parser reaches them, so the first failure
+  // in reading order is the one reported, whether it is a bad character or bad grammar.
+  // A "(" that is never closed counts as failing at the bracket: a forgotten ")" otherwise
+  // shows up as a puzzling error further on.
   function parse(src) {
-    const toks = lex(src);
+    try {
+      return parseTokens(src);
+    } catch (e) {
+      if (e instanceof AloftFail && e.info.kind === 'syntax') {
+        const b = firstUnclosed(src);
+        if (b && (b.line < e.info.line || (b.line === e.info.line && b.col < e.info.col))) {
+          fail('syntax', 'This "(" is never closed', b.line, b.col);
+        }
+      }
+      throw e;
+    }
+  }
+  function parseTokens(src) {
+    const pull = lexer(src);
+    const toks = [];
+    const tok = (k) => {
+      while (toks.length <= k) toks.push(pull());
+      return toks[k];
+    };
     let p = 0;
-    const peek = () => toks[p];
-    const next = () => toks[p++];
-    const isKw = (w) => toks[p].type === 'kw' && toks[p].value === w;
-    const isOp = (o) => toks[p].type === 'op' && toks[p].value === o;
+    const peek = () => tok(p);
+    const next = () => tok(p++);
+    const isKw = (w) => peek().type === 'kw' && peek().value === w;
+    const isOp = (o) => peek().type === 'op' && peek().value === o;
     const expectKw = (w, why) => {
       if (!isKw(w)) fail('syntax', why || `Expected "${w}" but found ${describe(peek())}`, peek().line, peek().col);
       return next();
@@ -385,8 +447,18 @@
         const value = topExpr();
         return { type: 'let', name: nt.value, value, line: t.line, col: t.col, nameLine: nt.line, nameCol: nt.col };
       }
-      if (t.type === 'name' && toks[p + 1].type === 'op' && toks[p + 1].value === '=') {
-        fail('syntax', `There are no variables in Aloft. To keep "${t.value}" for later, throw it; to name a value inside one beat, write "let ${t.value} = ..."`, t.line, t.col);
+      if (t.type === 'name') {
+        // One token of lookahead for "x = 3". If that token is itself unreadable, the
+        // error at this name comes first, since it is earlier in the line.
+        let after = null;
+        try {
+          after = tok(p + 1);
+        } catch (e) {
+          if (!(e instanceof AloftFail)) throw e;
+        }
+        if (after && after.type === 'op' && after.value === '=') {
+          fail('syntax', `There are no variables in Aloft. To keep "${t.value}" for later, throw it; to name a value inside one beat, write "let ${t.value} = ..."`, t.line, t.col);
+        }
       }
       fail('syntax', `Each line starts with one of: ${STATEMENT_WORDS.join(', ')}. Found ${describe(t)}`, t.line, t.col);
     }
@@ -688,8 +760,22 @@
     }
   }
 
-  function sayLine(s, env) {
-    return s.items.map((it) => (it.type === 'str' ? it.value : evaluate(it, env).toString())).join(' ');
+  // One say line, built item by item. `room` is how many characters of output are left:
+  // if the line reaches it, the line is cut there and the remaining items are not evaluated.
+  function sayLine(s, env, room) {
+    let text = '';
+    for (let k = 0; k < s.items.length; k++) {
+      const it = s.items[k];
+      if (k) text += ' ';
+      text += it.type === 'str' ? it.value : evaluate(it, env).toString();
+      if (text.length >= room) {
+        let end = room;
+        const c = text.charCodeAt(end - 1);
+        if (end < text.length && c >= 0xd800 && c <= 0xdbff) end--; // don't split a surrogate pair
+        return { text: text.slice(0, end), full: true };
+      }
+    }
+    return { text, full: false };
   }
 
   // ------------------------------------------------------------- analysis
@@ -707,16 +793,19 @@
   // --------------------------------------------------------------- runner
   // Runs a program. Never throws for a problem in the program: returns
   // { ok, status, output, beats, error, info, trace }.
-  //   status: 'stopped' (a stop ran), 'limit' (beat limit), 'output-limit', 'work-limit', 'time-limit', 'error'
+  //   status: 'stopped' (a stop ran), 'limit' (beat limit), 'output-limit' (lines or characters),
+  //   'work-limit', 'time-limit', 'error'
   function run(src, options) {
     const opts = Object.assign({}, DEFAULTS, options || {});
     const a = analyze(src);
-    if (!a.ok) return { ok: false, status: 'error', output: [], outputBeats: [], beats: 0, error: a.error, info: null, trace: null };
+    if (!a.ok) return { ok: false, status: 'error', output: [], outputBeats: [], outputChars: 0, beats: 0, error: a.error, info: null, trace: null };
     const { prog, info } = a;
     const beats = prog.beats;
     const n = beats.length;
     const output = [];
     const outputBeats = []; // the time t at which each output line was said
+    let outputChars = 0;
+    let outputFull = false; // the line or character limit has been reached
     const trace = opts.traceBeats > 0 ? { initial: [], beats: [] } : null;
 
     // The air: landing time -> balls, in catch order. Balls already up at the
@@ -763,10 +852,12 @@
             k++;
           } else if (s.type === 'say') {
             if (!s.when || truth(evaluate(s.when, env))) {
-              const line = sayLine(s, env);
-              output.push(line);
+              const said = sayLine(s, env, opts.maxOutputChars - outputChars);
+              output.push(said.text);
               outputBeats.push(t);
-              if (rec) rec.said.push(line);
+              outputChars += said.text.length;
+              if (rec) rec.said.push(said.text);
+              if (said.full || outputChars >= opts.maxOutputChars || output.length >= opts.maxOutput) outputFull = true;
             }
           } else if (s.type === 'stop') {
             if (!s.when || truth(evaluate(s.when, env))) {
@@ -774,7 +865,7 @@
               break;
             }
           }
-          if (output.length >= opts.maxOutput) break;
+          if (outputFull) break;
         }
         if (stopped) {
           if (rec) rec.stopped = true;
@@ -782,7 +873,7 @@
           t++;
           break;
         }
-        if (output.length >= opts.maxOutput) {
+        if (outputFull) {
           status = 'output-limit';
           t++;
           break;
@@ -803,7 +894,7 @@
       work = Infinity;
       deadline = Infinity;
     }
-    return { ok: status !== 'error', status, output, outputBeats, beats: t, error, info, trace };
+    return { ok: status !== 'error', status, output, outputBeats, outputChars, beats: t, error, info, trace };
   }
 
   // ------------------------------------------------------------ formatter
@@ -830,7 +921,9 @@
       case 'call': s = `${e.fn}(${e.args.map((a) => fmtExpr(a, 0)).join(', ')})`; break;
       case 'if': s = `if ${fmtExpr(e.cond, 0)} then ${fmtExpr(e.then, 0)} else ${fmtExpr(e.else, 0)}`; break;
       case 'unary':
-        s = e.op === 'not' ? `not ${fmtExpr(e.arg, PREC.not)}` : `-${e.arg.type === 'unary' && e.arg.op === '-' ? `(${fmtExpr(e.arg, 0)})` : fmtExpr(e.arg, PREC.neg)}`;
+        // A minus directly inside a minus prints as "- -x", not "-(-x)": brackets would
+        // add nesting levels, and deep but valid source must format to valid source.
+        s = e.op === 'not' ? `not ${fmtExpr(e.arg, PREC.not)}` : `-${e.arg.type === 'unary' && e.arg.op === '-' ? ' ' : ''}${fmtExpr(e.arg, PREC.neg)}`;
         break;
       case 'binary': {
         const nonAssoc = p === PREC.cmp;

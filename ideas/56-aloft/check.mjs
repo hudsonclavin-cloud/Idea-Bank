@@ -4,6 +4,9 @@
 // lesson through the page, and loads the page with localStorage throwing and with
 // reduced motion. Uses the globally installed Playwright, like tools/smoke.mjs.
 //
+// It also pastes programs that say tens of megabytes, or juggle 9999 balls, and checks that
+// the page stays responsive.
+//
 // Usage: node ideas/56-aloft/check.mjs [--shots DIR]
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
@@ -37,7 +40,7 @@ function ok(cond, what) {
   console.log(`${cond ? 'ok  ' : 'FAIL'} ${what}`);
   if (!cond) failures++;
 }
-const outputOf = (page) => page.$$eval('#output div:not(.empty)', (ds) => ds.map((d) => d.textContent));
+const outputOf = (page) => page.$$eval('#output div:not(.empty):not(.note)', (ds) => ds.map((d) => d.textContent));
 const settle = (page) => page.waitForTimeout(450);
 
 async function open(browser, opts, init) {
@@ -203,7 +206,74 @@ try {
     await ctx.close();
   }
 
-  // 4. Reduced motion: no automatic play; Play jumps whole beats.
+  // 4. Runaways: output floods are capped by the interpreter and by the renderer, and a
+  //    huge pattern replays without multi-second frames.
+  {
+    const { ctx, page, errors } = await open(browser, PHONE);
+    await page.evaluate(() => {
+      window.__long = [];
+      new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__long.push(Math.round(e.duration)); }).observe({ type: 'longtask' });
+    });
+    const setCode = (src) => page.$eval('#code', (t, v) => {
+      t.value = v;
+      t.dispatchEvent(new Event('input'));
+    }, src);
+    // Time from pasting a program to its run status naming the output limit (debounce included).
+    const timeTo = async (src, want) => {
+      await page.$eval('#runStatus', (s) => { s.textContent = ''; });
+      const t0 = Date.now();
+      await setCode(src);
+      try {
+        await page.waitForFunction((w) => document.getElementById('runStatus').textContent.includes(w), want, { timeout: 15000, polling: 50 });
+      } catch {
+        return Infinity;
+      }
+      return Date.now() - t0;
+    };
+    const shown = () => page.$eval('#output', (o) => ({
+      chars: [...o.querySelectorAll('div:not(.note)')].reduce((n, d) => n + d.textContent.length, 0),
+      lines: o.querySelectorAll('div:not(.note)').length,
+      note: (o.querySelector('.note') || {}).textContent || '',
+    }));
+    // 328 bytes that say about 28 MB inside the 0.6 s time guard, without the character cap.
+    const b8 = (x) => Array(8).fill(x).join('*');
+    const digits = `balls 0\ncatch k\n  let a = 3\n  let b = ${b8('a')}\n  let c = ${b8('b')}\n  let d = ${b8('c')}\n  let e = d*d*d*d\n  say ${Array(60).fill('e').join(', ')}\n  throw k + 1 up 1\n`;
+    let ms = await timeTo(digits, 'output limit (200,000 characters) reached after 4 beats');
+    let o = await shown();
+    ok(ms < 2500 && o.chars === 200000 && o.note.includes('200,000 characters'), `runaway: a 328-byte flood stops at 200,000 characters, page answers in ${ms} ms`);
+    // Strings cost no work units: two 40,000-character strings per line (160 MB before the cap).
+    ms = await timeTo(`catch\n  say "${'x'.repeat(40000)}", "${'x'.repeat(40000)}"\n`, 'output limit (200,000 characters) reached after 3 beats');
+    o = await shown();
+    ok(ms < 2500 && o.chars === 200000, `runaway: an 80 KB string flood stops at 200,000 characters, page answers in ${ms} ms`);
+    const desc = await page.textContent('#beatDesc');
+    ok(desc.length < 600, `runaway: the beat description stays short (${desc.length} characters)`);
+    await page.screenshot({ path: path.join(SHOTS, 'phone-flood.png') });
+    // The renderer has its own cap: with the interpreter's caps lifted, 10,000 lines of
+    // 1,000 characters (10 MB) still put only 200,000 characters in the page.
+    await page.evaluate(() => {
+      const run = window.Aloft.run;
+      window.Aloft.run = (src, opts) => run(src, Object.assign({}, opts, { maxOutput: Infinity, maxOutputChars: Infinity }));
+    });
+    ms = await timeTo(`catch\n  say "${'w'.repeat(1000)}"\n`, 'no stop within the beat limit');
+    o = await shown();
+    ok(ms < 2500 && o.chars === 200000 && o.lines === 200 && o.note.includes('the page shows at most 2,000 lines or 200,000 characters'), `runaway: the renderer caps 10 MB of output at ${o.lines} lines, ${o.chars} characters, in ${ms} ms`);
+    await page.evaluate(() => { window.__long = []; });
+    // 9999 balls up 9999: every replay frame took over a second when all were drawn.
+    await setCode(`balls ${Array(9999).fill('0').join(' ')}\ncatch a\n  throw a up 9999\n`);
+    await settle(page);
+    if ((await page.textContent('#play')) !== 'Pause') await page.tap('#play');
+    await page.waitForTimeout(3000);
+    const tNow = Number(((await page.textContent('#beatDesc')).match(/t = (\d+)/) || [])[1]);
+    const longest = Math.max(0, ...(await page.evaluate(() => window.__long)));
+    ok(tNow >= 3 && longest < 400, `runaway: 9999 balls replay smoothly (t = ${tNow} after 3 s, longest task ${longest} ms)`);
+    await page.screenshot({ path: path.join(SHOTS, 'phone-9999-balls.png') });
+    const width = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
+    ok(width[0] <= width[1], `runaway: no horizontal scroll (${width[0]} <= ${width[1]})`);
+    ok(errors.length === 0, `runaway: no console errors (${errors.join(' | ')})`);
+    await ctx.close();
+  }
+
+  // 5. Reduced motion: no automatic play; Play jumps whole beats.
   {
     const { ctx, page, errors } = await open(browser, { ...PHONE, reducedMotion: 'reduce', colorScheme: 'dark' });
     ok((await page.textContent('#play')) === 'Play', 'reduced motion: nothing plays by itself');
