@@ -4,7 +4,12 @@
 //  (1) N sinusoids at ~1 Hz with independent random phases sum to an amplitude that
 //      grows like sqrt(N), not N.
 //  (2) N corrections of the form K * v(t) * (1 + 0.6 sin(2π f_i t + φ_i)) sum to a
-//      component in phase with v(t) that grows like N, regardless of the phases φ_i.
+//      component in phase with v(t) that grows like N on average, regardless of the phases φ_i.
+//
+// Claim (2) is about the average only. It does not mean the switch leaves the bridge alone:
+// with the walkers in step the pulses all arrive at twice the deck frequency and pump it
+// parametrically, which this fixed-phase check cannot see (an independent review caught
+// that). toy.test.mjs runs the page's own simulation and checks onset in both modes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -65,7 +70,7 @@ test('in-step step forces add like N', () => {
   assert.ok(Math.abs(ratio - 200) < 0.5, `expected 200, got ${ratio.toFixed(2)}`);
 });
 
-test('balance corrections add like N whether or not walkers are in step', () => {
+test('balance corrections add like N on average whether or not walkers are in step', () => {
   for (const inStep of [false, true]) {
     for (const N of [1, 60, 165, 300]) {
       const g = balanceGain(N, inStep, 5);
@@ -74,7 +79,7 @@ test('balance corrections add like N whether or not walkers are in step', () => 
   }
 });
 
-test('the toy threshold is where N*K equals the bridge damping', () => {
+test('with random phases, the toy threshold is where N*K equals the bridge damping', () => {
   const F0 = 0.5, W0 = 2 * Math.PI * F0, M = 1, ZETA = 0.05, NCRIT = 165;
   const CB = 2 * ZETA * W0 * M;
   const K = CB / NCRIT;

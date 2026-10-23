@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Out of Step</title>
-<meta name="description" content="A research memo: did the crowd have to fall into step to make the Millennium Bridge wobble? The usual story says yes. The measurements say the crowd only had to keep its balance.">
+<meta name="description" content="A research memo: did the crowd have to fall into step to make the Millennium Bridge wobble? The usual story says yes. Twenty years of later work says the crowd probably only had to keep its balance.">
 <style>
   :root {
     --bg: #f6f2ea;
@@ -105,6 +105,7 @@
   #theme:hover { border-color: var(--ink-3); color: var(--ink); }
 
   .verdict-box {
+    grid-column: 1 / -1;
     margin: 18px 0 0; padding: 16px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 8px;
     display: grid; grid-template-columns: 1fr; gap: 10px 20px; max-width: 70ch;
   }
@@ -186,7 +187,7 @@
   <div class="kicker">Research memo · Idea 13 · one question, checked</div>
   <button id="theme" type="button" aria-label="Switch colour scheme">Dark</button>
   <h1>Out of Step</h1>
-  <p class="standfirst">Everyone tells the same story about the Millennium Bridge: it wobbled because the crowd fell into step with it. The engineers who measured it, and twenty years of work since, say the crowd never had to.</p>
+  <p class="standfirst">Everyone tells the same story about the Millennium Bridge: it wobbled because the crowd fell into step with it. Twenty years of work since, including a 2021 paper written by both sides of the argument, says the crowd probably never had to.</p>
   <dl class="verdict-box">
     <div class="span">
       <dt>The question</dt>
@@ -194,11 +195,11 @@
     </div>
     <div>
       <dt>My answer</dt>
-      <dd>No. Walkers feed energy into a swaying deck simply by keeping their balance, in step or not. Synchrony is what the wobble produces, not what produces the wobble.</dd>
+      <dd>Probably not. Walkers feed energy into a swaying deck simply by keeping their balance, in step or not, and the best modern work finds that synchrony is what the wobble produces, not what produces it. Falling into step can lower the threshold, though, and no data from the London onset rule out that it did.</dd>
     </div>
     <div>
       <dt>Confidence that the common story is right about the onset</dt>
-      <dd class="prob">15%<small>and about 60% that falling into step helped the sway grow once it had started</small></dd>
+      <dd class="prob">25%<small>up from 15% after an independent review; and about 60% that falling into step helped the sway grow once it had started</small></dd>
     </div>
   </dl>
 </header>
@@ -216,7 +217,7 @@
   <p>The belief has three roots, and they are respectable ones.</p>
   <p><strong>The engineers' name for it.</strong> Arup, who designed the bridge and investigated the movement, called the phenomenon <em>synchronous lateral excitation</em><a class="cite" href="#ref-1">1</a><a class="cite" href="#ref-5">5</a>. In 2001 the Royal Academy of Engineering's magazine described "a little-known phenomenon called synchronous lateral excitation, due to overcrowding by pedestrians", in which a chance correlation of steps starts a slight sideways motion and walkers then tend to fall into step with it<a class="cite" href="#ref-6">6</a>. The name carries the theory: whatever it is, it is <em>synchronous</em>.</p>
   <p><strong>A precedent in Japan.</strong> Seven years earlier, Fujino and colleagues had filmed a severely congested footbridge at Toda Park and found that the walking of 20 per cent or more of the pedestrians was synchronised to the girder's lateral vibration; they modelled the result as a resonant force<a class="cite" href="#ref-2">2</a>. This is the scientific origin of the idea that a crowd locks on to a bridge.</p>
-  <p><strong>A beautiful physics paper.</strong> In 2005 Strogatz, Abrams, McRobie, Eckhardt and Ott published <cite>Crowd synchrony on the Millennium Bridge</cite> in <cite>Nature</cite><a class="cite" href="#ref-3">3</a>. They imported the mathematics of fireflies and neurons: each walker is an oscillator nudged by the deck, and above a critical crowd size the walkers phase-lock and the deck sways. The paper says that "many pedestrians fell spontaneously into step with the bridge's vibrations, inadvertently amplifying them", and that wobbling and synchrony "emerge together, as dual aspects of a single instability mechanism". Its model gave a critical crowd size, and coverage of the paper reported that it matched Arup's tests. Cornell's press release painted the scene: people "walking like tentative ice skaters, planting their feet wide and pushing out to the side with each step, left, right, in near-perfect unison"<a class="cite" href="#ref-4">4</a>. That image went into the public lectures and into the Wikipedia article, which today says the movements "were caused by a positive feedback phenomenon, known as synchronous lateral excitation", like soldiers marching in lockstep but sideways<a class="cite" href="#ref-5">5</a>.</p>
+  <p><strong>A beautiful physics paper.</strong> In 2005 Strogatz, Abrams, McRobie, Eckhardt and Ott published <cite>Crowd synchrony on the Millennium Bridge</cite> in <cite>Nature</cite><a class="cite" href="#ref-3">3</a>. They imported the mathematics of fireflies and neurons: each walker is an oscillator nudged by the deck, and above a critical crowd size the walkers phase-lock and the deck sways. The paper says that "many pedestrians fell spontaneously into step with the bridge's vibrations, inadvertently amplifying them", and that wobbling and synchrony "emerge together, as dual aspects of a single instability mechanism". Its model gave a critical crowd size, and coverage of the paper reported that it matched Arup's tests. Cornell's press release painted the scene: people "walking like tentative ice skaters, planting their feet wide and pushing out to the side with each step, left, right, in near-perfect unison"<a class="cite" href="#ref-4">4</a>. That image went into the public lectures and into the Wikipedia article, which today attributes the movement to "a positive feedback phenomenon, known as synchronous lateral excitation", like soldiers marching in lockstep but sideways<a class="cite" href="#ref-5">5</a>.</p>
   <p>There is also a reason the story is so easy to believe, and it is worth naming because it is the exact point where it fails. Two thousand people stepping at random should produce forces that mostly cancel. If the deck nonetheless moved, surely they must have stopped being random. Surely they synchronised. The next section is about why that inference is wrong.</p>
 </section>
 
@@ -224,16 +225,16 @@
   <h2><span class="num">3</span>What the evidence actually shows</h2>
   <ol class="ev">
     <li>
-      <span class="tag certain">Certain</span><strong>Arup's own measurement did not need synchrony.</strong> After the closure, Arup ran crowd tests on the bridge and put walkers on moving platforms in the laboratory<a class="cite" href="#ref-5">5</a>. Their published finding is that the lateral force a pedestrian exerts on the moving deck "is found to be related to the movement" of the deck, and that the same thing "could occur on any bridge with a lateral frequency below about 1.3 Hz loaded with a sufficient number of pedestrians"<a class="cite" href="#ref-1">1</a>. A force proportional to the deck's velocity is, in engineering language, a <em>negative damper</em>: each walker cancels a little of the bridge's own damping, and past a critical number the net damping goes negative and any tiny sway grows by itself. Nothing in that description says the walkers are in step with each other. It is a self-excited instability, not resonance with a marching crowd.
+      <span class="tag certain">Certain</span><strong>Arup's measured force law does not need synchrony, but it does not rule synchrony out either.</strong> After the closure, Arup ran crowd tests on the bridge and put walkers on moving platforms in the laboratory<a class="cite" href="#ref-5">5</a>. Their published finding is that the lateral force a pedestrian exerts on the moving deck "is found to be related to the movement" of the deck, and that the same thing "could occur on any bridge with a lateral frequency below about 1.3 Hz loaded with a sufficient number of pedestrians"<a class="cite" href="#ref-1">1</a>. A force proportional to the deck's velocity is, in engineering language, a <em>negative damper</em>: each walker cancels a little of the bridge's own damping, and past a critical number the net damping goes negative and any tiny sway grows by itself. Nothing in that description requires the walkers to be in step with each other. Nothing in it excludes it either. The 2007 synchrony model reproduces the same force-velocity law<a class="cite" href="#ref-14">14</a>, and Arup itself read its findings as synchronisation, with walkers falling into step once the deck began to move<a class="cite" href="#ref-6">6</a>. On its own, this measurement does not decide the question.
     </li>
     <li>
-      <span class="tag likely">Likely</span><strong>The frequencies did not line up.</strong> In a 2010 letter to <cite>Physics Today</cite>, Bernard Feldman pointed out that the bridge's first lateral mode was at about 0.5 Hz while people sway sideways at about 1 Hz as they walk, and argued that the synchronous-lateral-excitation explanation "is at best partial and at worst completely incorrect"<a class="cite" href="#ref-7">7</a>. He drew the parallel with Tacoma Narrows, whose collapse is still taught as forced resonance though it was not. I give this argument modest rather than full weight: Feldman's point covers the centre span's lowest mode, and I could not confirm from the sources I was able to read what the frequencies of the other affected modes were.
+      <span class="tag spec">Speculative</span><strong>The frequencies did not line up, but only for one mode.</strong> In a 2010 letter to <cite>Physics Today</cite>, Bernard Feldman pointed out that the bridge's first lateral mode was at about 0.5 Hz while people sway sideways at about 1 Hz as they walk, and argued that the synchronous-lateral-excitation explanation "is at best partial and at worst completely incorrect"<a class="cite" href="#ref-7">7</a>. He drew the parallel with Tacoma Narrows, whose collapse is still taught as forced resonance though it was not. But the mismatch holds only for the centre span's first mode, at 0.49 Hz, and other modes moved too. Feldman's own letter notes a second lateral mode of the centre span, at about 1.0 Hz, moving with roughly equal amplitude<a class="cite" href="#ref-7">7</a>. Arup's account says the movement occurred more often on the south span, at 0.77 Hz, and in the centre span's first mode than on the north span, at 1.05 Hz<a class="cite" href="#ref-6">6</a>; the 2021 paper lists the modes as 0.5, 0.8 and 1.0 Hz<a class="cite" href="#ref-13">13</a>. All except the 0.49 Hz mode sit within or near the walkers' own sideways rhythm, which slows when a dense crowd slows the pace<a class="cite" href="#ref-11">11</a>. Even at 0.49 Hz a 2:1 ratio does not rule synchrony out: walkers swaying together at twice the deck's frequency can pump it parametrically<a class="cite" href="#ref-18">18</a>. The first version of this memo tagged this point Likely and said I could not find the other frequencies; two of my own sources had them. What the point shows is that something other than direct resonance moved one mode. As evidence that onset needed no synchrony, it is weak, and I tag it Speculative.
     </li>
     <li>
       <span class="tag certain">Certain</span><strong>Other bridges did the same thing with no sign of synchrony.</strong> Macdonald instrumented the Clifton Suspension Bridge during crowd loading and reported that the observations "suggest that significant synchronisation of pedestrians did not actually occur", which "challenge[s] the commonly held view that synchronisation drives the initial rapid onset of lateral vibration"; the behaviour matched Arup's negative-damping model<a class="cite" href="#ref-8">8</a>. At Singapore's Changi Airport, 150 volunteers told to walk casually produced "a steady increase in lateral vibrations" resembling the Millennium Bridge phenomenon (at about a tenth of the amplitude)<a class="cite" href="#ref-9">9</a>. The 2021 study below says the same pattern fits observations on almost thirty bridges<a class="cite" href="#ref-13">13</a>.
     </li>
     <li>
-      <span class="tag certain">Certain</span><strong>There is a mechanism that gives the negative damping for free.</strong> Macdonald's 2009 paper models a walker as an inverted pendulum balanced on the stance foot<a class="cite" href="#ref-10">10</a>. The biomechanics say people keep their lateral balance mainly by <em>where</em> they put the next foot, not <em>when</em>. On a deck that is sliding sideways, the foot placement that keeps you upright changes the sideways push on the deck, and averaged over many steps that push has a component in phase with the deck's velocity. The walker becomes a negative (or, at some frequency ratios, a positive) damper "even at a different frequency from their pace", with no change of stepping rhythm and no synchronisation. The same group's 2012 extension found the model agreed "very well" with measurements on full-scale bridges, and states plainly that "synchronisation with the bridge motion is not involved"<a class="cite" href="#ref-11">11</a>. The velocity-proportional force from single walkers has been measured directly on a laterally driven treadmill across 0.33 to 1.07 Hz<a class="cite" href="#ref-12">12</a>.
+      <span class="tag certain">Certain</span><strong>There is a mechanism that gives the negative damping for free.</strong> Macdonald's 2009 paper models a walker as an inverted pendulum balanced on the stance foot<a class="cite" href="#ref-10">10</a>. The biomechanics say people keep their lateral balance mainly by <em>where</em> they put the next foot, not <em>when</em>. On a deck that is sliding sideways, the foot placement that keeps you upright changes the sideways push on the deck, and averaged over many steps that push has a component in phase with the deck's velocity. The walker becomes a negative (or, at some frequency ratios, a positive) damper "even at a different frequency from their pace", with no change of stepping rhythm and no synchronisation. The same group's 2012 extension found the model in "very good agreement with measurements on full-scale bridges", and states plainly that "synchronisation with the bridge motion is not involved"<a class="cite" href="#ref-11">11</a>. The velocity-proportional force from single walkers has been measured directly on a laterally driven treadmill across 0.33 to 1.07 Hz<a class="cite" href="#ref-12">12</a>.
     </li>
     <li>
       <span class="tag certain">Certain</span><strong>When the synchrony camp and the balance camp wrote a paper together, synchrony lost the onset.</strong> In 2021 Belykh, Bocian, Champneys, Daley, Jeter, Macdonald and McRobie (McRobie was a co-author of the 2005 <cite>Nature</cite> paper) published <cite>Emergence of the London Millennium Bridge instability without synchronisation</cite><a class="cite" href="#ref-13">13</a>. They derived a formula for the negative damping contributed by each pedestrian and tested it in three crowd models, one of them built with a strong propensity to synchronise. In every case the trigger was the average negative damping of uncorrelated walkers; gait strategy only moved the threshold. Their abstract reverses the arrow of the story: "increased coherence of pedestrians' foot placement is a consequence of, not a cause of the instability." The University of Bristol's release called the older account "the synchronisation myth"<a class="cite" href="#ref-17">17</a>. I looked for a published rebuttal in the four years since and found none.
@@ -293,7 +294,7 @@
 
 <section id="toy">
   <h2 class="prose"><span class="num">4</span>The cancellation that doesn't happen</h2>
-  <p class="prose">This is the part you can feel rather than cite. The intuition behind the belief is that random steps cancel, so the crowd must have synchronised. Half of that is true. Random forces at each walker's own rhythm do mostly cancel: their sum grows like the <em>square root</em> of the crowd, so two hundred people push about fourteen times harder than one, not two hundred times. But a balance correction is not at the walker's own rhythm. It is tied to the deck's velocity, which every walker shares. Those add like the crowd itself. Drag the crowd past the threshold and watch which row moves the bridge.</p>
+  <p class="prose">This is the part you can feel rather than cite. The intuition behind the belief is that random steps cancel, so the crowd must have synchronised. Half of that is true. Random forces at each walker's own rhythm do mostly cancel: their sum grows like the <em>square root</em> of the crowd, so two hundred people push about fourteen times harder than one, not two hundred times. But a balance correction is not at the walker's own rhythm. It is tied to the deck's velocity, which every walker shares. Those add like the crowd itself. Drag the crowd past the threshold and compare the rows. One thing the toy does not do is prove that a balance correction follows the deck whatever the walker's phase. It assumes that, because that is the measured and modelled result being illustrated.</p>
   <div class="toy" aria-label="Interactive illustration of how walker forces add up">
     <div class="controls">
       <label>Crowd <input id="n" type="range" min="1" max="300" value="60" step="1" aria-label="Number of walkers"> <span class="nval" id="nval">60</span> walkers</label>
@@ -306,30 +307,33 @@
     </div>
     <div class="row">
       <canvas id="cB" aria-label="Sum of balance corrections"></canvas>
-      <div class="lab"><span><span class="swatch" style="background:var(--trace-b)"></span><b>Balance corrections, summed.</b> Each walker's correction follows the deck's velocity.</span><span class="val" id="labB">≈ N = 60× one walker, in step or not</span></div>
+      <div class="lab"><span><span class="swatch" style="background:var(--trace-b)"></span><b>Balance corrections, summed.</b> Each walker's correction follows the deck's velocity.</span><span class="val" id="labB">≈ N = 60× one walker on average</span></div>
     </div>
     <div class="row">
       <canvas id="cC" aria-label="Deck sway"></canvas>
-      <div class="lab"><span><span class="swatch" style="background:var(--trace-c)"></span><b>Deck sway.</b> A toy bridge mode at 0.5 Hz, driven only by the balance row.</span><span class="val" id="labC">net damping positive: sway decays · threshold 165 walkers</span></div>
+      <div class="lab"><span><span class="swatch" style="background:var(--trace-c)"></span><b>Deck sway.</b> A toy bridge mode at 0.5 Hz, driven only by the balance row.</span><span class="val" id="labC">sway dies away · onset at 165 walkers</span></div>
     </div>
-    <p class="small" style="margin:12px 0 0">Toy units throughout. The bridge's own damping is set so the threshold lands at 165 walkers, the figure quoted for the centre span in coverage of Arup's tests and of the 2017 crowd model<a class="cite" href="#ref-16">16</a>; a faint ambient drive keeps a sliver of sway alive with no crowd, as wind and traffic would; everything else is chosen for visibility, and the sway is capped where real walkers would stop. The balance row is drawn in units of one walker's correction, normalised to the deck's current velocity, so the two force rows share a scale. The "in step" switch changes the first row from √N to N and changes nothing about when the bridge takes off. That is the whole argument in three lines.</p>
+    <p class="small" style="margin:12px 0 0">Toy units throughout. The deck is driven only by the balance row; the step-rhythm row is drawn for comparison and is not applied. That each walker's correction follows the deck's velocity whatever the walker's phase is assumed here, from Arup's measurement and Macdonald's model<a class="cite" href="#ref-1">1</a><a class="cite" href="#ref-10">10</a>, not derived. The bridge's own damping is set so that, with random phases, onset comes at 165 walkers. That number is borrowed. It is the critical crowd Arup found for the London bridge in a crowd test on the north span in December 2000<a class="cite" href="#ref-3">3</a>, whose first lateral mode is about 1 Hz<a class="cite" href="#ref-6">6</a>. The 2017 crowd model cites it and was tuned to reproduce it, and in that model onset coincides with the walkers phase-locking<a class="cite" href="#ref-16">16</a>. The toy puts the number on a 0.5 Hz mode for illustration. A faint ambient drive keeps a sliver of sway alive with no crowd, as wind and traffic would; everything else is chosen for visibility, and the sway is capped where real walkers would stop. The balance row is drawn in units of one walker's correction, normalised to the deck's current velocity, so the two force rows share a scale.</p>
+    <p class="small" style="margin:8px 0 0">The "in step" switch changes the first row from √N to N. It also moves onset from 165 to 127 walkers, and it does that through the second row. Each correction pulses with its walker's ~1 Hz sway. With everyone in step, the pulses arrive together at exactly twice the deck's frequency and pump it parametrically, the route Piccardo and Tubino proposed for 0.5 Hz footbridges<a class="cite" href="#ref-18">18</a>. How far onset moves depends on the depth of the pulse, which I chose, so 127 is not a prediction. What the toy shows is that synchrony can lower the threshold but is not needed to reach one.</p>
   </div>
 </section>
 
 <section class="prose" id="case-for">
   <h2><span class="num">5</span>The strongest case for the common belief</h2>
-  <p>I tried to argue the other side as well as I could. Four things hold up.</p>
-  <p><strong>People really did fall into step.</strong> Nobody in this literature denies it. Fujino filmed it in Japan<a class="cite" href="#ref-2">2</a>; every account of the London opening day describes it<a class="cite" href="#ref-4">4</a>; the 2021 authors themselves say coherence rises once the deck moves<a class="cite" href="#ref-13">13</a>. The dispute is about the direction of the arrow, and arrows are harder to see on video than lockstep is.</p>
-  <p><strong>The synchrony model fits the data.</strong> The 2005 <cite>Nature</cite> model was reported to reproduce Arup's critical crowd size<a class="cite" href="#ref-3">3</a>, and the fuller 2007 version reproduced "the linear relation between pedestrian force and bridge velocity seen in experiments"<a class="cite" href="#ref-14">14</a>. A model that fits the measurements is not refuted by a second model that also fits them. What the balance model has over it is parsimony and independent biomechanical support, which is a reason to prefer it, not a proof.</p>
-  <p><strong>Timing coupling exists, and may be needed for the full size of the effect.</strong> Bocian, Burn, Macdonald and Brownjohn put 15 people through 137 walking trials on a treadmill mounted on a shaking table and found a weak modulation of footstep timing by the platform motion, which they call phase pulling<a class="cite" href="#ref-15">15</a>. They suggest it could explain why foot-placement models and lab trials <em>underestimate</em> the negative damping measured on real bridges. So the pure no-synchrony model may be short by some amount that only timing coupling supplies.</p>
+  <p>I tried to argue the other side as well as I could. Five things hold up.</p>
+  <p><strong>People really did fall into step.</strong> Nobody in this literature denies it. Fujino filmed it in Japan<a class="cite" href="#ref-2">2</a>; every account of the London opening day describes it<a class="cite" href="#ref-4">4</a>; the 2021 authors themselves say coherence rises once the deck moves<a class="cite" href="#ref-13">13</a>. The dispute is about the direction of the arrow, and arrows are harder to see on video than lockstep is. (The 2021 paper's own table of bridges records "no direct evidence" of synchronisation on the London bridge<a class="cite" href="#ref-13">13</a>, so this rests on what people saw.)</p>
+  <p><strong>The synchrony model fits the data.</strong> The 2005 <cite>Nature</cite> model was reported to reproduce Arup's critical crowd size<a class="cite" href="#ref-3">3</a>, and the fuller 2007 version reproduced "the linear relation between pedestrian force and bridge velocity seen in experiments"<a class="cite" href="#ref-14">14</a>. A model that fits the measurements is not refuted by a second model that also fits them. What the balance model has over it is parsimony and independent biomechanical support, which is a reason to prefer it, not a proof. And the London measurement the synchrony model matches was taken where synchrony is most plausible. Arup's controlled onset test was on the north span<a class="cite" href="#ref-3">3</a>, whose first lateral mode, about 1 Hz, matches the walkers' own sideways rhythm<a class="cite" href="#ref-6">6</a>, and the 2017 model was tuned to its critical crowd<a class="cite" href="#ref-16">16</a>. That is the onset test the models are compared with, so on their own the London data cannot tell the two models apart.</p>
+  <p><strong>Timing coupling exists, and may be needed for the full size of the effect.</strong> Bocian, Burn, Macdonald and Brownjohn put 15 people through 137 walking trials on a treadmill mounted on a shaking table and found a weak modulation of footstep timing by the platform motion, which they call phase pulling<a class="cite" href="#ref-15">15</a>. They suggest it could explain why foot-placement models and lab trials <em>underestimate</em> the negative damping measured on real bridges. So the pure no-synchrony model may be short by some amount that only timing coupling supplies. The same trials also produced a few outright synchronised cases<a class="cite" href="#ref-15">15</a>.</p>
+  <p><strong>Synchrony can drive even a 0.5 Hz mode.</strong> The frequency mismatch in section 3 rules out direct resonance on the centre span's first mode, not synchrony. Piccardo and Tubino showed that walkers swaying together at about 1 Hz can pump a deck at half that frequency parametrically, a 2:1 resonance, and cited the Millennium Bridge as an example<a class="cite" href="#ref-18">18</a>. The toy in section 4 shows the effect: put its walkers in step and onset falls from 165 to 127.</p>
   <p><strong>Lock-in may be what makes the wobble big.</strong> Belykh, Jeter and Belykh's 2017 crowd model asked "to what degree pedestrian synchrony must be present for a bridge to wobble significantly"<a class="cite" href="#ref-16">16</a>, and concluded that pedestrian lock-in was necessary for the bridge's large swaying even as they called the popular view of synchrony as the initiating cause an oversimplification. If that holds, the belief is wrong about the start and partly right about the spectacle.</p>
 </section>
 
 <section class="prose" id="verdict">
   <h2><span class="num">6</span>Conclusion</h2>
-  <p>The sway of the Millennium Bridge was a self-excited instability. A crowd of ordinary, uncoordinated walkers acts as a negative damper on a low-frequency lateral mode because each person keeps their balance by adjusting foot placement, and those adjustments add up even when the steps themselves do not. Past a critical crowd size the bridge's damping is used up and any sway grows. The engineers' empirical model said this in 2001; the biomechanics explained it in 2009; the 2021 paper by both camps confirmed that it triggers the instability even in a crowd built to synchronise.</p>
-  <p><strong>I put the probability that the common story is right about the onset, that pedestrians falling into step is what started the sway, at about 15 per cent.</strong> That is not zero because the synchrony model does fit Arup's measurements, because some timing coupling has been measured in the lab, and because no one has yet shown per-walker phase data from a real onset. I put the probability that synchronisation contributed materially to the <em>amplitude</em> once the sway was under way at about 60 per cent, on the strength of the phase-pulling measurements and the 2017 crowd model.</p>
-  <p>The sentence to replace the old one is this: <em>the crowd did not have to fall into step to make the bridge sway; it only had to stay on its feet.</em></p>
+  <p>The sway of the Millennium Bridge was a self-excited instability. The best-supported account is that a crowd of ordinary, uncoordinated walkers acts as a negative damper on a lateral mode, because each person keeps their balance by adjusting foot placement, and those adjustments add up even when the steps themselves do not. Past a critical crowd size the bridge's damping is used up and any sway grows. The engineers' empirical model (2001) is consistent with this, though Arup itself read its results as synchronisation; the biomechanics explained it in 2009; the 2021 paper by both camps found that it triggers the instability even in a crowd built to synchronise.</p>
+  <p><strong>I put the probability that the common story is right about the onset, that pedestrians falling into step is what started the sway, at about 25 per cent.</strong> It was 15 per cent before an independent review of this memo. Two London-specific arguments I had leaned on turned out not to discriminate. Arup's force law is reproduced by the synchrony model too, and the frequency mismatch covers only the centre span's 0.49 Hz mode, while the south span (0.77 Hz) and the centre span's second mode (about 1 Hz) moved as well. The crowd test the models are compared with was on the north span's ~1 Hz mode, where synchrony is most plausible, and walkers in step can pump even a 0.5 Hz mode parametrically. What keeps the number well below even is evidence from elsewhere: Clifton's onset without significant synchronisation, the treadmill measurements of the balance force, and the 2021 finding that average negative damping triggers the instability in all three crowd models. No one has per-walker phase data from a real onset, so my answer now rests more on other bridges and on models than on London itself.</p>
+  <p>I put the probability that synchronisation contributed materially to the <em>amplitude</em> once the sway was under way at about 60 per cent, unchanged, on the strength of the phase-pulling measurements, the few synchronised cases in the same trials, and the 2017 crowd model. The review added ways synchrony could amplify the sway (the spans that match the walkers' rhythm, the parametric route), but none is a measurement of amplification on the London bridge, and the 2021 paper's table lists no direct evidence of synchronisation there.</p>
+  <p>The sentence to replace the old one is this: <em>the crowd probably did not have to fall into step to make the bridge sway; keeping its balance was enough.</em></p>
 </section>
 
 <section id="change">
@@ -341,7 +345,7 @@
         <li>Per-walker step-timing data from a real onset (Arup's 2000 crowd tests, or a new instrumented footbridge) showing phase coherence <em>rising before</em> the amplitude does.</li>
         <li>Treadmill trials in which walkers' step timing is pinned by a metronome and the velocity-proportional force disappears.</li>
         <li>A published reanalysis showing the 2021 per-pedestrian negative-damping formula fails on the ~30-bridge data set.</li>
-        <li>Evidence that the modes which actually moved on opening day were all near 1 Hz, which would weaken the balance account's independence from stepping rhythm (though not the Clifton and Changi results).</li>
+        <li>Evidence that the opening-day sway began on a span that matches the walkers' sideways rhythm (the south span at 0.77 Hz, the centre span's ~1 Hz second mode, or the north span at 1.05 Hz), with step timing locking before the amplitude grew. The modes that moved are already known to span 0.49 to 1.05 Hz<a class="cite" href="#ref-6">6</a><a class="cite" href="#ref-13">13</a>; what is missing is which one started first, and how.</li>
       </ul>
     </div>
     <div>
@@ -349,6 +353,7 @@
       <ul class="change">
         <li>A full-scale onset in which coherence is measured and stays flat while the amplitude grows.</li>
         <li>The pure foot-placement model, with measured parameters, matching the on-site negative damping without any phase-pulling term.</li>
+        <li>Evidence that the sway began in the centre span's 0.49 Hz mode with no 2:1 locking of steps to the deck, which would close the parametric route.</li>
         <li>Design codes dropping the word "synchronous" from the phenomenon's name.</li>
       </ul>
     </div>
@@ -360,11 +365,12 @@
   <ol class="timeline">
     <li><span class="yr">1993</span>Fujino et al. film a congested footbridge in Japan; 20 per cent or more of walkers in step with the girder. The synchrony hypothesis is born<a class="cite" href="#ref-2">2</a>.</li>
     <li><span class="yr">June 2000</span>The Millennium Bridge opens and closes within three days<a class="cite" href="#ref-5">5</a>.</li>
+    <li><span class="yr">December 2000</span>Arup's crowd test on the north span, a ~1 Hz mode: the sway takes off above a critical crowd of about 165<a class="cite" href="#ref-3">3</a><a class="cite" href="#ref-16">16</a>.</li>
     <li><span class="yr">2001</span>Arup publishes its investigation: force tied to deck velocity, a critical crowd, a 1.3 Hz rule. They name it synchronous lateral excitation<a class="cite" href="#ref-1">1</a><a class="cite" href="#ref-6">6</a>.</li>
     <li><span class="yr">2004</span>Changi Airport crowd tests: 150 casual walkers, steady lateral build-up<a class="cite" href="#ref-9">9</a>.</li>
     <li><span class="yr">2005</span><cite>Crowd synchrony on the Millennium Bridge</cite> in <cite>Nature</cite>. The story goes global<a class="cite" href="#ref-3">3</a><a class="cite" href="#ref-4">4</a>.</li>
     <li><span class="yr">2007</span>The synchrony model is worked out in full and reproduces the force-velocity law<a class="cite" href="#ref-14">14</a>.</li>
-    <li><span class="yr">2008</span>Clifton Suspension Bridge measured under crowds: same onset, no significant synchrony<a class="cite" href="#ref-8">8</a>.</li>
+    <li><span class="yr">2008</span>Clifton Suspension Bridge measured under crowds: same onset, no significant synchrony<a class="cite" href="#ref-8">8</a>. Piccardo and Tubino propose a parametric route by which walkers can pump a 0.5 Hz mode<a class="cite" href="#ref-18">18</a>.</li>
     <li><span class="yr">2009</span>Macdonald's inverted-pendulum walker: negative damping without synchronisation<a class="cite" href="#ref-10">10</a>.</li>
     <li><span class="yr">2010</span>Feldman's <cite>Physics Today</cite> letter: "at best partial and at worst completely incorrect"<a class="cite" href="#ref-7">7</a>.</li>
     <li><span class="yr">2011–2012</span>Treadmill measurements of the velocity-proportional force; the balance model matches full-scale bridges<a class="cite" href="#ref-12">12</a><a class="cite" href="#ref-11">11</a>.</li>
@@ -375,8 +381,9 @@
 
 <section class="prose" id="method">
   <h2><span class="num">9</span>How this was researched, and what I could not read</h2>
-  <p>I worked from web search results and the snippets and abstracts they expose, running about forty queries across journal pages, university repositories, press releases and the open-access record of the 2021 paper. The sandbox I run in blocks direct downloads from publishers and repositories, so I have not read the full text of any paper cited here. Every claim I attribute to a source is a claim I saw in that source's abstract or in a search summary quoting it; <code>sources.json</code> next to this page records, for each citation, the query, the page and the snippet I relied on, and which bibliographic fields I saw with my own eyes rather than supplied from memory. After a second verification pass every bibliographic field in the list was confirmed at source except one: the byline of the 2001 <cite>Ingenia</cite> article (reference 6), which rests on two secondary citations.</p>
-  <p>In weighing the sources I ranked full-scale measurements on real bridges above laboratory treadmill trials, both above models, and models above press releases. Where I quote a press release it is to show how the belief was framed or to carry the authors' own characterisation, never as evidence about mechanism. The thing I most wanted to read and could not is the body of Arup's 2001 paper, which holds the modal frequencies and the critical-number formula that everything else refers to.</p>
+  <p>I worked from web search results and the snippets and abstracts they expose, running about forty queries across journal pages, university repositories, press releases and the open-access record of the 2021 paper. The sandbox I run in blocks direct downloads from publishers and repositories, so I have not read the full text of any paper cited here. Every claim I attribute to a source is a claim I saw in that source's abstract or in a search summary quoting it; <code>sources.json</code> next to this page records, for each citation, the query, the page and the snippet I relied on, and which bibliographic fields I saw with my own eyes rather than supplied from memory. After a second verification pass every bibliographic field in the list was confirmed at source except two: the byline of the 2001 <cite>Ingenia</cite> article (reference 6), which rests on two secondary citations, and the volume and pages of reference 18, added in revision, which I supplied from memory.</p>
+  <p>In weighing the sources I ranked full-scale measurements on real bridges above laboratory treadmill trials, both above models, and models above press releases. Where I quote a press release it is to show how the belief was framed or to carry the authors' own characterisation, never as evidence about mechanism. The thing I most wanted to read and could not is the body of Arup's 2001 paper, which holds the critical-number formula and the details of the crowd tests that everything else refers to. The first version of this memo also said I could not find the frequencies of the modes that moved; they were in two of my own sources<a class="cite" href="#ref-6">6</a><a class="cite" href="#ref-13">13</a>.</p>
+  <p><strong>Revision.</strong> An independent reviewer checked this memo and its toy. I reproduced each finding before acting on it. The changes: the toy's "in step" switch had been quietly lowering the onset threshold to 127 walkers by parametric pumping while its label still said the sway decays, and the page said the switch changed nothing about onset; the label now reports the actual onset in both modes, and the caption explains why. The 165-walker figure is now attributed to the north-span test it came from. The frequency-mismatch point is limited to the one mode it covers and tagged Speculative. Arup's force law is no longer presented as evidence against synchrony. The strongest case for synchrony gains the north-span test, the synchronised lab cases and the parametric route. One misquotation is corrected, and a Wikipedia quotation is trimmed to the words my notes show. My onset probability moved from 15 to 25 per cent; the amplitude probability stays at 60. For the revision I ran about twenty more searches and queried the open-access copies of references 13 and 16 directly for specific passages.</p>
 </section>
 
 <section class="prose" id="refs">
@@ -384,31 +391,121 @@
   <ol class="refs">
     <li id="ref-1">Dallard, P., Fitzpatrick, A. J., Flint, A., Le Bourva, S., Low, A., Ridsdill Smith, R. M. and Willford, M. (2001). <cite>The London Millennium Footbridge.</cite> The Structural Engineer 79(22), 17–33.<span class="found">The lateral force pedestrians exert on the moving deck "is found to be related to the movement"; the same phenomenon could occur on any bridge with a lateral frequency below about 1.3 Hz carrying enough pedestrians.</span></li>
     <li id="ref-2">Fujino, Y., Pacheco, B. M., Nakamura, S. and Warnitchai, P. (1993). <cite>Synchronization of human walking observed during lateral vibration of a congested pedestrian bridge.</cite> Earthquake Engineering &amp; Structural Dynamics 22(9), 741–758.<span class="found">Video of a congested footbridge showed 20 per cent or more of pedestrians walking in synchrony with the girder's lateral vibration, which raised the total lateral force and acted as a resonant force.</span></li>
-    <li id="ref-3">Strogatz, S. H., Abrams, D. M., McRobie, A., Eckhardt, B. and Ott, E. (2005). <cite>Crowd synchrony on the Millennium Bridge.</cite> Nature 438, 43–44.<span class="found">Models the wobble as crowd synchronisation using coupled-oscillator theory; says many pedestrians "fell spontaneously into step" and that wobbling and synchrony "emerge together, as dual aspects of a single instability mechanism".</span></li>
+    <li id="ref-3">Strogatz, S. H., Abrams, D. M., McRobie, A., Eckhardt, B. and Ott, E. (2005). <cite>Crowd synchrony on the Millennium Bridge.</cite> Nature 438, 43–44.<span class="found">Models the wobble as crowd synchronisation using coupled-oscillator theory; says many pedestrians "fell spontaneously into step" and that wobbling and synchrony "emerge together, as dual aspects of a single instability mechanism"; its Fig. 2 shows Arup's December 2000 crowd test on the bridge's north span.</span></li>
     <li id="ref-4">Cornell University News Service (2005). <cite>Explaining why the Millennium Bridge wobbled.</cite> Press release, November 2005, via Newswise and ScienceDaily.<span class="found">Describes opening-day walkers "planting their feet wide and pushing out to the side with each step, left, right, in near-perfect unison"; about 80,000 crossings with up to 2,000 on the bridge at once.</span></li>
-    <li id="ref-5">Wikipedia contributors (accessed 22 October 2026). <cite>Millennium Bridge, London.</cite> Wikipedia.<span class="found">States the movements "were caused by a positive feedback phenomenon, known as synchronous lateral excitation"; 90,000 crossings on opening day, up to 2,000 at a time; retrofit of 37 fluid-viscous and 52 tuned mass dampers; reopened 22 February 2002. Cited as a record of the popular account.</span></li>
-    <li id="ref-6">Fitzpatrick, T. and Ridsdill Smith, R. (Arup; byline per two secondary citations, not seen on the page itself) (2001). <cite>Stabilising the London Millennium Bridge.</cite> Ingenia, magazine of the Royal Academy of Engineering, Issue 9, August 2001.<span class="found">Attributes the movement to "a little-known phenomenon called synchronous lateral excitation, due to overcrowding by pedestrians"; a chance correlation of steps starts a slight sideways motion and walkers then tend to fall into step with it; up to 100,000 people on opening day, about 2,000 at once.</span></li>
-    <li id="ref-7">Feldman, B. J. (2010). <cite>London bridge's wobble and sway</cite> (letter). Physics Today 63(3), p. 8.<span class="found">Argues the synchronous-lateral-excitation explanation "is at best partial and at worst completely incorrect"; first lateral mode about 0.5 Hz against walking at about 1 Hz; credits Macdonald's step-width balance mechanism; parallel with Tacoma Narrows; calls the wobble an unresolved problem.</span></li>
+    <li id="ref-5">Wikipedia contributors (accessed 22 October 2026). <cite>Millennium Bridge, London.</cite> Wikipedia.<span class="found">Attributes the movement to "a positive feedback phenomenon, known as synchronous lateral excitation"; 90,000 crossings on opening day, up to 2,000 at a time; retrofit of 37 fluid-viscous and 52 tuned mass dampers; reopened 22 February 2002. Cited as a record of the popular account.</span></li>
+    <li id="ref-6">Fitzpatrick, T. and Ridsdill Smith, R. (Arup; byline per two secondary citations, not seen on the page itself) (2001). <cite>Stabilising the London Millennium Bridge.</cite> Ingenia, magazine of the Royal Academy of Engineering, Issue 9, August 2001.<span class="found">Attributes the movement to "a little-known phenomenon called synchronous lateral excitation, due to overcrowding by pedestrians"; a chance correlation of steps starts a slight sideways motion and walkers then tend to fall into step with it; up to 100,000 people on opening day, about 2,000 at once; the movement occurred more often on the south span (0.77 Hz) and in the centre span's first lateral mode (0.49 Hz) than on the north span (1.05 Hz).</span></li>
+    <li id="ref-7">Feldman, B. J. (2010). <cite>London bridge's wobble and sway</cite> (letter). Physics Today 63(3), p. 8.<span class="found">Argues the synchronous-lateral-excitation explanation "is at best partial and at worst completely incorrect"; first lateral mode about 0.5 Hz against walking at about 1 Hz, with a second mode of the same span, of roughly equal amplitude, at 1.0 Hz; credits Macdonald's step-width balance mechanism; parallel with Tacoma Narrows; calls the wobble an unresolved problem.</span></li>
     <li id="ref-8">Macdonald, J. H. G. (2008). <cite>Pedestrian-induced vibrations of the Clifton Suspension Bridge, UK.</cite> Proceedings of the Institution of Civil Engineers – Bridge Engineering 161(2), 69–77.<span class="found">Measurements under crowd loading suggest significant synchronisation of pedestrians did not occur, challenging the view that synchronisation drives the initial onset; behaviour matched Arup's negative-damping model.</span></li>
     <li id="ref-9">Brownjohn, J. M. W., Fok, S. L., Roche, M. and Omenzetter, P. (2004). <cite>Long span steel pedestrian bridge at Singapore Changi Airport – Part 2: Crowd loading tests and vibration mitigation measures.</cite> The Structural Engineer 82(16), 28–34.<span class="found">With 150 volunteers walking casually, a steady increase in lateral vibration was observed, resembling the Millennium Bridge phenomenon at about a tenth of the amplitude; tuned mass dampers were fitted.</span></li>
     <li id="ref-10">Macdonald, J. H. G. (2009). <cite>Lateral excitation of bridges by balancing pedestrians.</cite> Proceedings of the Royal Society A 465(2104), 1055–1073.<span class="found">Inverted-pendulum model: lateral balance is controlled by where the foot is placed, not when; on a swaying deck a walker acts as a negative or positive damper even at a different frequency from their pace, without synchronising; consistent with Arup's empirical model.</span></li>
     <li id="ref-11">Bocian, M., Macdonald, J. H. G. and Burn, J. F. (2012). <cite>Biomechanically inspired modelling of pedestrian-induced forces on laterally oscillating structures.</cite> Journal of Sound and Vibration 331(16), 3914–3929.<span class="found">Self-excited forces modelled as frequency-dependent added damping and mass; "very good agreement" with full-scale bridge measurements; "synchronisation with the bridge motion is not involved"; slower pacing in dense crowds gives larger self-excited forces.</span></li>
     <li id="ref-12">Ingólfsson, E. T., Georgakis, C. T., Ricciardelli, F. and Jönsson, J. (2011). <cite>Experimental identification of pedestrian-induced lateral forces on footbridges.</cite> Journal of Sound and Vibration 330(6), 1265–1284.<span class="found">Single walkers on a treadmill driven sideways at 0.33–1.07 Hz and 4.5–48 mm; the motion-induced part of the lateral force quantified as velocity- and acceleration-proportional coefficients.</span></li>
-    <li id="ref-13">Belykh, I., Bocian, M., Champneys, A. R., Daley, K., Jeter, R., Macdonald, J. H. G. and McRobie, A. (2021). <cite>Emergence of the London Millennium Bridge instability without synchronisation.</cite> Nature Communications 12, 7223.<span class="found">Coherence of foot placement "is a consequence of, not a cause of the instability"; uncorrelated pedestrians produce positive feedback through negative damping on average; tested in three models including one prone to synchronise; fits observations on almost 30 bridges.</span></li>
+    <li id="ref-13">Belykh, I., Bocian, M., Champneys, A. R., Daley, K., Jeter, R., Macdonald, J. H. G. and McRobie, A. (2021). <cite>Emergence of the London Millennium Bridge instability without synchronisation.</cite> Nature Communications 12, 7223.<span class="found">Coherence of foot placement "is a consequence of, not a cause of the instability"; uncorrelated pedestrians produce positive feedback through negative damping on average; tested in three models including one prone to synchronise; fits observations on almost 30 bridges. Its table lists the London bridge's modes as 0.5, 0.8 and 1.0 Hz, with "no direct evidence" of synchronisation there.</span></li>
     <li id="ref-14">Eckhardt, B., Ott, E., Strogatz, S. H., Abrams, D. M. and McRobie, A. (2007). <cite>Modeling walker synchronization on the Millennium Bridge.</cite> Physical Review E 75, 021110.<span class="found">Phase-oscillator model of walkers coupled to the deck; predicts individual phase dynamics and the critical crowd size, and reproduces the linear relation between pedestrian force and bridge velocity seen in experiments.</span></li>
-    <li id="ref-15">Bocian, M., Burn, J. F., Macdonald, J. H. G. and Brownjohn, J. M. W. (2017). <cite>From phase drift to synchronisation – pedestrian stepping behaviour on laterally oscillating structures and the effect on structural stability.</cite> Journal of Sound and Vibration 392, 382–399.<span class="found">15 people, 137 trials on a treadmill on a laterally moving shaking table; a weak modulation of footstep timing ("phase pulling") that could explain why models and lab trials underestimate the negative damping measured on real bridges.</span></li>
-    <li id="ref-16">Belykh, I., Jeter, R. and Belykh, V. (2017). <cite>Foot force models of crowd dynamics on a wobbly bridge.</cite> Science Advances 3, e1701512 (preprint arXiv:1610.05366).<span class="found">Inverted-pendulum crowd models asking how much synchrony is needed for significant wobble and what the critical crowd size is; a sharp threshold near 165 walkers; concludes lock-in was necessary for the bridge's large swaying but that synchrony as the initiating cause may be an oversimplification.</span></li>
+    <li id="ref-15">Bocian, M., Burn, J. F., Macdonald, J. H. G. and Brownjohn, J. M. W. (2017). <cite>From phase drift to synchronisation – pedestrian stepping behaviour on laterally oscillating structures and the effect on structural stability.</cite> Journal of Sound and Vibration 392, 382–399.<span class="found">15 people, 137 trials on a treadmill on a laterally moving shaking table; a weak modulation of footstep timing ("phase pulling") that could explain why models and lab trials underestimate the negative damping measured on real bridges; a few cases of outright synchronisation.</span></li>
+    <li id="ref-16">Belykh, I., Jeter, R. and Belykh, V. (2017). <cite>Foot force models of crowd dynamics on a wobbly bridge.</cite> Science Advances 3, e1701512 (preprint arXiv:1610.05366).<span class="found">Inverted-pendulum crowd models asking how much synchrony is needed for significant wobble and what the critical crowd size is; parameters tuned to the critical crowd of about 165 that Arup reported, at which the model's onset coincides with phase-locking; concludes lock-in was necessary for the bridge's large swaying but that synchrony as the initiating cause may be an oversimplification.</span></li>
     <li id="ref-17">University of Bristol press office (2021). <cite>The London Millennium Bridge wobble finally explained.</cite> University of Bristol news, December 2021.<span class="found">Calls the older account "the synchronisation myth"; any synchronisation observed is typically a consequence rather than a cause; Macdonald quoted that such oscillations can occur on virtually any long bridge carrying a large enough crowd.</span></li>
+    <li id="ref-18">Piccardo, G. and Tubino, F. (2008). <cite>Parametric resonance of flexible footbridges under crowd-induced lateral excitation.</cite> Journal of Sound and Vibration 311(1–2), 353–371 (volume and pages from memory, not seen at source).<span class="found">A forcing model whose amplitude depends on the deck's motion gives a parametric excitation mechanism; it can act on very flexible footbridges with a lateral frequency around 0.5 Hz, half the lateral walking frequency, with the London Millennium Footbridge cited as an example.</span></li>
   </ol>
 </section>
 
 </main>
 
 <footer>
-  Written by Pendle Ashby for Idea Bank, October 2026. No network is used by this page; the toy is a few lines of arithmetic, not a bridge model. The citation list is cross-checked against <code>sources.json</code> by <code>check.mjs</code>.
+  Written by Pendle Ashby for Idea Bank, October 2026, and revised after an independent review. No network is used by this page; the toy is a few lines of arithmetic, not a bridge model. The citation list is cross-checked against <code>sources.json</code> by <code>check.mjs</code>.
 </footer>
 </div>
 
+<script id="toy-model">
+// The toy's physics, with no DOM. index.html runs this block as-is, and toy.test.mjs
+// extracts it from the page and runs it in Node, so the test checks the code the reader sees.
+function makeOutOfStepToy(opt) {
+  'use strict';
+  opt = opt || {};
+  var MAXN = 300;
+  // Walkers: sideways sway at ~1 Hz with a little spread, random phase (fixed seed).
+  var freq = new Float64Array(MAXN), phase = new Float64Array(MAXN);
+  var s = 1234567;
+  function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+  for (var i = 0; i < MAXN; i++) { freq[i] = 1.0 + 0.12 * (rnd() - 0.5); phase[i] = rnd() * Math.PI * 2; }
+
+  // Toy bridge: one lateral mode at 0.5 Hz, modal mass 1. Its own damping is set so that
+  // onset with random phases comes at NCRIT walkers. Each walker removes K of damping on average.
+  var F0 = 0.5, W0 = 2 * Math.PI * F0, M = 1, ZETA = 0.05;
+  var CB = 2 * ZETA * W0 * M;
+  var NCRIT = 165;
+  var K = CB / NCRIT;
+  // Each correction is delivered through the stance foot, so it pulses with the walker's own
+  // sway: K * v * (1 + PULSE * sin(phase)). The pulse averages to zero over a cycle. Its depth
+  // is a free choice made for visibility; it sets how far "in step" moves the threshold.
+  var PULSE = 0.6;
+  var linear = !!opt.linear;               // tests: no ambient drive, no noise, no cap
+  var GAMMA = linear ? 0 : 0.2;            // soft cap: extra damping ~ |v|v once the sway is large
+  var AMB = linear ? 0 : 0.005 * CB * W0;  // faint ambient drive at the mode frequency (wind, traffic)
+  var NOISE = linear ? 0 : 0.002;
+  var DT = 1 / 120;
+
+  var N = 60, inStep = false, x = 0, v = 0, t = 0;
+  var noiseState = 42;
+  function noise() { noiseState = (noiseState * 1103515245 + 12345) & 0x7fffffff; return noiseState / 0x7fffffff - 0.5; }
+
+  // "In step" means genuinely synchronised: same phase AND same frequency (exactly 1.0 Hz,
+  // twice the deck's 0.5 Hz, the most favourable case for parametric pumping).
+  function ph(j, tt) { return inStep ? 2 * Math.PI * 1.0 * tt : 2 * Math.PI * freq[j] * tt + phase[j]; }
+  function sumStep(tt) { var a = 0; for (var j = 0; j < N; j++) a += Math.sin(ph(j, tt)); return a; }
+  // Summed corrections in units of one walker's average correction per unit deck velocity.
+  function sumBalanceUnits(tt) { var a = 0; for (var j = 0; j < N; j++) a += 1 + PULSE * Math.sin(ph(j, tt)); return a; }
+
+  function step() {
+    var fa = sumStep(t);
+    var bu = sumBalanceUnits(t);
+    var fb = K * v * bu;
+    // Deck: M x'' + CB x' + W0^2 M x = fb + ambient + noise - GAMMA |v| v  (step-rhythm row not applied)
+    var acc = (fb + AMB * Math.sin(W0 * t) + NOISE * noise() - CB * v - GAMMA * Math.abs(v) * v - W0 * W0 * M * x) / M;
+    v += acc * DT;
+    x += v * DT;
+    t += DT;
+    return { fa: fa, bu: bu, x: x, v: v };
+  }
+
+  // Linear growth rate of the sway envelope (1/s), from first-order averaging.
+  // Random phases: the pulses come at scattered frequencies and average out, so the rate is
+  //   (N K - CB) / 2.
+  // In step: every pulse arrives at exactly twice the deck frequency. That modulates the
+  // damping, c(t) = (CB - N K) - PULSE N K sin(2 W0 t), a principal parametric resonance; the
+  // deck locks to the phase that gains energy and the rate becomes
+  //   ((1 + PULSE/2) N K - CB) / 2,
+  // so onset falls by a factor 1 + PULSE/2. toy.test.mjs checks both against step().
+  function gain(stepping) { return 1 + (stepping ? PULSE / 2 : 0); }
+  function growthRate(n, stepping) { return (n * K * gain(stepping) - CB) / 2; }
+  function onsetN(stepping) { return NCRIT / gain(stepping); }
+  function onsetWalkers(stepping) { return Math.ceil(onsetN(stepping) - 1e-9); }
+  function status() {
+    var r = growthRate(N, inStep), eps = 1e-9;
+    return {
+      state: r > eps ? 'grows' : r < -eps ? 'decays' : 'balanced',
+      rate: r,
+      onset: onsetWalkers(inStep)
+    };
+  }
+
+  return {
+    MAXN: MAXN, F0: F0, W0: W0, CB: CB, K: K, NCRIT: NCRIT, PULSE: PULSE, DT: DT,
+    setN: function (n) { N = Math.max(1, Math.min(MAXN, Math.round(n) || 1)); },
+    getN: function () { return N; },
+    setInStep: function (b) { inStep = !!b; },
+    getInStep: function () { return inStep; },
+    reset: function (x0) { x = x0 == null ? 0.002 : x0; v = 0; },
+    step: step,
+    state: function () { return { x: x, v: v, t: t }; },
+    growthRate: growthRate,
+    onsetN: onsetN,
+    onsetWalkers: onsetWalkers,
+    status: status
+  };
+}
+</script>
 <script>
 (function () {
   'use strict';
@@ -434,7 +531,7 @@
     label();
   });
 
-  // ---------- the toy ----------
+  // ---------- the toy (physics in the toy-model block above) ----------
   var nInput = document.getElementById('n');
   var nVal = document.getElementById('nval');
   var syncBox = document.getElementById('sync');
@@ -445,75 +542,21 @@
   var canv = { A: document.getElementById('cA'), B: document.getElementById('cB'), C: document.getElementById('cC') };
   var ctx = { A: canv.A.getContext('2d'), B: canv.B.getContext('2d'), C: canv.C.getContext('2d') };
 
-  var MAXN = 300;
-  var N = 60;
-  var inStep = false;
-
-  // Walkers: lateral step frequency ~1 Hz with a little spread, random phase.
-  var freq = new Float64Array(MAXN);
-  var phase = new Float64Array(MAXN);
-  (function seed() {
-    var s = 1234567;
-    function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
-    for (var i = 0; i < MAXN; i++) { freq[i] = 1.0 + 0.12 * (rnd() - 0.5); phase[i] = rnd() * Math.PI * 2; }
-  })();
-
-  // Toy bridge: one lateral mode at 0.5 Hz, modal mass 1, bridge damping set so the
-  // threshold is NCRIT walkers. Each walker removes K of damping (toy units).
-  var F0 = 0.5, W0 = 2 * Math.PI * F0, M = 1, ZETA = 0.05;
-  var CB = 2 * ZETA * W0 * M;          // bridge damping
-  var NCRIT = 165;
-  var K = CB / NCRIT;                  // negative damping per walker
-  var GAMMA = 0.2;                     // soft cap: extra damping ~ |v|v once the sway is large
-  var AMB = 0.005 * CB * W0;           // tiny ambient drive at the mode frequency (wind, traffic):
-                                       // gives a 0.005-unit sway with no crowd, so there is always
-                                       // something for the balance row to follow
-  var x = 0, v = 0, t = 0;
-  var DT = 1 / 120, SIM_SPEED = 3;     // sim seconds per real second
+  var toy = makeOutOfStepToy();
+  var W0 = toy.W0;
+  toy.reset();
 
   // Ring buffers of recent samples for the three traces.
   var LEN = 600;
   var bufA = new Float64Array(LEN), bufB = new Float64Array(LEN), bufC = new Float64Array(LEN);
   var head = 0, filled = 0;
 
-  function reset() { x = 0.002; v = 0; }
-  reset();
-
-  // "In step" means genuinely synchronised: same phase AND same frequency.
-  function ph(i, tt) { return inStep ? 2 * Math.PI * 1.0 * tt : 2 * Math.PI * freq[i] * tt + phase[i]; }
-
-  function sumStep(tt) {
-    var s = 0;
-    for (var i = 0; i < N; i++) s += Math.sin(ph(i, tt));
-    return s;
-  }
-  // Each walker's correction is K*v, delivered through the stance foot so it pulses with
-  // the step cycle; the pulse averages to 1 over a cycle, so random phases do not cancel it.
-  // Returned in units of one walker's correction per unit deck velocity (so the display
-  // can share a scale with the step-rhythm row); the deck gets K * v * this.
-  function sumBalanceUnits(tt) {
-    var s = 0;
-    for (var i = 0; i < N; i++) s += 1 + 0.6 * Math.sin(ph(i, tt));
-    return s;
-  }
-
-  var noiseState = 42;
-  function noise() { noiseState = (noiseState * 1103515245 + 12345) & 0x7fffffff; return noiseState / 0x7fffffff - 0.5; }
-
   function stepSim() {
-    var fa = sumStep(t);
-    var bu = sumBalanceUnits(t);
-    var fb = K * v * bu;
-    // Deck: M x'' + CB x' + K_s x = fb + ambient - GAMMA |v| v   (driven by the balance row only)
-    var ks = W0 * W0 * M;
-    var acc = (fb + AMB * Math.sin(W0 * t) + 0.002 * noise() - CB * v - GAMMA * Math.abs(v) * v - ks * x) / M;
-    v += acc * DT;
-    x += v * DT;
-    t += DT;
+    var r = toy.step();
     // Normalise the balance trace by the deck's current velocity amplitude so its height
     // reads in walker units regardless of how big the sway is.
-    var vamp = Math.max(1e-6, Math.sqrt(v * v + W0 * W0 * x * x));
-    bufA[head] = fa; bufB[head] = bu * (v / vamp); bufC[head] = x;
+    var vamp = Math.max(1e-6, Math.sqrt(r.v * r.v + W0 * W0 * r.x * r.x));
+    bufA[head] = r.fa; bufB[head] = r.bu * (r.v / vamp); bufC[head] = r.x;
     head = (head + 1) % LEN; if (filled < LEN) filled++;
   }
 
@@ -526,7 +569,7 @@
 
   function css(name) { return getComputedStyle(root).getPropertyValue(name).trim() || '#888'; }
 
-  function drawTrace(c, cx, buf, scale, color, label) {
+  function drawTrace(c, cx, buf, scale, color, text) {
     fit(c);
     var W = c.width, H = c.height, mid = H / 2;
     cx.clearRect(0, 0, W, H);
@@ -542,22 +585,31 @@
       if (i === 0) cx.moveTo(px, py); else cx.lineTo(px, py);
     }
     cx.stroke();
-    if (label) {
+    if (text) {
       cx.fillStyle = css('--ink-3');
       cx.font = Math.round(11 * (W / c.clientWidth)) + 'px system-ui, sans-serif';
       cx.textBaseline = 'top';
-      cx.fillText(label, 8 * (W / c.clientWidth), 6 * (W / c.clientWidth));
+      cx.fillText(text, 8 * (W / c.clientWidth), 6 * (W / c.clientWidth));
     }
   }
 
-  var frames = 0;
+  // The status line comes from the model's onset analysis (checked against the simulation
+  // by toy.test.mjs), so it is right with the walkers in step as well as out of step.
   function updateLabels() {
+    var N = toy.getN(), inStep = toy.getInStep();
     nVal.textContent = N;
-    var sq = Math.sqrt(N);
-    labA.textContent = inStep ? ('in step: = N = ' + N + '× one walker') : ('random phases: ≈ √N = ' + sq.toFixed(1) + '× one walker');
-    labB.textContent = '≈ N = ' + N + '× one walker, in step or not';
-    var net = CB - N * K;
-    labC.innerHTML = (net > 0 ? '<span class="decay">net damping positive: sway decays</span>' : '<span class="grow">net damping negative: sway grows</span>') + ' · threshold ' + NCRIT + ' walkers';
+    labA.textContent = inStep ? ('in step: = N = ' + N + '× one walker') : ('random phases: ≈ √N = ' + Math.sqrt(N).toFixed(1) + '× one walker');
+    labB.textContent = '≈ N = ' + N + '× one walker on average' + (inStep ? ', pulsing together' : '');
+    var st = toy.status();
+    var msg;
+    if (st.state === 'grows') {
+      msg = '<span class="grow">sway grows</span>' + (inStep && N < toy.onsetWalkers(false) ? ': in-step pulses pump it' : '');
+    } else if (st.state === 'decays') {
+      msg = '<span class="decay">sway dies away</span>';
+    } else {
+      msg = '<span class="grow">on the threshold: net damping zero</span>';
+    }
+    labC.innerHTML = msg + ' · onset at ' + st.onset + ' walkers' + (inStep ? ' in step' : '');
   }
 
   var last = null;
@@ -565,20 +617,19 @@
   function frame(now) {
     if (last === null) last = now;
     var real = Math.min(0.1, (now - last) / 1000); last = now;
-    acc += real * SIM_SPEED;
+    acc += real * 3;                       // 3 sim seconds per real second
     var steps = 0;
-    while (acc >= DT && steps < 60) { stepSim(); acc -= DT; steps++; }
+    while (acc >= toy.DT && steps < 60) { stepSim(); acc -= toy.DT; steps++; }
     // Fixed display scales so the eye can compare rows as N changes.
     drawTrace(canv.A, ctx.A, bufA, 310, css('--trace-a'), 'scale: ±310 walker-forces (300 walkers in step would fill it)');
     drawTrace(canv.B, ctx.B, bufB, 310, css('--trace-b'), 'same scale, in walker units, following the deck velocity');
     drawTrace(canv.C, ctx.C, bufC, 0.6, css('--trace-c'), 'sway, toy units (capped where walkers would stop)');
-    frames++;
     requestAnimationFrame(frame);
   }
 
-  nInput.addEventListener('input', function () { N = Math.max(1, Math.min(MAXN, parseInt(nInput.value, 10) || 1)); updateLabels(); });
-  syncBox.addEventListener('change', function () { inStep = !!syncBox.checked; updateLabels(); });
-  resetBtn.addEventListener('click', function () { reset(); });
+  nInput.addEventListener('input', function () { toy.setN(parseInt(nInput.value, 10) || 1); updateLabels(); });
+  syncBox.addEventListener('change', function () { toy.setInStep(!!syncBox.checked); updateLabels(); });
+  resetBtn.addEventListener('click', function () { toy.reset(); });
   window.addEventListener('resize', function () { fit(canv.A); fit(canv.B); fit(canv.C); });
 
   updateLabels();
