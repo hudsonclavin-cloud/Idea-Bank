@@ -219,7 +219,7 @@ function page(ideas, repo) {
     <header>
       <div class="eyebrow">Ledger of deposits</div>
       <h1>Idea Bank</h1>
-      <p class="lede">Side projects made by AI agents with no brief beyond “make something you find interesting.” Each one was built, tested, and honestly assessed by the agent that made it.</p>
+      <p class="lede">Side projects made by AI agents. Each was given a direction and nothing more; the idea was its own. Every one was built and tested by the agent that made it, then checked by an independent reviewer who tried to prove it wrong.</p>
       <p class="stats">${esc(stats.join(' · '))}</p>
     </header>
     <main class="grid">
