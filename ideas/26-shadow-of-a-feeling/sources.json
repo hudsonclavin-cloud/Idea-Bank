@@ -110,6 +110,28 @@
     "found_via": "WebSearch: 'Russell Carroll 1999 \"On the bipolarity of positive and negative affect\" Psychological Bulletin 125'"
   },
   {
+    "id": "watsontellegen1999",
+    "author": "Watson, D., & Tellegen, A.",
+    "year": 1999,
+    "title": "Issues in the dimensional structure of affect—Effects of descriptors, measurement error, and response formats: Comment on Russell and Carroll (1999)",
+    "venue": "Psychological Bulletin, 125(5), 601–610",
+    "doi": null,
+    "claim": "Watson and Tellegen's comment on Russell & Carroll (1999), which granted that, when activation and other factors are taken into account, self-reported affect includes a bipolar dimension contrasting pleasant with unpleasant feelings. The page states only that concession; the activation argument and the renaming are cited to Watson et al. (1999).",
+    "verified": "secondary: bibliographic details from reference lists, and the concession from the abstract of Russell & Carroll's reply, 'The phoenix of bipolarity: Reply to Watson and Tellegen (1999)', Psychological Bulletin 125(5), 611–617, via WebSearch summaries. The comment's full text was not read.",
+    "found_via": "WebSearch: 'Watson Tellegen 1999 \"Issues in the dimensional structure of affect\" comment on Russell and Carroll Psychological Bulletin 125'; '\"phoenix of bipolarity\" Russell Carroll 1999 Watson Tellegen comment' (added in the review revision, prompted by the independent reviewer)"
+  },
+  {
+    "id": "watson1999",
+    "author": "Watson, D., Wiese, D., Vaidya, J., & Tellegen, A.",
+    "year": 1999,
+    "title": "The two general activation systems of affect: Structural findings, evolutionary considerations, and psychobiological evidence",
+    "venue": "Journal of Personality and Social Psychology, 76(5), 820–838",
+    "doi": "10.1037/0022-3514.76.5.820",
+    "claim": "Two-factor structure of self-rated mood; the circumplex does not fit closely, and apart from pleasantness–unpleasantness its dimensions are not fully bipolar; the two factors are named Positive Activation and Negative Activation and read as the subjective side of broader approach and withdrawal systems.",
+    "verified": "abstract content, title, DOI, venue, volume, issue and pages via WebSearch summaries of the University of Iowa repository and APA records; the renaming also via Barrett & Russell (1999, Current Directions in Psychological Science) as summarised in the same search",
+    "found_via": "WebSearch: 'Watson Wiese Vaidya Tellegen 1999 \"two general activation systems of affect\" abstract renamed positive activation negative activation' (added in the review revision)"
+  },
+  {
     "id": "larsen2001",
     "author": "Larsen, J. T., McGraw, A. P., & Cacioppo, J. T.",
     "year": 2001,
@@ -137,9 +159,9 @@
     "year": 2007,
     "title": "The world of emotions is not two-dimensional",
     "venue": "Psychological Science, 18(12), 1050–1057",
-    "doi": null,
+    "doi": "10.1111/j.1467-9280.2007.02024.x",
     "claim": "Across three languages, emotion terms rated on 144 features representing six emotion components (appraisals, psychophysiological changes, motor expressions, action tendencies, subjective experiences, regulation) require four dimensions, in order of importance: evaluation–pleasantness, potency–control, activation–arousal, unpredictability.",
-    "verified": "abstract text and bibliographic details via WebSearch summaries (University of Reading CentAUR eprint 30302; Psychological Science record). The specific languages and the number of terms were not confirmed and are not stated on the page.",
+    "verified": "abstract text and bibliographic details via WebSearch summaries (University of Reading CentAUR eprint 30302; Psychological Science record). The specific languages and the number of terms were not confirmed and are not stated on the page.; DOI confirmed via the Association for Psychological Science journal record and the Geneva and Reading repository records",
     "found_via": "WebSearch: 'Fontaine Scherer Roesch Ellsworth 2007 \"The world of emotions is not two-dimensional\" Psychological Science four dimensions'"
   },
   {
@@ -160,8 +182,8 @@
     "title": "The relation between valence and arousal in subjective experience",
     "venue": "Psychological Bulletin, 139(4), 917–940",
     "doi": "10.1037/a0030811",
-    "claim": "Six proposed valence–arousal relations tested across eight datasets of momentary self-report; on average a weak but consistent V-shaped relation of arousal as a function of valence, with large individual variation.",
-    "verified": "title, authors, DOI and abstract wording via WebSearch summaries of the KU Leuven copy; the volume and page numbers (139(4), 917–940) were not confirmed by any search result and come from the author's memory of the citation",
+    "claim": "Six proposed valence–arousal relations tested across eight datasets (N = 80 to 1,417) in which participants reported affect in response to laboratory stimuli, or as momentary or remembered experience in natural settings; on average a weak but consistent V-shaped relation of arousal as a function of valence, with large individual variation.",
+    "verified": "title, authors, DOI and abstract wording (including the description of the eight datasets) via WebSearch summaries of the KU Leuven copy; the volume and page numbers (139(4), 917–940), which the author first gave from memory, were confirmed by the independent review",
     "found_via": "WebSearch: 'Kuppens Tuerlinckx Russell Barrett 2013 The relation between valence and arousal in subjective experience'"
   },
   {
@@ -192,9 +214,9 @@
     "year": 2018,
     "title": "Clarifying the conceptualization, dimensionality, and structure of emotion: Response to Barrett and colleagues",
     "venue": "Trends in Cognitive Sciences, 22(4), 274–276",
-    "doi": null,
-    "claim": "Reply arguing that Barrett et al.'s comment framed the 2017 study as the latest installment in the discrete/categorical versus dimensional/constructionist debate, which conflates several questions and misrepresents the findings.",
-    "verified": "quoted reply text, venue, volume, issue and pages via WebSearch summary (PMC record of the exchange); exact title from the author's knowledge of the article and not independently confirmed",
+    "doi": "10.1016/j.tics.2018.02.003",
+    "claim": "Reply to Barrett et al. (2018): proposes a framework that separates three questions the discrete-versus-dimensional framing runs together — dimensionality (how many varieties of emotion are needed), structure (how states are distributed along those dimensions, e.g. clusters or gradients) and conceptualization (whether categories or broad scales such as valence and arousal are the better concepts); defends a high-dimensional space with gradients between categories that cannot be reduced to valence and arousal.",
+    "verified": "abstract text, title, DOI, venue, volume, issue and pages via WebSearch summaries of the PMC author manuscript (PMC5866789); title also confirmed by the independent review",
     "found_via": "WebSearch: 'Barrett Khan Dy Brooks 2018 \"Nature of emotion categories: comment on Cowen and Keltner\"' (reply described in the same results)"
   },
   {

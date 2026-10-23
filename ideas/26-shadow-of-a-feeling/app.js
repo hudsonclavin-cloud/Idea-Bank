@@ -23,6 +23,9 @@
   ];
   const PAIR_VA_MAX = 0.6; // max distance in the valence–arousal plane
   const PAIR_D_MIN = 2.0; // min difference on dominance
+  // The V figure's arousal axis spans the whole 1–9 rating scale, so the V is drawn at its true size
+  // next to the within-band spread (a truncated axis made a shallow V look steep).
+  const V_FIG_A_RANGE = [1, 9];
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');
@@ -361,14 +364,15 @@
       const padL = 38, padR = 14, padT = 14, padB = 34;
       const bins = DATA.bins.filter((b) => b.n >= 5);
       const x = (v) => padL + ((v - 1) / 8) * (w - padL - padR);
-      const yA = (a) => padT + ((6.2 - a) / (6.2 - 3.0)) * (h - padT - padB);
+      const [aLo, aHi] = V_FIG_A_RANGE;
+      const yA = (a) => padT + ((aHi - clamp(a, aLo, aHi)) / (aHi - aLo)) * (h - padT - padB);
       ctx.font = '11px system-ui, sans-serif';
       ctx.strokeStyle = c.line;
       ctx.fillStyle = c.muted;
       // gridlines
-      for (const a of [3.5, 4, 4.5, 5, 5.5, 6]) {
+      for (let a = aLo; a <= aHi; a += 2) {
         ctx.beginPath(); ctx.moveTo(padL, yA(a)); ctx.lineTo(w - padR, yA(a)); ctx.stroke();
-        ctx.textAlign = 'right'; ctx.fillText(fmt(a, 1), padL - 6, yA(a) + 4);
+        ctx.textAlign = 'right'; ctx.fillText(String(a), padL - 6, yA(a) + 4);
       }
       ctx.textAlign = 'center';
       for (const v of [1, 3, 5, 7, 9]) ctx.fillText(String(v), x(v), h - padB + 16);
@@ -383,9 +387,20 @@
       ctx.fillStyle = c.faint;
       for (const b of bins) {
         const bw = x(b.hi) - x(b.lo) - 2;
-        const bh = (b.n / maxN) * (h - padT - padB) * 0.6;
+        const bh = (b.n / maxN) * (h - padT - padB) * 0.25;
         ctx.fillRect(x(b.lo) + 1, h - padB - bh, bw, bh);
       }
+      // ± one standard deviation of arousal within each band (the spread the means hide)
+      const mid = (b) => x((b.lo + b.hi) / 2);
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = c.accent;
+      ctx.beginPath();
+      bins.forEach((b, i) => (i ? ctx.lineTo(mid(b), yA(b.meanA + b.sdA)) : ctx.moveTo(mid(b), yA(b.meanA + b.sdA))));
+      bins.slice().reverse().forEach((b) => ctx.lineTo(mid(b), yA(b.meanA - b.sdA)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
       // line of mean arousal
       ctx.strokeStyle = c.accent;
       ctx.lineWidth = 2;
@@ -402,7 +417,9 @@
       ctx.lineWidth = 1;
       ctx.fillStyle = c.muted;
       ctx.textAlign = 'left';
-      ctx.fillText('grey bars: how many of the 13,915 words fall in each valence band', padL + 4, padT + 10);
+      // legend in the empty top of the plot, below the 9 gridline; shorter on narrow screens
+      const legend = w < 520 ? 'grey bars: words per valence band' : 'grey bars: how many of the 13,915 words fall in each valence band';
+      ctx.fillText(legend, padL + 4, padT + 17);
     }
     return { draw, resize() { resize(); draw(); } };
   }
