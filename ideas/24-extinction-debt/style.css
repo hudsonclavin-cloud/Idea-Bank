@@ -217,6 +217,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
   background: var(--line-2);
   margin: 0 auto 1px;
 }
+.ticks span.floor { font-style: italic; }
 .ticks span.passed { color: var(--bad); }
 .ticks span.passed::before { background: var(--bad); }
 .gauge-note { margin: 0; font-size: 0.86rem; color: var(--muted); }
@@ -250,7 +251,7 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .bar.rare i { min-width: 2px; }
 .fate { font-size: 12px; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .fate.safe { color: var(--good); }
-.fate.risk { color: var(--warn); }
+.fate.risk, .fate.edge { color: var(--warn); }
 .fate.doomed { color: var(--bad); font-weight: 600; }
 .fate.gone { color: var(--muted); }
 .fate.gone .k { text-decoration: line-through; }

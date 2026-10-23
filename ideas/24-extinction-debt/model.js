@@ -19,6 +19,10 @@
  *
  *     p_i* = 1 − D − m/c_i − Σ_{j<i, p_j*>0} p_j* (1 + c_j / c_i),   clipped at 0.
  *
+ *   The sum runs over the species still PRESENT. There is no outside source of propagules, so
+ *   a species that has died out stays at 0, and its absence changes who can persist below it
+ *   (with #1 gone, for example, #3 needs D > q). Pass a presence mask whenever any have died.
+ *
  *   The "geometric" trade-off, c_i = m / (1 − q)^(2i − 1), gives, with no destruction,
  *   p_i* = q (1 − q)^(i − 1): the best competitor is the commonest species and abundance
  *   falls geometrically down the ranks (every formula here is checked in model.test.mjs).
@@ -58,20 +62,87 @@
 
   /**
    * Equilibrium fractions for colonization rates c, mortality m, destroyed fraction D.
-   * Species whose equilibrium would be ≤ 0 cannot invade the community of their superiors
-   * and are set to exactly 0; the rest follow the top-down formula in the header.
+   * `present` (optional, array of booleans): species marked false have died out and stay at 0;
+   * omitted, every species is assumed present. Species whose equilibrium would be ≤ 0 cannot
+   * invade the community of their superiors and are set to exactly 0; the rest follow the
+   * top-down formula in the header. Exactly-marginal values (v = 0 up to round-off, which the
+   * geometric trade-off produces at every threshold) are set to 0: see isKnifeEdge().
    */
-  function equilibrium(c, m, D) {
+  function equilibrium(c, m, D, present) {
     const S = c.length;
     const p = new Float64Array(S);
     for (let i = 0; i < S; i++) {
+      if (present && !present[i]) continue;
       let v = 1 - D - m / c[i];
       for (let j = 0; j < i; j++) if (p[j] > 0) v -= p[j] * (1 + c[j] / c[i]);
-      // Exactly-marginal species (v = 0 up to round-off, which happens at every threshold of the
-      // geometric trade-off) count as absent: they could not hold on in any finite habitat.
       p[i] = v > 1e-12 ? v : 0;
     }
     return p;
+  }
+
+  const EDGE_H = 1e-6;
+
+  /**
+   * Which present species sit on a knife-edge at D: equilibrium exactly 0 at D but positive a
+   * hair (EDGE_H) either side. The geometric trade-off has these at every threshold D_k: ranks
+   * k+2, k+4, … touch zero there and recover on both sides. Their long-run share is zero only at
+   * that exact D, and the approach to zero is algebraic (~1/t), not exponential.
+   */
+  function knifeEdges(c, m, D, present) {
+    const e = equilibrium(c, m, D, present);
+    const lo = equilibrium(c, m, Math.max(0, D - EDGE_H), present);
+    const hi = equilibrium(c, m, D + EDGE_H, present);
+    return Array.from(e, (v, i) => (!present || present[i]) && v <= 0 && D - EDGE_H >= 0 && lo[i] > 0 && hi[i] > 0);
+  }
+
+  /**
+   * For each species, the ranges of destroyed fraction D in [0, 1] over which it has a positive
+   * long-run share, given which species are present (isolated knife-edge zeros ignored).
+   * Returns an array (one entry per species) of [lo, hi] pairs: the species persists for
+   * lo < D < hi (lo = 0 means "any D below hi"). Absent species get []. With every species
+   * present this is [[0, D_k]] for rank k; after a loss a range can start above 0 (restoring
+   * land past lo would doom the species). Found by scanning n points and bisecting each edge.
+   */
+  function survivalRanges(c, m, present, n = 2000, tol = 1e-10) {
+    const S = c.length;
+    const aliveAt = (D) => {
+      const e = equilibrium(c, m, D, present);
+      const k = knifeEdges(c, m, D, present);
+      return Array.from(e, (v, i) => v > 0 || k[i]);
+    };
+    const grid = [];
+    for (let k = 0; k <= n; k++) grid.push(aliveAt(k / n));
+    const out = [];
+    for (let i = 0; i < S; i++) {
+      const ranges = [];
+      if (present && !present[i]) {
+        out.push(ranges);
+        continue;
+      }
+      const edge = (a, b) => {
+        // a and b bracket a change in species i's status; bisect to tol
+        const sa = aliveAt(a)[i];
+        while (b - a > tol) {
+          const mid = 0.5 * (a + b);
+          if (aliveAt(mid)[i] === sa) a = mid;
+          else b = mid;
+        }
+        return 0.5 * (a + b);
+      };
+      let start = grid[0][i] ? 0 : -1;
+      for (let k = 1; k <= n; k++) {
+        const was = grid[k - 1][i];
+        const is = grid[k][i];
+        if (!was && is) start = edge((k - 1) / n, k / n);
+        if (was && !is) {
+          ranges.push([start, edge((k - 1) / n, k / n)]);
+          start = -1;
+        }
+      }
+      if (start >= 0) ranges.push([start, 1]);
+      out.push(ranges);
+    }
+    return out;
   }
 
   /** Per-capita growth rate of species i when it is rare and its superiors sit at p (invasion rate). */
@@ -86,10 +157,11 @@
   }
 
   /**
-   * Destruction threshold of species i (0-based): the smallest D at which its equilibrium is 0.
-   * Found by bisection on the equilibrium, assuming {D : p_i*(D) > 0} is an interval from 0
-   * (true for the geometric trade-off; model.test.mjs checks it on a grid). Returns 0 if the
-   * species is absent even with no destruction.
+   * Destruction threshold of species i (0-based), every species present: the smallest D at which
+   * its equilibrium is 0. Found by bisection on the equilibrium, assuming {D : p_i*(D) > 0} is an
+   * interval from 0 (true for the geometric trade-off apart from isolated knife-edge points, which
+   * bisection does not land on; model.test.mjs checks it on a grid). Returns 0 if the species is
+   * absent even with no destruction.
    */
   function threshold(c, m, i, tol = 1e-10) {
     if (equilibrium(c, m, 0)[i] <= 0) return 0;
@@ -103,7 +175,12 @@
     return 0.5 * (lo + hi);
   }
 
-  /** Closed-form threshold for the geometric trade-off: species k (1-based) dies iff D ≥ 1 − (1 − q)^(2k − 1). */
+  /**
+   * Closed-form threshold for the geometric trade-off with every species present: species k
+   * (1-based) has a positive long-run share for D < 1 − (1 − q)^(2k − 1) and none beyond, apart
+   * from isolated knife-edge points (D equal to the threshold of a better rank of the same parity).
+   * After a loss the thresholds move: use survivalRanges() with a presence mask.
+   */
   function geometricThreshold(k, q) {
     return 1 - Math.pow(1 - q, 2 * k - 1);
   }
@@ -190,15 +267,21 @@
 
   /**
    * Forecast each species' fate from state p0 under destruction D.
-   * A species is "doomed" if its equilibrium is 0; its predicted extinction year is when the
-   * ODE first carries it below `floor` (one individual in N sites: floor = 1/N).
-   * Returns { doomed: boolean[], eta: number[] (years from now, Infinity if beyond horizon or safe),
+   * The equilibrium is taken over the species present in p0 (p0[i] > 0; or opts.present):
+   * a species that has died out cannot come back, and its absence changes who persists.
+   * A present species is "doomed" if that equilibrium is 0 (and it is not merely on a
+   * knife-edge, see knifeEdges); its predicted extinction year is when the ODE first carries
+   * it below `floor` (one individual in N sites: floor = 1/N).
+   * Returns { doomed: boolean[], edge: boolean[], present: boolean[],
+   *           eta: number[] (years from now, Infinity if beyond horizon or not doomed),
    *           eq: Float64Array, trajectory: { t, p } sampled every `every` years }.
    */
   function forecast(p0, c, m, D, floor, horizon, every, opts) {
     const S = c.length;
-    const eq = equilibrium(c, m, D);
-    const doomed = Array.from(eq, (v) => v <= 0);
+    const present = (opts && opts.present) || Array.from(p0, (v) => v > 0);
+    const eq = equilibrium(c, m, D, present);
+    const edge = knifeEdges(c, m, D, present);
+    const doomed = Array.from(eq, (v, i) => present[i] && v <= 0 && !edge[i]);
     const eta = new Array(S).fill(Infinity);
     const dt = (opts && opts.dt) || suggestedDt(c, m);
     const minHorizon = (opts && opts.minHorizon) || 0;
@@ -230,7 +313,7 @@
         if (ts[ts.length - 1] > Math.max(...eta.filter((v) => v !== Infinity), 0) + 4 * every) break;
       }
     }
-    return { doomed, eta, eq, trajectory: { t: Float64Array.from(ts), p: rows } };
+    return { doomed, edge, present, eta, eq, trajectory: { t: Float64Array.from(ts), p: rows } };
   }
 
   /**
@@ -470,6 +553,8 @@
     geometricRates,
     geometricAbundances,
     equilibrium,
+    knifeEdges,
+    survivalRanges,
     invasionRate,
     threshold,
     geometricThreshold,

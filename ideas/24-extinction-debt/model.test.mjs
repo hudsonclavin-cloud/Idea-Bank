@@ -93,6 +93,115 @@ test('below the first threshold: the runner-up gains, odd ranks fall in step wit
   log('at exactly D = q: odd ranks', fmt([at[0], at[2], at[4], at[6], at[8]], 4), '| even ranks', fmt([at[1], at[3], at[5], at[7], at[9]], 4));
 });
 
+test('the threshold statement, knife-edges included: rank k persists iff D < D_k and D is not D_j for a better rank j of the same parity', () => {
+  let checked = 0;
+  for (const { S, q } of GRID) {
+    const c = M.geometricRates(S, q, 0.02);
+    const thr = Array.from({ length: S }, (_, k) => M.geometricThreshold(k + 1, q));
+    const Ds = [];
+    for (let n = 0; n <= 400; n++) Ds.push(n / 400);
+    for (const t of thr) Ds.push(t, t - 1e-4, t + 1e-4); // the thresholds themselves and a hair either side
+    for (const D of Ds) {
+      if (D < 0 || D > 1) continue;
+      const eq = M.equilibrium(c, 0.02, D);
+      const edge = M.knifeEdges(c, 0.02, D);
+      for (let k = 0; k < S; k++) {
+        const onEdge = thr.some((t, j) => j < k && (k - j) % 2 === 0 && Math.abs(D - t) < 1e-12);
+        const expected = D < thr[k] - 1e-12 && !onEdge;
+        if (Math.abs(D - thr[k]) < 1e-12) assert.equal(eq[k], 0, `at its own threshold rank ${k + 1} is at 0`);
+        else assert.equal(eq[k] > 0, expected, `S=${S} q=${q} D=${D} rank ${k + 1}: eq ${eq[k]}`);
+        // the knife-edge flag is set exactly on the isolated zeros, never on a real threshold (checked
+        // up to D = 0.99: beyond that the shares a hair either side fall below the 1e-12 resolution)
+        if (D <= 0.99) assert.equal(edge[k], onEdge && D < thr[k], `knife-edge flag S=${S} q=${q} D=${D} rank ${k + 1}`);
+        checked++;
+      }
+    }
+  }
+  const c = M.geometricRates(10, 0.2, 0.02);
+  const zeroAt = (D) => Array.from(M.equilibrium(c, 0.02, D)).map((v, i) => (v === 0 ? i + 1 : 0)).filter(Boolean).join(',');
+  log(`README: zero sets at D = q: {${zeroAt(0.2)}}; at D = 0.488: {${zeroAt(0.488)}}; a hair either side of q: {${zeroAt(0.2 - 1e-6)}} and {${zeroAt(0.2 + 1e-6)}}  (${checked} checks)`);
+  assert.equal(zeroAt(0.2), '1,3,5,7,9');
+  assert.equal(zeroAt(0.488), '1,2,4,6,8,10');
+  // README: populations at 19 % cleared, N = 10,000: the odd ranks settle thin, not briefly thin
+  const eq19 = M.equilibrium(c, 0.02, 0.19);
+  const thin = [2, 4, 6, 8].map((i) => Math.round(eq19[i] * 10000));
+  log(`README: at 19 % cleared #3, #5, #7, #9 settle at ${thin.join(', ')} of 10,000 sites`);
+  assert.deepEqual(thin, [64, 41, 26, 17]);
+});
+
+test('at exactly D = q the forecast owes one species, not five: #1 is doomed, the other odd ranks sit on a knife-edge and decay only as 1/t', () => {
+  const c = M.geometricRates(10, 0.2, 1);
+  const p0 = Float64Array.from(M.equilibrium(c, 1, 0), (v) => v * 0.8);
+  const f = M.forecast(p0, c, 1, 0.2, 1e-4, 50, 1);
+  const list = (a) => a.map((v, i) => (v ? i + 1 : 0)).filter(Boolean).join(',');
+  log(`D = q: doomed {${list(f.doomed)}}, knife-edge {${list(f.edge)}}`);
+  assert.equal(list(f.doomed), '1');
+  assert.equal(list(f.edge), '3,5,7,9');
+  // one step of the slider either way: nobody is on a knife-edge, and the debt is 0 below q, 1 above
+  for (const [D, debt] of [[0.19, 0], [0.21, 1]]) {
+    const g = M.forecast(Float64Array.from(M.equilibrium(c, 1, 0), (v) => v * (1 - D)), c, 1, D, 1e-4, 50, 1);
+    assert.equal(g.doomed.filter(Boolean).length, debt);
+    assert.equal(g.edge.filter(Boolean).length, 0);
+  }
+  // the long-run share at D = q really is zero, but approached algebraically: p1·t → 1/c1, p3/p1 → const
+  const r = M.integrate(p0, c, 1, 0.2, 4000, 1000, 0.01);
+  const k = r.t.length - 1;
+  log(`ODE at D = q after ${r.t[k].toFixed(0)} lifetimes: p1·t = ${(r.p[k][0] * r.t[k]).toFixed(3)} (1/c1 = ${(1 / c[0]).toFixed(3)}), p3/p1 = ${(r.p[k][2] / r.p[k][0]).toFixed(3)}, p5/p1 = ${(r.p[k][4] / r.p[k][0]).toFixed(3)}`);
+  assert.ok(Math.abs(r.p[k][0] * r.t[k] - 1 / c[0]) < 0.01);
+  assert.ok(r.p[k][2] < 1e-3 && r.p[k][2] > 0 && Math.abs(r.p[k][2] / r.p[k][0] - r.p[k - 1][2] / r.p[k - 1][0]) < 0.01);
+});
+
+test('history matters: the equilibrium is taken over the species still standing, and a loss moves the thresholds below it', () => {
+  const m = 1;
+  const c = M.geometricRates(10, 0.2, m);
+  // 1. the masked equilibrium is where the ODE actually goes, for random sets of survivors
+  const rand = M.mulberry32(2024);
+  let worst = 0;
+  let cases = 0;
+  while (cases < 6) {
+    const present = Array.from({ length: 10 }, () => rand() < 0.6);
+    const D = 0.9 * rand();
+    const ranges = M.survivalRanges(c, m, present, 500);
+    // keep away from any edge, where convergence is algebraic rather than exponential
+    if (ranges.some((rs) => rs.some(([lo, hi]) => Math.abs(D - lo) < 0.02 || Math.abs(D - hi) < 0.02))) continue;
+    if (Array.from({ length: 10 }, (_, k) => M.geometricThreshold(k + 1, 0.2)).some((t) => Math.abs(D - t) < 0.02)) continue;
+    const p0 = Float64Array.from(present, (v) => (v ? 0.05 : 0));
+    const r = M.integrate(p0, c, m, D, 1500, 1500, 0.01);
+    const eq = M.equilibrium(c, m, D, present);
+    for (let i = 0; i < 10; i++) worst = Math.max(worst, Math.abs(r.final[i] - eq[i]));
+    cases++;
+  }
+  log(`masked equilibrium vs ODE after 1,500 lifetimes, 6 random survivor sets: max error ${worst.toExponential(1)}`);
+  assert.ok(worst < 1e-6);
+  // 2. losing rank j alone dooms rank j+2 whenever less than D_j is cleared
+  for (let j = 1; j <= 8; j++) {
+    const present = new Array(10).fill(true);
+    present[j - 1] = false;
+    const R = M.survivalRanges(c, m, present)[j + 1];
+    assert.equal(R.length, 1);
+    assert.ok(Math.abs(R[0][0] - M.geometricThreshold(j, 0.2)) < 1e-8 && Math.abs(R[0][1] - M.geometricThreshold(j + 2, 0.2)) < 1e-8, `rank ${j + 2} after losing ${j}: ${R}`);
+  }
+  const full = M.survivalRanges(c, m, new Array(10).fill(true));
+  for (let k = 0; k < 10; k++) assert.ok(full[k].length === 1 && full[k][0][0] === 0 && Math.abs(full[k][0][1] - M.geometricThreshold(k + 1, 0.2)) < 1e-8);
+  log('losing rank j alone: rank j+2 then persists only for D_j < D < D_{j+2} (j = 1..8); with nobody lost the ranges are [0, D_k)');
+  // 3. the reviewer's scenario: #1 has died out at 40 % cleared, then the land is restored to 10 %
+  const p0 = Float64Array.from(M.equilibrium(c, m, 0.4));
+  p0[0] = 0;
+  const f = M.forecast(p0, c, m, 0.1, 1e-4, 400, 0.25, { dt: 0.004 });
+  const doomed = f.doomed.map((v, i) => (v ? i + 1 : 0)).filter(Boolean);
+  const ode = M.integrate(p0, c, m, 0.1, 50, 50, 0.002);
+  log(`README: #1 gone, land restored from 40 % to 10 %: doomed {${doomed}}, #3's long-run share ${f.eq[2]}; ODE after 50 lifetimes: #3 at ${ode.final[2].toExponential(1)}; #3 below 1/10,000 after ${(50 * f.eta[2]).toFixed(0)} yr`);
+  assert.deepEqual(doomed, [3]);
+  assert.equal(f.eq[2], 0);
+  assert.ok(ode.final[2] < 1e-5, 'the ODE takes #3 to zero');
+  assert.ok(f.eta[2] < 400);
+  // with #1 gone, #3's long-run share is (1−q)²(D − q) below D_2: positive only above q
+  for (const D of [0.05, 0.1, 0.3, 0.45]) {
+    const e = M.equilibrium(c, m, D, [false, true, true, true, true, true, true, true, true, true]);
+    assert.ok(Math.abs(e[2] - Math.max(0, 0.64 * (D - 0.2))) < 1e-12);
+  }
+});
+
 // ---------------------------------------------------------------- dynamics
 
 test('ODE: converges to the equilibrium from a perturbed start; no NaN, non-negative, never over-fills the habitat', () => {
@@ -165,11 +274,81 @@ test('forecast: extinction years and the debt count', () => {
     const t = f.eta[0];
     assert.ok(M.topSpeciesClosedForm(p0[0], c[0], 0.02, D, t) <= 1 / N && M.topSpeciesClosedForm(p0[0], c[0], 0.02, D, t - 1) > 1 / N);
   }
+  // README: #1 starts as the commonest tree but is overtaken within about a century, a few % of its decline
+  for (const D of [0.21, 0.25, 0.3, 0.4, 0.5]) {
+    const p0 = Float64Array.from(eq0, (v) => v * (1 - D));
+    const r = M.integrate(p0, c, 0.02, D, 400, 1, 0.5);
+    const k = r.p.findIndex((row) => Math.max(...row.slice(1)) > row[0]);
+    const f = M.forecast(p0, c, 0.02, D, 1 / N, 50000, 10);
+    log(`README D=${D}: #1 stops being the commonest after ${r.t[k].toFixed(0)} yr, ${((100 * r.t[k]) / f.eta[0]).toFixed(1)} % of the ${f.eta[0].toFixed(0)} yr it takes to fall below 1/${N}`);
+    assert.ok(r.t[k] > 60 && r.t[k] < 125 && r.t[k] / f.eta[0] < 0.08);
+  }
   // README numbers (years, from the moment of clearing, default forest of 10,000 sites)
   assert.ok(Math.abs(etas[0.25] - 4743) < 5, `eta(0.25)=${etas[0.25]}`);
   assert.ok(Math.abs(etas[0.3] - 2548) < 5, `eta(0.3)=${etas[0.3]}`);
   assert.ok(Math.abs(etas[0.4] - 1324) < 5, `eta(0.4)=${etas[0.4]}`);
   assert.ok(Math.abs(etas[0.5] - 883) < 5, `eta(0.5)=${etas[0.5]}`);
+  // README: "clear 30 % … gone by about year 2,560"; a third would be about 1,950
+  const third = M.forecast(Float64Array.from(eq0, (v) => (v * 2) / 3), c, 0.02, 1 / 3, 1 / N, 50000, 10).eta[0];
+  log(`README: a third cleared, #1 below 1/${N} after ${third.toFixed(0)} yr`);
+  assert.ok(Math.abs(third - 1951) < 5);
+});
+
+test('what is and is not a property of the geometric trade-off: abundance order, and strict best-first extinction', () => {
+  const m = 1;
+  // 1. any abundances can come from a competition–colonisation trade-off: invert p* for c (Tilman 1994's form)
+  const S = 10;
+  const target = Array.from({ length: S }, (_, i) => 0.2 * Math.pow(0.8, S - 1 - i)); // #1 the RAREST
+  const c = [];
+  for (let i = 0; i < S; i++) {
+    let num = m;
+    let den = 1 - target[i];
+    for (let j = 0; j < i; j++) {
+      num += c[j] * target[j];
+      den -= target[j];
+    }
+    c.push(num / den);
+  }
+  for (let i = 1; i < S; i++) assert.ok(c[i] > c[i - 1], 'still a trade-off: worse competitors colonise faster');
+  const eq = M.equilibrium(c, m, 0);
+  for (let i = 0; i < S; i++) assert.ok(Math.abs(eq[i] - target[i]) < 1e-12);
+  const t1 = M.threshold(c, m, 0);
+  log(`README: reversed abundances (#1 rarest at ${(100 * target[0]).toFixed(1)} %) need c/m = ${c.map((v) => v.toFixed(2)).join(' ')}; #1 is then doomed from D = ${(100 * t1).toFixed(1)} %`);
+  // whatever the rates, #1 is doomed once the cleared share exceeds its own undisturbed share 1 − m/c1
+  assert.ok(Math.abs(t1 - eq[0]) < 1e-8);
+  // 2. strict rank order is a knife-edge: nudge every c_i of the geometric trade-off at random
+  const c0 = M.geometricRates(10, 0.2, m);
+  const rand = M.mulberry32(7);
+  for (const amp of [0.001, 0.01]) {
+    let oneFirst = 0;
+    const widths = [];
+    for (let draw = 0; draw < 200; draw++) {
+      const cc = Array.from(c0, (v) => v * (1 + 2 * amp * (rand() - 0.5)));
+      let first = 0;
+      let outOfOrder = 0;
+      const n = 4000;
+      for (let k = 1; k <= n; k++) {
+        const D = (0.99 * k) / n;
+        const e = M.equilibrium(cc, m, D);
+        let lost = 0;
+        while (lost < 10 && e[lost] === 0) lost++;
+        let bad = false;
+        for (let i = lost; i < 10; i++) if (e[i] === 0) bad = true;
+        if (bad) outOfOrder++;
+        if (!first) {
+          const z = e.findIndex((v) => v === 0);
+          if (z >= 0) first = z + 1;
+        }
+      }
+      if (first === 1) oneFirst++;
+      assert.equal(first % 2, 1, 'when #1 is not first, an odd rank is');
+      widths.push((0.99 * outOfOrder) / n);
+    }
+    widths.sort((a, b) => a - b);
+    log(`README: c_i nudged by up to ±${100 * amp} %: #1 is the first species lost in ${oneFirst}/200 draws; out-of-order range of D, median ${(100 * widths[100]).toFixed(1)} percentage points`);
+    assert.ok(oneFirst < 100, 'best-first is not robust');
+    assert.ok(widths[100] > 0);
+  }
 });
 
 // ---------------------------------------------------------------- the lattice
@@ -205,31 +384,38 @@ test('lattice: one species sits at q on average, counts stay consistent, and cle
   assert.ok(L.audit());
 });
 
-test('lattice: ten species hold their predicted shares (200×200, long average)', () => {
+test('lattice: ten species hold their predicted shares (200×200, long average, 8 seeds)', () => {
   const c = M.geometricRates(10, 0.2, 0.02);
   const eq = M.equilibrium(c, 0.02, 0);
-  const L = new M.Lattice(200, 200, c, 0.02, 11);
-  L.seed(eq);
-  const avg = new Float64Array(10);
-  let n = 0;
-  while (L.time < 2000) {
-    L.step();
-    if (L.time > 400) {
-      const f = L.fractions();
-      for (let i = 0; i < 10; i++) avg[i] += f[i];
-      n++;
+  const gaps = [];
+  let L;
+  for (let seed = 11; seed <= 18; seed++) {
+    L = new M.Lattice(200, 200, c, 0.02, seed);
+    L.seed(eq);
+    const avg = new Float64Array(10);
+    let n = 0;
+    while (L.time < 2000) {
+      L.step();
+      if (L.time > 400) {
+        const f = L.fractions();
+        for (let i = 0; i < 10; i++) avg[i] += f[i];
+        n++;
+      }
     }
+    let worst = 0;
+    for (let i = 0; i < 10; i++) {
+      avg[i] /= n;
+      worst = Math.max(worst, Math.abs(avg[i] - eq[i]));
+    }
+    if (seed === 11) {
+      log('lattice average (seed 11)', fmt(avg, 4));
+      log('predicted                ', fmt(eq, 4));
+    }
+    gaps.push(worst);
+    assert.ok(L.audit());
   }
-  let worst = 0;
-  for (let i = 0; i < 10; i++) {
-    avg[i] /= n;
-    worst = Math.max(worst, Math.abs(avg[i] - eq[i]));
-  }
-  log('lattice average', fmt(avg, 4));
-  log('predicted      ', fmt(eq, 4));
-  log(`worst |lattice − p*| = ${worst.toFixed(4)} (demographic noise is ~sqrt(p/N) ≈ ${Math.sqrt(0.2 / 40000).toFixed(4)} per snapshot)`);
-  assert.ok(worst < 0.008);
-  assert.ok(L.audit());
+  log(`README: worst |lattice − p*| per seed 11–18: ${gaps.map((v) => v.toFixed(4)).join(' ')} (range ${Math.min(...gaps).toFixed(3)}–${Math.max(...gaps).toFixed(3)}; demographic noise is ~sqrt(p/N) ≈ ${Math.sqrt(0.2 / 40000).toFixed(4)} per snapshot)`);
+  for (const g of gaps) assert.ok(g < 0.01);
   const f = L.fractions();
   const lambdaMax = 0.02 + Array.from(c).reduce((a, ci, i) => a + ci * f[i], 0);
   log(`per-site event probability per step: ${(L.nextDt() * lambdaMax).toFixed(4)} (cap 0.05), dt = ${L.nextDt().toFixed(3)} yr`);

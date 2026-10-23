@@ -80,7 +80,12 @@
     fcAt: -1, // model time of the last forecast
     fcDirty: true,
     fates: [],
+    ranges: null, // per species: [[lo, hi], ...] ranges of cleared fraction it survives, given who is left
+    rangesKey: '',
+    lastKey: '', // presence mask and cleared fraction at the previous forecast, to name why a doom began
+    lastD: 0,
     doomedSince: [],
+    doomedWhy: [],
     announced: [],
     events: [],
     selected: -1,
@@ -102,6 +107,11 @@
     st.fcAt = -1;
     st.fcDirty = true;
     st.doomedSince = new Array(st.S).fill(-1);
+    st.doomedWhy = new Array(st.S).fill('');
+    st.ranges = null;
+    st.rangesKey = '';
+    st.lastKey = '';
+    st.lastD = 0;
     st.announced = new Array(st.S).fill(false);
     st.events = [];
     st.selected = -1;
@@ -109,9 +119,8 @@
     sampleHistory(true);
     $('dslider').value = 0;
     buildLedger();
-    buildTicks();
     buildLegend();
-    refreshForecast();
+    refreshForecast(); // also builds the gauge ticks
     render(true);
   }
 
@@ -147,28 +156,81 @@
   }
 
   // ------------------------------------------------------------ forecast & fates
+  // Species i is absent and better than j: the losses that can change j's fate.
+  const goneAbove = (j) => st.fates.map((f, i) => (i < j && f.kind === 'gone' ? i : -1)).filter((i) => i >= 0);
+  const nameList = (arr) => arr.map((i) => `#${i + 1}`).join(', ');
+  // "with #1 gone, " (or nothing): the loss that lets more land hurt species j
+  const withGone = (j) => (goneAbove(j).length ? `with ${nameList(goneAbove(j))} gone, ` : '');
+  // The survival range nearest to D, for a species that is doomed at D.
+  function nearestRange(i, D) {
+    let best = null;
+    let bestDist = Infinity;
+    for (const [lo, hi] of st.ranges[i]) {
+      const d = D >= hi ? D - hi : D <= lo ? lo - D : 0;
+      if (d < bestDist) { bestDist = d; best = [lo, hi]; }
+    }
+    return best;
+  }
+  // The nearest cleared fraction, above (dir +1) or below (dir −1) D, at which a species now
+  // standing and not doomed would become doomed. Returns { i, t } or null.
+  function nextFlip(dir) {
+    const D = st.lat.D;
+    let best = null;
+    st.fates.forEach((f, i) => {
+      if (f.kind === 'gone' || f.kind === 'doomed') return;
+      for (const [lo, hi] of st.ranges[i]) {
+        if (!(D >= lo - 1e-9 && D <= hi + 1e-9)) continue;
+        if (dir > 0 && hi < 0.999 && (!best || hi < best.t)) best = { i, t: hi };
+        if (dir < 0 && lo > 1e-9 && (!best || lo > best.t)) best = { i, t: lo };
+      }
+    });
+    return best;
+  }
+
   function refreshForecast() {
     const lat = st.lat;
     const p0 = lat.fractions();
     const D = lat.D;
+    // The equilibrium is taken over the species still standing: nothing comes back from outside,
+    // and who is missing changes who can persist (lose #1 and #3 needs D > q).
+    const present = Array.from({ length: st.S }, (_, i) => lat.counts[i + 1] > 0);
     // horizon in lifetimes: 400 lifetimes (= 20,000 years at the default lifetime)
-    st.fc = M.forecast(p0, st.c, m, D, 1 / lat.N, 400, 0.25, { dt: 0.004, minHorizon: 12 });
+    st.fc = M.forecast(p0, st.c, m, D, 1 / lat.N, 400, 0.25, { dt: 0.004, minHorizon: 12, present });
     st.fcAt = lat.time;
     st.fcDirty = false;
+    const key = present.map(Number).join('');
+    if (key !== st.rangesKey) {
+      st.ranges = M.survivalRanges(st.c, m, present, 1000);
+      st.rangesKey = key;
+      buildTicks();
+    }
+    // why would a doom that starts now have started? a loss, or the land moving
+    const lost = st.lastKey ? present.map((v, i) => (!v && st.lastKey[i] === '1' ? i : -1)).filter((i) => i >= 0) : [];
+    const why = lost.length
+      ? `when ${lost.map((i) => `#${i + 1}`).join(', ')} died out`
+      : D > st.lastD ? 'when land was cleared' : D < st.lastD ? 'when land was given back' : '';
+    const eqLo = M.equilibrium(st.c, m, Math.max(0, D - 0.01), present);
+    const eqHi = M.equilibrium(st.c, m, Math.min(1, D + 0.01), present);
     const fates = [];
     for (let i = 0; i < st.S; i++) {
-      const present = lat.counts[i + 1] > 0;
       const eqN = st.fc.eq[i] * lat.N;
       let kind;
-      if (!present) kind = 'gone';
+      if (!present[i]) kind = 'gone';
       else if (st.fc.doomed[i]) kind = 'doomed';
+      else if (st.fc.edge[i]) kind = 'edge';
       else if (eqN < 10) kind = 'risk';
       else kind = 'safe';
-      if (kind === 'doomed' && st.doomedSince[i] < 0) st.doomedSince[i] = lat.time;
-      if (kind === 'safe' || kind === 'risk') st.doomedSince[i] = -1;
-      fates.push({ kind, eta: st.fc.eta[i], eq: st.fc.eq[i], eqN });
+      if (kind === 'doomed' && st.doomedSince[i] < 0) {
+        st.doomedSince[i] = lat.time;
+        st.doomedWhy[i] = why;
+      }
+      if (kind !== 'doomed' && kind !== 'gone') st.doomedSince[i] = -1;
+      const edgeN = kind === 'edge' ? Math.min(eqLo[i], eqHi[i]) * lat.N : 0;
+      fates.push({ kind, eta: st.fc.eta[i], eq: st.fc.eq[i], eqN, edgeN });
     }
     st.fates = fates;
+    st.lastKey = key;
+    st.lastD = D;
   }
 
   function checkExtinctions() {
@@ -177,10 +239,18 @@
       if (lat.counts[i + 1] === 0 && !st.announced[i]) {
         st.announced[i] = true;
         const since = st.doomedSince[i];
-        const eqShare = st.fates[i] ? st.fates[i].eq : 0;
-        const text = since >= 0
-          ? `Year ${fmtYear(years(lat.extinctAt[i]))}: the last #${i + 1} died. It had been doomed since year ${fmtYear(years(since))}, when the land fell below its threshold.`
-          : `Year ${fmtYear(years(lat.extinctAt[i]))}: the last #${i + 1} died. The model did not doom it (it would settle at ${pct(eqShare, 1)}); in a finite forest, chance can finish a species while it is rare.`;
+        const f = st.fates[i];
+        const eqShare = f ? f.eq : 0;
+        const y = fmtYear(years(lat.extinctAt[i]));
+        let text;
+        if (since >= 0) {
+          const why = st.doomedWhy[i];
+          text = `Year ${y}: the last #${i + 1} died. It had been doomed since year ${fmtYear(years(since))}${why ? `, ${why}` : ''}.`;
+        } else if (f && f.kind === 'edge') {
+          text = `Year ${y}: the last #${i + 1} died. It was on a knife-edge: at exactly this much clearing the model gives it a long-run share of zero, approached slowly, and chance finished it first.`;
+        } else {
+          text = `Year ${y}: the last #${i + 1} died. The model did not doom it (it would settle at ${pct(eqShare, 1)}); in a finite forest, chance can finish a species while it is rare.`;
+        }
         st.events.push({ cls: 'loss', text });
         flashRow(i);
         toast(`Year ${fmtYear(years(lat.extinctAt[i]))} · the last #${i + 1} died${since >= 0 ? `, doomed since year ${fmtYear(years(since))}` : ', by chance'}`);
@@ -343,37 +413,60 @@
   function logLandChange(from, to, verb) {
     if (Math.abs(to - from) < 0.0005) return;
     refreshForecast();
-    const debt = st.fates.filter((f) => f.kind === 'doomed').length;
+    const doomed = st.fates.map((f, i) => (f.kind === 'doomed' ? i : -1)).filter((i) => i >= 0);
+    const anyGone = st.fates.some((f) => f.kind === 'gone');
     const y = fmtYear(years(st.lat.time));
     let text = `Year ${y}: ${verb} land from ${pct(from)} to ${pct(to)}.`;
-    if (debt > 0) {
-      const names = st.fates.map((f, i) => (f.kind === 'doomed' ? `#${i + 1}` : null)).filter(Boolean).join(', ');
-      text += ` Doomed now: ${names}. Nothing has died yet.`;
+    // doomed species that more land cannot save: their only hope is more clearing
+    const byLand = doomed.filter((i) => {
+      const r = nearestRange(i, to);
+      return r && to <= r[0] + 1e-9;
+    });
+    if (doomed.length > 0) {
+      text += ` Doomed now: ${doomed.map((i) => `#${i + 1}`).join(', ')}.${anyGone ? '' : ' Nothing has died yet.'}`;
+      if (verb === 'restored' && byLand.length) {
+        const j = byLand[0];
+        text += ` Giving land back doomed #${j + 1}: ${withGone(j)}more land now helps its rivals more than it helps #${j + 1}.`;
+      }
     } else if (to < from) {
       text += ' Nothing is owed any more.';
     } else {
       text += ' Nothing is owed yet.';
     }
-    st.events.push({ cls: debt > 0 && verb === 'cleared' ? 'loss' : verb === 'restored' ? 'save' : '', text });
+    const cls = doomed.length > 0 && (verb === 'cleared' || byLand.length) ? 'loss' : verb === 'restored' ? 'save' : '';
+    st.events.push({ cls, text });
     $('dslider').value = Math.round(100 * to);
   }
 
   // ------------------------------------------------------------ gauge, ledger, headline
+  // Gauge ticks: where each species still standing changes fate. "#k" is a ceiling (clear past it
+  // and #k is doomed); "‹#k" is a floor, which appears only after a loss (give back land below it
+  // and #k is doomed). With every species present the ceilings are 1 − (1−q)^(2k−1).
   function buildTicks() {
     const el = $('ticks');
     el.innerHTML = '';
+    const ticks = [];
+    (st.ranges || []).forEach((rs, i) => rs.forEach(([lo, hi]) => {
+      if (hi <= 0.95) ticks.push({ t: hi, i, dir: 'up' });
+      if (lo > 1e-9 && lo <= 0.95) ticks.push({ t: lo, i, dir: 'down' });
+    }));
+    ticks.sort((a, b) => a.t - b.t);
     let lastLabel = -1;
-    for (let k = 1; k <= st.S; k++) {
-      const t = M.geometricThreshold(k, st.q);
-      if (t > 0.95) break;
+    for (const tk of ticks) {
       const sp = document.createElement('span');
       // label a tick only when there is room; the rest stay as bare marks
-      if (t - lastLabel > 0.07) {
-        sp.textContent = `#${k}`;
-        lastLabel = t;
+      if (tk.t - lastLabel > 0.07) {
+        sp.textContent = tk.dir === 'down' ? `‹#${tk.i + 1}` : `#${tk.i + 1}`;
+        lastLabel = tk.t;
       }
-      sp.style.left = `${(100 * t) / 0.95}%`;
-      sp.dataset.t = t;
+      sp.title = tk.dir === 'down'
+        ? `#${tk.i + 1} is doomed if less than ${pct(tk.t, 1)} is cleared`
+        : `#${tk.i + 1} is doomed if ${pct(tk.t, 1)} or more is cleared`;
+      if (tk.dir === 'down') sp.classList.add('floor');
+      sp.style.left = `${(100 * tk.t) / 0.95}%`;
+      sp.dataset.t = tk.t;
+      sp.dataset.i = tk.i;
+      sp.dataset.dir = tk.dir;
       el.appendChild(sp);
     }
   }
@@ -442,9 +535,16 @@
     if (f.kind === 'gone') return ['gone', `<span class="sub">year ${fmtYear(years(lat.extinctAt[i]))}</span>`];
     if (f.kind === 'doomed') {
       const when = f.eta === Infinity ? `after year ${fmtYear(years(now + 400))}` : `≈ year ${fmtYear(years(now + f.eta))}`;
-      const thr = M.geometricThreshold(i + 1, st.q);
-      return ['doomed', `<span class="sub">gone by ${when}</span><span class="sub">save it: clear &lt; ${pct(thr, 1)}</span>`];
+      const r = nearestRange(i, lat.D);
+      let save = 'nothing can save it now';
+      if (r) {
+        const [lo, hi] = r;
+        if (lo <= 1e-9) save = `save it: clear &lt; ${pct(hi, 1)}`;
+        else save = `save it: clear ${pct(lo, 1)}–${pct(hi, 1)}`;
+      }
+      return ['doomed', `<span class="sub">gone by ${when}</span><span class="sub">${save}</span>`];
     }
+    if (f.kind === 'edge') return ['knife-edge', `<span class="sub">long-run share 0 only at exactly ${pct(lat.D, 2)}; ±1 %: ~${Math.max(1, Math.round(f.edgeN))} sites</span>`];
     if (f.kind === 'risk') return ['precarious', `<span class="sub">settles at ~${Math.max(1, Math.round(f.eqN))} of ${lat.N.toLocaleString('en-US')} · chance may finish it</span>`];
     return ['safe', `<span class="sub">settles at ${pct(f.eq, 1)}</span>`];
   }
@@ -477,6 +577,7 @@
     const doomed = st.fates.map((f, i) => (f.kind === 'doomed' ? i : -1)).filter((i) => i >= 0);
     const gone = st.fates.map((f, i) => (f.kind === 'gone' ? i : -1)).filter((i) => i >= 0);
     const risky = st.fates.map((f, i) => (f.kind === 'risk' ? i : -1)).filter((i) => i >= 0);
+    const edgy = st.fates.map((f, i) => (f.kind === 'edge' ? i : -1)).filter((i) => i >= 0);
     const debtN = $('debtN');
     debtN.textContent = doomed.length;
     debtN.classList.toggle('owed', doomed.length > 0);
@@ -486,11 +587,12 @@
     if (D === 0 && gone.length === 0) {
       v = `The forest is at its equilibrium: ${st.S} species sharing one patch of land, the best competitor the commonest. Nothing is owed. Clear some land and see what changes, and what doesn't.`;
     } else if (doomed.length === 0) {
-      const next = st.fates.findIndex((f) => f.kind !== 'gone');
-      const thr = next >= 0 ? M.geometricThreshold(next + 1, st.q) : 1;
+      const up = nextFlip(+1);
+      const down = nextFlip(-1);
       v = `${pct(D)} of the land is cleared and nothing is owed: every species still standing can hold on.`;
       if (gone.length) v += ` Already paid: ${names(gone)}.`;
-      if (next >= 0) v += ` Clear past ${pct(thr, 1)} and #${next + 1} is doomed.`;
+      if (up) v += ` Clear past ${pct(up.t, 1)} and #${up.i + 1} is doomed.`;
+      if (down) v += ` Give back land below ${pct(down.t, 1)} and #${down.i + 1} is doomed: ${withGone(down.i)}more land would help its rivals more than it helps #${down.i + 1}.`;
     } else {
       const firstDue = doomed.reduce((a, i) => (st.fates[i].eta < st.fates[a].eta ? i : a), doomed[0]);
       const eta = st.fates[firstDue].eta;
@@ -498,18 +600,33 @@
       if (gone.length === 0) v += ' Nothing has gone extinct yet.';
       else v += ` ${names(gone)} already paid.`;
       v += eta === Infinity ? ` The first payment is more than ${fmtYear(years(400))} years away.` : ` First payment due by about year ${fmtYear(years(lat.time + eta))}, within ${fmtYear(years(eta))} years or so.`;
-      v += ' Restore the land before then and the debt is cancelled.';
+      const needClearing = doomed.filter((i) => {
+        const r = nearestRange(i, D);
+        return r && D <= r[0] + 1e-9;
+      });
+      if (needClearing.length === 0) v += ' Restore enough land before then and the debt is cancelled.';
+      else v += ` Giving land back would not save ${names(needClearing)}: ${withGone(needClearing[0])}more land helps its rivals more. Each row says what would.`;
     }
+    if (edgy.length) v += ` ${names(edgy)} ${edgy.length === 1 ? 'sits' : 'sit'} on a knife-edge: at exactly ${pct(D, 2)} cleared ${edgy.length === 1 ? 'its' : 'their'} long-run share in the model is zero, but one site more or less and ${edgy.length === 1 ? 'it settles' : 'they settle'} at a small positive share.`;
     if (risky.length) v += ` ${names(risky)} ${risky.length === 1 ? 'is' : 'are'} precarious: the model leaves ${risky.length === 1 ? 'it' : 'them'} only a handful of sites.`;
     $('verdict').textContent = v;
 
     // gauge
     $('dOut').textContent = pct(D);
-    for (const sp of $('ticks').children) sp.classList.toggle('passed', Number(sp.dataset.t) <= D + 1e-9);
-    const nextK = Array.from({ length: st.S }, (_, k) => k + 1).find((k) => M.geometricThreshold(k, st.q) > D + 1e-9);
-    $('gaugeNote').textContent = nextK
-      ? `Ticks are the thresholds. Next: #${nextK} is doomed past ${pct(M.geometricThreshold(nextK, st.q), 1)}. Only the amount matters here, not the shape.`
-      : 'Every species is past its threshold.';
+    for (const sp of $('ticks').children) {
+      const t = Number(sp.dataset.t);
+      const f = st.fates[Number(sp.dataset.i)];
+      const beyond = sp.dataset.dir === 'down' ? D <= t + 1e-9 : D >= t - 1e-9;
+      sp.classList.toggle('passed', beyond && !!f && f.kind === 'doomed');
+    }
+    const upNext = nextFlip(+1);
+    const hasFloor = [...$('ticks').children].some((sp) => sp.dataset.dir === 'down');
+    let note = upNext
+      ? `Ticks are the thresholds of the species still standing. Next: #${upNext.i + 1} is doomed past ${pct(upNext.t, 1)}.`
+      : 'No species still standing has a threshold above this.';
+    if (hasFloor) note += ' A tick marked ‹ is a floor: after a loss, giving land back below it dooms that species.';
+    note += ' Only the amount matters here, not the shape.';
+    $('gaugeNote').textContent = note;
 
     // hud
     $('hudYear').textContent = fmtYear(years(lat.time));

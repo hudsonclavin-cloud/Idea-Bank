@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Extinction Debt</title>
-<meta name="description" content="Clear part of a forest and nothing dies. The commonest tree is already doomed; the model says when. A competition–colonization metapopulation you can bulldoze and restore.">
+<meta name="description" content="Clear a quarter of a model forest and no species dies. Its best competitor is doomed anyway, and the model says when. A competition–colonization metapopulation you can bulldoze and restore.">
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
 
   <header class="masthead">
     <h1>The Extinction Debt</h1>
-    <p class="tagline">Clear part of a forest and nothing dies. The commonest tree is already doomed, and the model says when.</p>
+    <p class="tagline">Clear a quarter of a model forest and no species dies. Its best competitor is doomed anyway, and the model says when.</p>
   </header>
 
   <main class="col-main">
@@ -70,7 +70,7 @@
       <span>Rank</span><span>Share of land</span><span class="num">Sites</span><span>Fate</span>
     </div>
     <div id="rows"></div>
-    <p class="ledger-foot">#1 is the best competitor and the worst coloniser; #10 the reverse. The tick on each bar is where the model says that species will settle. Tap a row to follow it on the chart.</p>
+    <p class="ledger-foot">#1 is the best competitor and the worst coloniser; #10 the reverse. The tick on each bar is where the model says that species will settle, given the species still standing. Tap a row to follow it on the chart.</p>
   </section>
   </aside>
 
@@ -87,10 +87,11 @@
       <div class="proof-body">
         <p>Every site is cleared, empty, or held by one individual. Species <em>i</em> sends propagules to every site at rate <em>c<sub>i</sub>p<sub>i</sub></em>; a propagule takes any site held by a worse competitor, dies on a better one; every individual dies at rate <em>m</em>. With <em>p<sub>i</sub></em> the share of <strong>all</strong> land and <em>D</em> the share cleared:</p>
         <p class="eq">d<em>p<sub>i</sub></em>/d<em>t</em> = <em>c<sub>i</sub>p<sub>i</sub></em> (1 − <em>D</em> − Σ<sub><em>j</em>≤<em>i</em></sub> <em>p<sub>j</sub></em>) − <em>m p<sub>i</sub></em> − <em>p<sub>i</sub></em> Σ<sub><em>j</em>&lt;<em>i</em></sub> <em>c<sub>j</sub>p<sub>j</sub></em></p>
-        <p>The trade-off here is the geometric one: <em>c<sub>i</sub></em> = <em>m</em>/(1−<em>q</em>)<sup>2<em>i</em>−1</sup>, which makes the undisturbed shares <em>q</em>, <em>q</em>(1−<em>q</em>), <em>q</em>(1−<em>q</em>)²… Rank <em>k</em> survives if and only if <em>D</em> &lt; 1 − (1−<em>q</em>)<sup>2<em>k</em>−1</sup>, and nothing else about the clearing matters, not its shape, not where it is. The thresholds, with <em>q</em> = <span id="pq">0.2</span>:</p>
+        <p>The trade-off here is the geometric one: <em>c<sub>i</sub></em> = <em>m</em>/(1−<em>q</em>)<sup>2<em>i</em>−1</sup>, chosen (as Tilman and colleagues did) so that the undisturbed shares are <em>q</em>, <em>q</em>(1−<em>q</em>), <em>q</em>(1−<em>q</em>)²…, the best competitor the commonest. With every species standing, rank <em>k</em> survives if and only if <em>D</em> &lt; 1 − (1−<em>q</em>)<sup>2<em>k</em>−1</sup>, with one exception: when <em>D</em> exactly equals the threshold of a better rank of the same parity, its long-run share touches zero (the ledger calls that a knife-edge). The clearing's shape and position never matter. Its history does: a species that has died out never comes back, and its absence moves the thresholds below it. The thresholds with every species standing, <em>q</em> = <span id="pq">0.2</span>:</p>
         <p class="eq" id="thrList"></p>
         <p>Rank 1 is displaced by nobody, so its share obeys an exact logistic equation, d<em>p</em>/d<em>t</em> = <em>p</em>(<em>r</em> − <em>c</em><sub>1</sub><em>p</em>) with <em>r</em> = <em>c</em><sub>1</sub>(1−<em>D</em>) − <em>m</em> = <em>m</em>(<em>q</em>−<em>D</em>)/(1−<em>q</em>). Cut just past the threshold and <em>r</em> is barely negative: the decline is glacial, and the species is doomed all the same. <span id="rNow"></span></p>
-        <p class="muted small">Each row's tick and the dashed forecast come from this equation set, integrated from the forest's state right now. "Gone by" is the year the forecast falls below one individual in the forest's <span id="pN">10,000</span> sites. In the stochastic forest the last tree usually dies earlier: with 40 % cleared, 20 runs lost it 805–1,785 years after the cut against a forecast of 1,324; with 30 % cleared, 1,217–1,970 years against 2,548, because a population lingering at a dozen trees for centuries rarely lasts. Rare species the model does <em>not</em> doom can also vanish by chance while the forest reshuffles. The tests in <code>model.test.mjs</code> check the mathematics; the README reports those runs.</p>
+        <p>Lose a species and the arithmetic changes. Lose #1, and #2 has nobody above it: give back land until less than <em>q</em> is cleared and #2 grows enough to crowd out #3, which the model then dooms. With everyone else standing, losing rank <em>j</em> dooms rank <em>j</em>+2 unless at least <em>j</em>'s own threshold stays cleared. More land is not always kinder.</p>
+        <p class="muted small">Each row's tick, its fate and the dashed forecast come from this equation set, solved over the species still standing and integrated from the forest's state right now. "Gone by" is the year the forecast falls below one individual in the forest's <span id="pN">10,000</span> sites. In the stochastic forest the last tree usually dies earlier: in 200 runs with 40 % cleared, 196 lost #1 within 2,000 years, 694–1,982 years after the cut (median 1,085) against a forecast of 1,324; with 30 % cleared, 127 of 200 did, at 1,064–1,991 years (median 1,675) against 2,548, because a population lingering at a dozen trees for centuries rarely lasts. Rare species the model does <em>not</em> doom can also vanish by chance while the forest reshuffles. The tests in <code>model.test.mjs</code> check the mathematics; the README reports those runs.</p>
       </div>
     </details>
     <details>
@@ -114,9 +115,9 @@
   <section class="prose">
     <h2>What you are looking at</h2>
     <p>Ten thousand sites, ten species, one rule: a better competitor always wins a site, a worse competitor always spreads faster. That trade-off is what lets ten species share one patch of ground, and it is also the trap. The best competitor, #1, spreads only 1.25 times faster than it dies. To break even it needs four fifths of all land to be land it could ever occupy. Clear a fifth of the forest and that is gone.</p>
-        <p>Nothing happens at once. The trees already standing are not told. Each dies in its own time, and each gap is a little more likely to be filled by something faster. The share of #1 slides toward zero along a curve whose time constant is 1/|<em>r</em>|: 800 years if you clear 25 %, 200 years if you clear 40 %, for trees that live 50 years. The species is not declining because it is rare. It is the commonest tree in the forest for most of that time.</p>
-    <p>That is the debt. The land has already decided which species will go; the forest merely has not paid yet. Tilman, May, Lehman and Nowak gave it the name in 1994. The same mathematics says the payment can be refused: give the land back while the species still stands and its share climbs again. Give it back a year after the last tree and nothing comes back, because in this model there is no outside.</p>
-    <p class="muted small">Simplified on purpose: every site is identical, propagules reach every site equally (so a cleared strip and scattered clearings of the same area are the same), one individual per site, no seed bank, no immigration, competition strictly ranked. The <a href="README.md">README</a> has the derivations, the sources and an honest list of what this does and doesn't capture.</p>
+    <p>Nothing happens at once. The trees already standing are not told. Each dies in its own time, and each gap is a little more likely to be filled by something faster. The share of #1 slides toward zero along a curve whose time constant is 1/|<em>r</em>|: 800 years if you clear 25 %, 200 years if you clear 40 %, for trees that live 50 years. The species is not declining because it is rare: it starts as the commonest tree, and its decline is set by <em>r</em> &lt; 0, not by its numbers. Within about a century (70–110 years at 25–50 % cleared) the faster colonisers overtake it, and it spends the rest of its long slide, more than nine tenths of it, as a dwindling minority.</p>
+    <p>That is the debt. The land has already decided which species will go; the forest merely has not paid yet. Tilman, May, Lehman and Nowak gave it the name in 1994. The same mathematics says the payment can be refused: give the land back while the species still stands and its share climbs again. Give it back a year after the last tree and nothing comes back, because in this model there is no outside. Worse, with #1 gone, giving back too much land dooms #3 instead.</p>
+    <p class="muted small">A model, not a forest. The best competitor is the commonest tree here because the rates were set that way; the same trade-off can produce any order of abundance, and real dominant trees have not been shown to be the poorest colonisers. A seed here takes a site from an adult of a worse competitor on landing, which real seedlings do not do. Also simplified on purpose: every site is identical, propagules reach every site equally (so a cleared strip and scattered clearings of the same area are the same), one individual per site, no seed bank, no immigration, competition strictly ranked. Strict best-first extinction holds only for these exact rates. The <a href="README.md">README</a> has the derivations, the sources and an honest list of what this does and doesn't capture.</p>
   </section>
   </main>
 
