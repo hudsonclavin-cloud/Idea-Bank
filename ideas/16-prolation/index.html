@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prolation</title>
+<meta name="description" content="One melody sung by three or four voices at different speeds, composed so they never clash and all end on the same instant. A mensuration canon that writes itself.">
+<meta name="theme-color" content="#0d0f14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>Prolation</h1>
+    <p class="meta" id="meta">composing…</p>
+  </header>
+
+  <main class="stage">
+    <canvas id="strip" class="strip" role="img" aria-label="The one melody, with a cursor for each voice moving along it at its own speed."></canvas>
+    <canvas id="roll" class="roll" role="img" aria-label="Piano roll of the notes each voice sings, scrolling with the music. Tap to seek."></canvas>
+    <p class="status"><span class="words" id="words"></span><span class="time" id="time">0:00 / 0:00</span></p>
+  </main>
+
+  <nav class="bar" aria-label="Controls">
+    <button type="button" id="playBtn" class="primary" disabled>Play</button>
+    <button type="button" id="againBtn" class="ghost" title="Start this performance over (R)">Again</button>
+    <button type="button" id="newBtn" class="ghost" title="Compose a new one (N)">New seed</button>
+    <button type="button" id="midiBtn" class="ghost" title="Download this performance as a MIDI file (M)" disabled>MIDI</button>
+    <span class="spacer"></span>
+    <button type="button" id="helpBtn" class="ghost round" aria-expanded="false" aria-controls="help" title="What is this?">?</button>
+  </nav>
+
+  <section id="help" class="help" hidden aria-label="About this piece">
+    <h2>What you are hearing</h2>
+    <p>One melody. The lowest voice sings it slowly, from the start. The other voices sing <em>the same melody</em>, note for note and rest for rest, each a fixed number of scale steps higher and faster in a whole-number proportion: at 4:3:2 the middle voice takes three beats for every four of the bass, the top voice two. They come in later, so that every voice ends on the same instant. The fast voices are always behind the bass in the melody and catch it exactly at the last note.</p>
+    <p>The melody was composed for this seed so that any two notes sounding together make a consonance, except a short note that arrives late and moves by step in and out of the clash; and no two voices move together in parallel fifths or octaves. The strip at the top is the melody itself, with a cursor for each voice; the roll below is every note as it sounds.</p>
+    <p><b>Keys:</b> <kbd>Space</kbd> pause · <kbd>←</kbd> <kbd>→</kbd> seek 10 s · <kbd>R</kbd> again · <kbd>N</kbd> new seed · <kbd>M</kbd> MIDI. Tap the roll to seek. Put <code>#seed=…</code> in the address to share a performance.</p>
+    <button type="button" id="helpClose">Close</button>
+  </section>
+</div>
+
+<div class="intro" id="intro">
+  <div class="card">
+    <h2>Prolation</h2>
+    <p>One melody, three or four voices, each at its own speed. They start apart and arrive together.</p>
+    <button type="button" id="start" class="start primary">Tap to begin</button>
+    <p class="fine" id="introFine">Sound on. Headphones help. About three and a half minutes.</p>
+  </div>
+</div>
+
+<script src="compose.js"></script>
+<script src="midi.js"></script>
+<script src="synth.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
