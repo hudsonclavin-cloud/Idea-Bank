@@ -50,7 +50,9 @@ sup, sub { line-height: 0; }
 
 /* controls */
 .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 12px 0 16px; }
-.controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--muted); }
+.controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--muted); max-width: 100%; min-width: 0; }
+/* A select is as wide as its longest option; let it shrink inside its label on narrow screens. */
+.controls label select { min-width: 0; flex: 0 1 auto; text-overflow: ellipsis; }
 button, select {
   font: inherit; font-size: 0.9rem; color: var(--fg);
   background: var(--card); border: 1px solid var(--line); border-radius: 8px;

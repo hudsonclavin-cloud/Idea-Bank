@@ -86,7 +86,9 @@
           cell.innerHTML = `<span class="codon">${codon}</span><span class="aa"></span>`;
           cell.addEventListener('mouseenter', () => setFocus(codon));
           cell.addEventListener('mouseleave', () => setFocus(null));
-          cell.addEventListener('click', (e) => { e.preventDefault(); setFocus(state.focusCodon === codon && cell.classList.contains('is-focus') ? null : codon, true); });
+          // A tap or click pins the codon; tapping the pinned codon again unpins it. (Phones fire
+          // mouseenter just before click, so the hover state cannot decide the toggle.)
+          cell.addEventListener('click', (e) => { e.preventDefault(); setFocus(sticky && state.focusCodon === codon ? null : codon, true); });
           cellEls[codon] = cell;
           box.appendChild(cell);
         }
@@ -133,7 +135,7 @@
     if (!f) { insp.innerHTML = 'Hover or tap a codon to see its nine one-letter typos. Dashed outlines are the neighbours; the number is the change in ' + p.name + '.'; return; }
     cellEls[f].classList.add('is-focus');
     const from = code[f];
-    let silent = 0, nonsense = 0, miss = 0, sq = 0, readthrough = 0;
+    let silent = 0, nonsense = 0, miss = 0, sq = 0, readthrough = 0, stillStop = 0;
     for (let pos = 0; pos < 3; pos++) for (const b of C.BASES) {
       if (b === f[pos]) continue;
       const n = f.slice(0, pos) + b + f.slice(pos + 1);
@@ -143,10 +145,11 @@
       if (e.kind === 'silent') { silent++; cell.dataset.delta = '='; }
       else if (e.kind === 'nonsense') { nonsense++; cell.dataset.delta = ''; }
       else if (e.kind === 'readthrough') { readthrough++; cell.dataset.delta = 'read on'; }
+      else if (e.kind === 'stop-stop') { stillStop++; cell.dataset.delta = ''; }
       else { miss++; sq += e.delta * e.delta; cell.dataset.delta = (e.delta > 0 ? '+' : '') + e.delta.toFixed(1); }
     }
     if (from === '*') {
-      insp.innerHTML = `<b>${f}</b> is a stop codon. ${readthrough} of its nine one-letter neighbours would read on into an amino acid; ${9 - readthrough} stay stop. Stops are fixed in every code here.`;
+      insp.innerHTML = `<b>${f}</b> is a stop codon. ${readthrough} of its nine one-letter neighbours would read on into an amino acid; ${stillStop} ${stillStop === 1 ? 'is another stop' : 'are other stops'}. Stops are fixed in every code here.`;
       return;
     }
     const a = C.AMINO_BY_LETTER[from];
@@ -426,32 +429,39 @@
         `<div class="drift"><span>drift</span><div class="track"><div class="bar" style="width:${Math.min(100, (100 * (made ? drift / made : 0)) / scale)}%"></div></div><b>${made ? (drift / made).toFixed(2) : '0.00'}</b></div>` +
         `<div class="tally">mean squared jump per typo, all rounds: <b>${tally.n ? (tally.sum / tally.n).toFixed(2) : '—'}</b> after ${tally.n} typos · expected for this gene's codons <b>${expected.toFixed(2)}</b></div>`;
     },
-    applyMutation(m) {
+    // A random typo (counted: true) goes into the silent/changed counts, the round's typo
+    // count and the running tally, which is compared with geneScore's expectation for
+    // random typos. A chosen typo (the sickle-cell landmark) changes the message but is
+    // kept out of all three, so it cannot bias the tally or use up a round's typo.
+    applyMutation(m, counted) {
       const p = C.PROPERTIES[state.prop];
       const parts = [];
       for (const which of ['real', 'alt']) {
         const code = this.codeOf(which);
         const e = C.effect(code, m.from, m.to, p);
-        const st = this.stats[which];
-        if (e.kind === 'silent') st.silent++;
-        else if (e.kind === 'nonsense') st.nonsense++;
-        else if (e.kind === 'missense') st.missense++;
-        if (e.kind !== 'readthrough') { this.tally[which].sum += e.delta * e.delta; this.tally[which].n++; }
+        if (counted) {
+          const st = this.stats[which];
+          if (e.kind === 'silent') st.silent++;
+          else if (e.kind === 'nonsense') st.nonsense++;
+          else if (e.kind === 'missense') st.missense++;
+          if (e.kind === 'silent' || e.kind === 'missense' || e.kind === 'nonsense') { this.tally[which].sum += e.delta * e.delta; this.tally[which].n++; }
+        }
         const name = (l) => (l === '*' ? 'Stop' : C.AMINO_BY_LETTER[l].three);
         parts.push(`${which === 'real' ? 'real' : 'alt'}: ${name(e.a)} → ${name(e.b)}${e.kind === 'missense' ? ` (Δ ${e.delta > 0 ? '+' : ''}${e.delta.toFixed(1)})` : e.kind === 'silent' ? ' (silent)' : ' (stop!)'}`);
       }
       this.codons[m.index] = m.to;
-      this.hits++;
-      const pur = (x) => x === 'A' || x === 'G';
-      const kind = pur(m.base) === pur(m.from[m.pos]) ? 'transition' : 'transversion';
-      $('#last-hit').textContent = `typo ${this.hits}/${this.roundLength} · codon ${m.index + 1}: ${m.from} → ${m.to} (letter ${m.pos + 1}, ${kind}) · ${parts.join(' · ')}`;
+      if (counted) this.hits++;
       for (const which of ['real', 'alt']) this.paint(which, m.index);
+      return parts.join(' · ');
     },
     step() {
       if (this.hits >= this.roundLength) { this.stop(true); return; }
       const m = C.drawMutation(this.codons, state.scheme, this.rng, false);
       if (!m) { this.stop(true); return; }
-      this.applyMutation(m);
+      const outcome = this.applyMutation(m, true);
+      const pur = (x) => x === 'A' || x === 'G';
+      const kind = pur(m.base) === pur(m.from[m.pos]) ? 'transition' : 'transversion';
+      $('#last-hit').textContent = `typo ${this.hits}/${this.roundLength} · codon ${m.index + 1}: ${m.from} → ${m.to} (letter ${m.pos + 1}, ${kind}) · ${outcome}`;
     },
     landmark() {
       const lm = this.gene.landmark;
@@ -459,8 +469,8 @@
       const from = this.codons[lm.codonIndex];
       if (from[lm.pos] === lm.base) return;
       const to = from.slice(0, lm.pos) + lm.base + from.slice(lm.pos + 1);
-      this.applyMutation({ index: lm.codonIndex, pos: lm.pos, base: lm.base, from, to });
-      $('#last-hit').textContent = `${lm.label}: codon ${lm.codonIndex + 1} ${from} → ${to} · ` + $('#last-hit').textContent.split(' · ').slice(2).join(' · ');
+      const outcome = this.applyMutation({ index: lm.codonIndex, pos: lm.pos, base: lm.base, from, to }, false);
+      $('#last-hit').textContent = `${lm.label}: codon ${lm.codonIndex + 1} ${from} → ${to} · ${outcome} · a chosen typo, so it is left out of the typo counts and the running tally`;
     },
     start() {
       if (this.hits >= this.roundLength) this.init();

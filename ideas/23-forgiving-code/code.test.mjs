@@ -29,7 +29,7 @@ test('the standard code: 64 codons, 61 sense, 3 stops, 20 amino acids with the t
 });
 
 test('polar requirement and hydropathy tables match the published values', () => {
-  // Woese et al. 1966 as reprinted in Geyer & Mamlouk 2018 (PeerJ 6:e4825), Table 1.
+  // Woese et al. 1966 as reprinted in Geyer & Madany Mamlouk 2018 (PeerJ 6:e4825), Table 1.
   const pr = { A: 7.0, R: 9.1, N: 10.0, D: 13.0, C: 4.8, Q: 8.6, E: 12.5, G: 7.9, H: 8.4, I: 4.9, L: 4.9, K: 10.1, M: 5.3, F: 5.0, P: 6.6, S: 7.5, T: 6.6, W: 5.2, Y: 5.4, V: 5.6 };
   // Kyte & Doolittle 1982, J Mol Biol 157:105.
   const kd = { A: 1.8, R: -4.5, N: -3.5, D: -3.5, C: 2.5, Q: -3.5, E: -3.5, G: -0.4, H: -3.2, I: 4.5, L: 3.8, K: -3.9, M: 1.9, F: 2.8, P: -1.6, S: -0.8, T: -0.7, W: -0.9, Y: -1.3, V: 4.2 };
@@ -171,12 +171,12 @@ test('random permutations are uniform enough: each amino acid lands in each bloc
 });
 
 // ----------------------------------------------------- the one-in-N results
-test('a million random codes: ~1 in 10,000 beat the real code unweighted (Haig & Hurst: 0.02%; Geyer & Mamlouk: 114 of 10^6), mean 9.42 ± 1.51', () => {
+test('a million random codes: ~1 in 10,000 beat the real code unweighted (Haig & Hurst: 0.02%; Geyer & Madany Mamlouk: 124 of 10^6), mean 9.42 ± 1.51', () => {
   const r = C.sampleCodes(1000000, 'pr', 'uniform', C.mulberry32(2024));
   log(`better ${r.better} of ${r.n}; mean ${r.mean.toFixed(3)} sd ${r.sd.toFixed(3)}; standard ${r.standard.toFixed(4)}`);
   assert.ok(r.better >= 50 && r.better <= 250, `expected roughly 100-ish of a million, got ${r.better}`);
-  near(r.mean, 9.42, 0.05, 'random mean (Geyer & Mamlouk 2018 Table 4: 9.42)');
-  near(r.sd, 1.51, 0.05, 'random SD (Geyer & Mamlouk 2018: 1.51)');
+  near(r.mean, 9.42, 0.05, 'random mean (Geyer & Madany Mamlouk 2018 Table 4: 9.42)');
+  near(r.sd, 1.51, 0.05, 'random SD (Geyer & Madany Mamlouk 2018: 1.51)');
   for (let i = 0; i < r.n; i += 9973) assert.ok(Number.isFinite(r.scores[i]) && r.scores[i] > 0);
 });
 
@@ -192,6 +192,60 @@ test('hydropathy makes the real code rarer than 1 in 50 but much less than 1 in 
   const frac = r.better / r.n;
   log(`better ${r.better} of ${r.n} (1 in ${Math.round(1 / frac)})`);
   assert.ok(frac > 0.002 && frac < 0.02, `expected ~0.8%, got ${(100 * frac).toFixed(2)}%`);
+});
+
+test('hydropathy under the Freeland & Hurst weighting: about 1 in 10,000, far rarer than unweighted, far commoner than polar requirement', () => {
+  // The page's note gives "about 1 in 130" for hydropathy; that holds only with every typo equal.
+  const r = C.sampleCodes(1000000, 'kd', 'fh', C.mulberry32(1983));
+  const frac = r.better / r.n;
+  log(`KD, FH weighting: better ${r.better} of ${r.n} (1 in ${Math.round(1 / frac)}); real code ${r.standard.toFixed(3)}`);
+  near(r.standard, 4.601, 0.001, 'KD FH score of the real code');
+  assert.ok(frac > 1 / 30000 && frac < 1 / 4000, `expected about 1 in 10,000, got 1 in ${Math.round(1 / frac)}`);
+});
+
+test('molecular volume shows only a weak signal and isoelectric point none (the page no longer says Haig & Hurst found volume robust)', () => {
+  // Scales typed from the standard tables, not part of the page:
+  //   Zamyatnin AA (1972) Prog Biophys Mol Biol 24:107 (residue volume in solution, cubic angstroms)
+  //   Grantham R (1974) Science 185:862 (the volume column of his difference formula)
+  //   isoelectric points, common textbook values
+  const scales = {
+    'volume (Zamyatnin)': { A: 88.6, R: 173.4, N: 114.1, D: 111.1, C: 108.5, Q: 143.8, E: 138.4, G: 60.1, H: 153.2, I: 166.7, L: 166.7, K: 168.6, M: 162.9, F: 189.9, P: 112.7, S: 89.0, T: 116.1, W: 227.8, Y: 193.6, V: 140.0 },
+    'volume (Grantham)': { A: 31, R: 124, N: 56, D: 54, C: 55, Q: 85, E: 83, G: 3, H: 96, I: 111, L: 111, K: 119, M: 105, F: 132, P: 32.5, S: 32, T: 61, W: 170, Y: 136, V: 84 },
+    'isoelectric point': { A: 6.0, R: 10.76, N: 5.41, D: 2.77, C: 5.07, Q: 5.65, E: 3.22, G: 5.97, H: 7.59, I: 6.02, L: 5.98, K: 9.74, M: 5.74, F: 5.48, P: 6.3, S: 5.68, T: 5.6, W: 5.89, Y: 5.66, V: 5.96 },
+  };
+  const frac = {};
+  for (const [name, table] of Object.entries(scales)) {
+    const r = C.sampleCodes(300000, { value: (l) => table[l] }, 'uniform', C.mulberry32(1991));
+    frac[name] = r.better / r.n;
+    log(`${name}: ${r.better} of ${r.n} random codes beat the real code (${(100 * frac[name]).toFixed(1)}%)`);
+  }
+  // "roughly 1 random code in 10 does better, on either of two common volume scales"
+  for (const v of ['volume (Zamyatnin)', 'volume (Grantham)']) assert.ok(frac[v] > 0.04 && frac[v] < 0.15, `${v}: ${frac[v]}`);
+  // "absent for isoelectric point (more than half do better)"
+  assert.ok(frac['isoelectric point'] > 0.5, `pI: ${frac['isoelectric point']}`);
+});
+
+test('the best unweighted code found here (3.4886) is a local minimum and scores 2.19 under the FH weighting, as Geyer & Madany Mamlouk tabulate for Goldman\'s optimal code', () => {
+  // Found by annealing (120 restarts end here, none lower). Goldman (1993) found the optimum of this measure and
+  // Buhrman et al. (2011) proved it global; Geyer & Madany Mamlouk (2018, Table 8) list Goldman's code at
+  // tMS0 (the FH weighting) 2.19 and WMS0 with transitions weighted 2 at 3.50. Block (real amino acid) -> new amino acid:
+  const OPT = { A: 'V', C: 'K', D: 'I', E: 'C', F: 'N', G: 'A', H: 'F', I: 'R', K: 'M', L: 'Q', M: 'E', N: 'W', P: 'T', Q: 'L', R: 'G', S: 'S', T: 'P', V: 'H', W: 'D', Y: 'Y' };
+  const perm = C.LETTERS.map((l) => OPT[l]);
+  assert.deepEqual(perm.slice().sort(), C.LETTERS.slice().sort());
+  const pv = C.propertyArray('pr');
+  const ms0 = C.scorePerm(perm, pv, 'uniform');
+  const fh = C.scorePerm(perm, pv, 'fh');
+  const w2 = C.scorePerm(perm, pv, { key: 'ts2', ts: [2, 2, 2], tv: [1, 1, 1] });
+  log(`optimum: MS0 ${ms0.toFixed(4)}, FH ${fh.toFixed(4)} (Goldman's code in G&MM: 2.19), transitions x2 ${w2.toFixed(4)} (G&MM: 3.50)`);
+  near(ms0, 3.4886, 5e-5, 'MS0 of the optimum');
+  assert.equal(fh.toFixed(2), '2.19');
+  near(w2, 3.50, 0.01, 'transition-weighted score vs G&MM Table 8');
+  near(slowScore(C.codeFromPerm(perm), 'pr', [1, 1, 1], [1, 1, 1]), ms0, 1e-10, 'slow score');
+  // no single swap of two amino acids improves it
+  for (let i = 0; i < 20; i++) for (let j = i + 1; j < 20; j++) {
+    const p = perm.slice(); const t = p[i]; p[i] = p[j]; p[j] = t;
+    assert.ok(C.scorePerm(p, pv, 'uniform') >= ms0 - 1e-12, `swap ${i},${j} improves the optimum`);
+  }
 });
 
 test('better codes exist: annealing finds about 3.5 unweighted and about 1.5 weighted', () => {
@@ -286,6 +340,24 @@ test('mutation generator: only sense codons are hit, neighbours are drawn with t
   assert.deepEqual(a, b);
 });
 
+test('effect(): a stop codon\'s neighbours that are also stops are "stop-stop", not "read on" (UAA 7/2, UAG 8/1, UGA 8/1)', () => {
+  const expected = { UAA: [7, 2], UAG: [8, 1], UGA: [8, 1] };
+  for (const stop of C.STOPS) {
+    let read = 0, still = 0;
+    for (let pos = 0; pos < 3; pos++) for (const b of C.BASES) {
+      if (b === stop[pos]) continue;
+      const to = stop.slice(0, pos) + b + stop.slice(pos + 1);
+      const e = C.effect(C.STANDARD, stop, to, 'pr');
+      if (C.STANDARD[to] === '*') { assert.equal(e.kind, 'stop-stop', `${stop}>${to}`); still++; }
+      else { assert.equal(e.kind, 'readthrough', `${stop}>${to}`); read++; }
+    }
+    log(`${stop}: ${read} neighbours read on, ${still} stay stop`);
+    assert.deepEqual([read, still], expected[stop]);
+  }
+  assert.equal(C.effect(C.STANDARD, 'UAU', 'UAA', 'pr').kind, 'nonsense');
+  assert.equal(C.effect(C.STANDARD, 'GAG', 'GAA', 'pr').kind, 'silent');
+});
+
 test('silent and nonsense outcomes are identical under every alternative code (the shuffle keeps the redundancy)', () => {
   const rng = C.mulberry32(8);
   const codons = C.codonsOf(C.GENES[1].cds);
@@ -324,6 +396,38 @@ test('geneScore is the expectation of the storm: Monte Carlo agrees, and a gene 
   }
 });
 
+test('a random code averages 9.31 on the INS codons: closed form and Monte Carlo over random codes agree', () => {
+  // Under a uniformly random block permutation, any non-synonymous neighbour costs the mean of
+  // (p_a - p_b)^2 over the 380 ordered pairs of distinct amino acids; synonymous neighbours cost 0.
+  const pv = C.propertyArray('pr');
+  let pairSum = 0;
+  for (let a = 0; a < 20; a++) for (let b = 0; b < 20; b++) if (a !== b) pairSum += (pv[a] - pv[b]) ** 2;
+  const pairMean = pairSum / 380;
+  const codons = C.codonsOf(C.GENES[0].cds);
+  let sum = 0, n = 0;
+  for (const from of codons) {
+    if (C.STANDARD[from] === '*') continue;
+    let nonsyn = 0, all = 0;
+    for (let pos = 0; pos < 3; pos++) for (const b of 'UCAG') {
+      if (b === from[pos]) continue;
+      const to = from.slice(0, pos) + b + from.slice(pos + 1);
+      if (C.STANDARD[to] === '*') continue;
+      all++;
+      if (C.STANDARD[to] !== C.STANDARD[from]) nonsyn++;
+    }
+    sum += (nonsyn / all) * pairMean; n++;
+  }
+  const exact = sum / n;
+  const rng = C.mulberry32(4242);
+  let mc = 0;
+  const K = 3000;
+  for (let k = 0; k < K; k++) mc += C.geneScore(codons, C.codeFromPerm(C.randomPerm(rng)), 'pr', 'uniform');
+  mc /= K;
+  log(`INS under random codes: exact ${exact.toFixed(4)} (pair mean ${pairMean.toFixed(4)}), Monte Carlo over ${K} codes ${mc.toFixed(4)}`);
+  assert.equal(exact.toFixed(2), '9.31');
+  near(mc, exact, 0.08, 'Monte Carlo vs closed form');
+});
+
 test('the worst single step of the real code (polar requirement) is Tyr→Asp, UAU→GAU, 7.6 units', () => {
   const w = C.worstStep(C.STANDARD, 'pr');
   log('worst step:', JSON.stringify(w));
@@ -352,4 +456,21 @@ test('the numbers quoted in README.md and index.html match the model', () => {
   assert.ok(html.includes('126'), 'html quotes 126 silent third-position changes');
   assert.ok(readme.includes('134'), 'readme quotes 134 synonymous');
   assert.ok(readme.includes('4.88') && readme.includes('10.56') && readme.includes('0.14'), 'readme quotes the by-position scores');
+  assert.ok(readme.includes('a random code averages 9.31 on the INS codons') && !/averages 9\.35/.test(readme), 'readme quotes the random-code INS expectation 9.31');
+});
+
+test('citation fixes from the independent review stay fixed', () => {
+  const here = new URL('.', import.meta.url);
+  const readme = fs.readFileSync(new URL('README.md', here), 'utf8');
+  const html = fs.readFileSync(new URL('index.html', here), 'utf8');
+  for (const text of [readme, html]) {
+    assert.ok(!/Mamlouk AM|Geyer &(amp;)? Mamlouk/.test(text), 'second author is Madany Mamlouk');
+    assert.ok(!/robust for hydropathy and molecular volume|robust for polar requirement, hydropathy and molecular volume/.test(text), 'no unsupported volume claim');
+  }
+  assert.ok(html.includes('Madany Mamlouk A (2018)'));
+  assert.ok(html.includes('Crick FHC (1968)') && html.includes('Massey SE (2008)') && html.includes('Novozhilov AS'), 'origin positions are cited on the page');
+  assert.ok(html.includes('Buhrman') && html.includes('Goldman N (1993)'), 'the proven optimum is cited');
+  assert.ok(!readme.includes('114 of 10'), 'Geyer & Madany Mamlouk found 124, not 114');
+  assert.ok(readme.includes('124'));
+  assert.ok(readme.includes('Codon usage bias and mutation constraints reduce the level of error minimization of the genetic code'), 'Archetti 2004 title');
 });

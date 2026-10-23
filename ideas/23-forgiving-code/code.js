@@ -37,7 +37,7 @@
   // Polar requirement: Woese, Dugre, Dugre, Kondo & Saxinger (1966), Cold Spring
   //   Harbor Symp. Quant. Biol. 31:723-736, the values as used by Haig & Hurst
   //   (1991) and Freeland & Hurst (1998) and reprinted in Table 1 of Geyer &
-  //   Mamlouk (2018), PeerJ 6:e4825.
+  //   Madany Mamlouk (2018), PeerJ 6:e4825.
   // Hydropathy: Kyte & Doolittle (1982), J. Mol. Biol. 157:105-132.
   const AMINO = [
     ['A', 'Ala', 'Alanine', 7.0, 1.8],
@@ -129,8 +129,8 @@
 
   // Weighting schemes. 'uniform' is Haig & Hurst (1991): every substitution counts
   // once. 'fh' is Freeland & Hurst (1998): relative mistranslation weights by codon
-  // position for transitions and transversions, as tabulated in Geyer & Mamlouk
-  // (2018), Table 2 (combined weightings psi_S and psi_V).
+  // position for transitions and transversions, as tabulated in Geyer & Madany
+  // Mamlouk (2018), Table 2 (combined weightings psi_S and psi_V).
   const SCHEMES = {
     uniform: { key: 'uniform', name: 'all errors equal', ts: [1, 1, 1], tv: [1, 1, 1] },
     fh: { key: 'fh', name: 'mistranslation-weighted', ts: [1, 0.5, 1], tv: [0.5, 0.1, 1] },
@@ -360,10 +360,14 @@
     return { index, pos: o.pos, base: o.base, from, to: from.slice(0, o.pos) + o.base + from.slice(o.pos + 1) };
   }
 
-  /** Classify what a substitution does under a code. */
+  /**
+   * Classify what a substitution does under a code: 'silent', 'missense', 'nonsense'
+   * (sense -> stop), 'readthrough' (stop -> sense) or 'stop-stop' (one stop codon to
+   * another, e.g. UAA -> UAG, which still stops).
+   */
   function effect(code, from, to, prop) {
     const a = code[from], b = code[to];
-    if (a === '*') return { kind: 'readthrough', a, b, delta: 0 };
+    if (a === '*') return { kind: b === '*' ? 'stop-stop' : 'readthrough', a, b, delta: 0 };
     if (b === '*') return { kind: 'nonsense', a, b, delta: 0 };
     if (a === b) return { kind: 'silent', a, b, delta: 0 };
     const p = typeof prop === 'string' ? PROPERTIES[prop] : prop;
