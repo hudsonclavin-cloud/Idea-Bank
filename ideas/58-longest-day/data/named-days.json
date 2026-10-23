@@ -1,0 +1,4 @@
+{
+  "note": "Days named on the page or in the README; extract.mjs --excerpt copies their raw lines verbatim into finals2000A.excerpt.txt.",
+  "days": ["1973-01-03", "1973-04-02", "1986-08-02", "2008-07-19", "2016-03-10", "2022-06-29", "2022-06-30", "2024-07-05", "2026-10-21"]
+}
