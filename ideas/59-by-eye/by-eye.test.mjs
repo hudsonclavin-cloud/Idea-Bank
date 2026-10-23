@@ -792,10 +792,328 @@ test('method: an unsteady reader who stops well short is pulled toward the ruler
   }
 });
 
+// The scatter's leftover pull is not always toward the ruler. A second check of the revision found
+// the README saying it was; these pin which way it goes for which reader.
+// Each test's display units, written out here (not imported from simulate.mjs).
+const DISPLAY = {
+  round: (v) => v * 100,
+  point: (v) => v * 100,
+  bar: (v) => (1 / v - 1) * 100,
+  middle: (v) => (v - 0.5) * 100,
+  halves: (v) => (1 - v / (1 - v)) * 100,
+};
+const quant = (a, q) => {
+  const s = [...a].sort((x, y) => x - y);
+  return s[Math.round(q * (s.length - 1))];
+};
+// The fixed point of stop = a + b*start + c*side, by Cramer's rule on the normal equations, for any
+// four tries (including ones the page refuses).
+function ownFixedPoint(tries) {
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  const v = [0, 0, 0];
+  for (const q of tries) {
+    const x = [1, q.start, q.side];
+    for (let j = 0; j < 3; j++) {
+      v[j] += x[j] * q.stop;
+      for (let k = 0; k < 3; k++) A[j][k] += x[j] * x[k];
+    }
+  }
+  const det = (m) => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const D = det(A);
+  const swap = (c) => A.map((row, i) => row.map((x, j) => (j === c ? v[i] : x)));
+  const a = det(swap(0)) / D;
+  const b = det(swap(1)) / D;
+  return { b, x: a / (1 - b) };
+}
+
+test('method: an unsteady reader who goes all the way or overshoots is pushed slightly away from the ruler, not toward it', () => {
+  for (const k of KEYS) {
+    const R = MTH.PLAN[k].ruler;
+    const typ = med(faceValues[k]);
+    const sd = 2 * SCATTER[k]; // one try's scatter for this reader
+    for (const T of [typ, 2 * R - typ]) {
+      const away = Math.sign(T - R);
+      for (const f of [1, 1.2]) {
+        const r = rng(6);
+        const errs = [];
+        const shown = [];
+        for (let i = 0; i < 20000; i++) {
+          const { res } = runPage(k, { T, f, zone: 0, noise: sd }, r);
+          if (!res.ok) continue;
+          errs.push(res.value - T);
+          shown.push(DISPLAY[k](res.value) - DISPLAY[k](T));
+        }
+        const m = away * med(errs);
+        const mean = (away * errs.reduce((s, e) => s + e, 0)) / errs.length;
+        // Away from the ruler at the median, by a few per cent of one try's scatter (README: at
+        // most about 5%), and the mean a little further the same way.
+        assert.ok(m > 0, `${k} T=${T} f=${f}: median ${m} is not away from the ruler`);
+        assert.ok(m < 0.06 * sd, `${k} T=${T} f=${f}: median pushed ${m / sd} of a try's scatter`);
+        assert.ok(mean > m && mean < 0.1 * sd, `${k} T=${T} f=${f}: mean ${mean / sd} of a try's scatter`);
+        // The spread of single results leans away from the ruler too, in the units the page shows.
+        const awayShown = Math.sign(DISPLAY[k](T) - DISPLAY[k](R));
+        const lo = quant(shown, 0.05);
+        const hi = quant(shown, 0.95);
+        const farSide = awayShown > 0 ? hi : -lo;
+        const nearSide = awayShown > 0 ? -lo : hi;
+        assert.ok(farSide > nearSide, `${k} T=${T} f=${f}: spread ${lo} to ${hi}`);
+      }
+      // Stopping a quarter short with the same scatter is near the crossover: the median is slightly
+      // toward the ruler, or too close to nothing to tell (under 1% of a try's scatter away).
+      const r = rng(6);
+      const errs = [];
+      for (let i = 0; i < 20000; i++) {
+        const { res } = runPage(k, { T, f: 0.75, zone: 0, noise: sd }, r);
+        if (res.ok) errs.push(res.value - T);
+      }
+      assert.ok(away * med(errs) < 0.01 * sd, `${k} T=${T} f=0.75: median ${med(errs)} is away from the ruler`);
+      assert.ok(Math.abs(med(errs)) < 0.08 * sd, `${k} T=${T} f=0.75: median ${med(errs)}`);
+    }
+  }
+});
+
+test('method: the pull toward the ruler for a reader who stops well short comes from refusing b > 0.5', () => {
+  for (const k of KEYS) {
+    const R = MTH.PLAN[k].ruler;
+    const typ = med(faceValues[k]);
+    const [w0, w1] = MTH.PLAN[k].window;
+    for (const T of [typ, 2 * R - typ]) {
+      const away = Math.sign(T - R);
+      const r = rng(7);
+      const kept = [];
+      const unruled = [];
+      let refused = 0;
+      let beyond = 0;
+      for (let i = 0; i < 20000; i++) {
+        const { tries, res } = runPage(k, { T, f: 0.55, zone: 0, noise: 2 * SCATTER[k] }, r);
+        const fp = ownFixedPoint(tries);
+        if (res.ok) {
+          assert.ok(Math.abs(fp.x - res.value) < 1e-9, 'the page and this fit agree');
+          kept.push(res.value - T);
+        }
+        if (res.why === 'anchored') {
+          refused++;
+          if (away * (fp.x - T) > 0) beyond++;
+        }
+        // Without the b > 0.5 rule: every run whose fixed point lies in the window.
+        if (fp.x >= w0 && fp.x <= w1) unruled.push(fp.x - T);
+      }
+      // Three in four or more refused runs have a fixed point beyond the setting, away from the ruler.
+      assert.ok(beyond / refused > 0.7 && beyond / refused < 0.9, `${k} T=${T}: ${beyond} of ${refused} refused runs beyond`);
+      // The kept runs are pulled toward the ruler; without the rule nearly all of that pull goes.
+      const mk = away * med(kept);
+      const mu = away * med(unruled);
+      assert.ok(mk < 0, `${k} T=${T}: kept median ${mk}`);
+      assert.ok(Math.abs(mu) < 0.2 * Math.abs(mk), `${k} T=${T}: without the rule ${mu}, with it ${mk}`);
+    }
+  }
+});
+
+// A third check found that a steady reader who overshoots could get a wrong setting with no warning:
+// the control holds the setting inside its window, so a try that would have gone past an end stops
+// there, and the method fitted its line through that end as if the reader had chosen it. The reader
+// above, held to the window as app.js's clampV holds the control (written here, not imported).
+function heldReader(key, o, s, r) {
+  const [w0, w1] = L.LIMITS[key];
+  return Math.min(w1, Math.max(w0, reader(o, s, r)));
+}
+function runHeld(key, o, r) {
+  const sides = [...MTH.pairOrder(r), ...MTH.pairOrder(r)];
+  const tries = [];
+  for (let n = 0; n < 4; n++) {
+    const { start, side } = MTH.startFor(key, n, tries, sides, r);
+    tries.push({ start, stop: heldReader(key, o, start, r), side, moved: true });
+  }
+  const [w0, w1] = L.LIMITS[key];
+  // crossed: a try started on the other side of the reader's setting from the side the page planned.
+  const crossed = tries.some((q) => (q.start >= o.T ? 1 : -1) !== q.side);
+  return { tries, held: tries.findIndex((q) => q.stop === w0 || q.stop === w1), crossed, res: MTH.estimate(key, tries) };
+}
+
+test('method: a try held at an end of the control’s range gives no setting, not a wrong one', () => {
+  const r = rng(12);
+  // The case the third check found: an eye at the strongest measured thickness correction (Carlito
+  // Bold, uprights 42% thicker) that overshoots by 30%. The far try from above always runs into the
+  // window's end; fitted through, as before, the result was more than a point too far from the ruler.
+  const carlitoBold = FACES.sans.find((f) => f.name === 'Carlito' && f.style === 'Bold').bar;
+  assert.equal(carlitoBold, Math.min(...faceValues.bar));
+  let worst = 0;
+  for (let rep = 0; rep < 200; rep++) {
+    const { tries, held, res } = runHeld('bar', { T: carlitoBold, f: 1.3, zone: 0, noise: 0 }, r);
+    assert.ok(held >= 0, 'a try is held at the end');
+    worst = Math.max(worst, DISPLAY.bar(ownFixedPoint(tries).x) - DISPLAY.bar(carlitoBold));
+    assert.equal(res.ok, false, `got a setting ${res.value} for T=${carlitoBold}`);
+    assert.equal(res.why, 'end');
+    assert.equal(res.at, held);
+  }
+  assert.ok(worst > 1, `fitting through the held try is off by ${worst} points`);
+  // The README's figures for that fit: about 0.5 to 3.4 points too far from the ruler at the median,
+  // overshooting by a fifth to two fifths.
+  for (const [f, want] of [[1.2, 0.46], [1.4, 3.35]]) {
+    const errs = [];
+    for (let rep = 0; rep < 1000; rep++) errs.push(DISPLAY.bar(ownFixedPoint(runHeld('bar', { T: carlitoBold, f, zone: 0, noise: 0 }, r).tries).x) - DISPLAY.bar(carlitoBold));
+    assert.ok(Math.abs(quant(errs, 0.5) - want) < 0.06, `f=${f}: median ${quant(errs, 0.5)}`);
+  }
+
+  // Every steady reader, at every measured typeface's correction and at the ruler: the setting back
+  // exactly, or, only when a try was held at an end, no setting. (A reader with a can't-tell band
+  // one of whose tries started on the unplanned side of its setting is the next test's case.)
+  for (const k of KEYS) {
+    for (const T of [MTH.PLAN[k].ruler, ...faceValues[k]]) {
+      for (const f of [0.55, 0.75, 1, 1.1, 1.2, 1.3, 1.4, 1.49]) {
+        for (const zone of [0, SCATTER[k]]) {
+          for (let rep = 0; rep < 3; rep++) {
+            const { held, crossed, res } = runHeld(k, { T, f, zone, noise: 0 }, r);
+            if (held >= 0) assert.ok(!res.ok && res.why === 'end', `${k} T=${T} f=${f}: held try not refused (${res.why})`);
+            else if (zone > 0 && crossed) continue;
+            else {
+              assert.ok(res.ok, `${k} T=${T} f=${f} zone=${zone}: ${res.why}`);
+              assert.ok(Math.abs(res.value - T) < 1e-9, `${k} T=${T} f=${f} zone=${zone}: got ${res.value}`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Which readers run into an end, as the README says. The share of 200 runs refused for a held try.
+  const refused = (k, T, f) => {
+    let n = 0;
+    for (let i = 0; i < 200; i++) if (runHeld(k, { T, f, zone: 0, noise: 0 }, r).res.why === 'end') n++;
+    return n / 200;
+  };
+  const face = (name, style) => FACES.sans.find((f) => f.name === name && f.style === style);
+  // Thickness: Carlito Bold from about a sixth, Carlito Regular a fifth, DejaVu Sans Bold a quarter.
+  for (const [f, lo, hi, pct] of [[face('Carlito', 'Bold'), 1.15, 1.18, 42], [face('Carlito', 'Regular'), 1.19, 1.22, 38], [face('DejaVu Sans', 'Bold'), 1.25, 1.29, 32]]) {
+    assert.equal(Math.round(DISPLAY.bar(f.bar)), pct);
+    assert.equal(refused('bar', f.bar, lo), 0, `${f.name} ${f.style} at ${lo}`);
+    assert.equal(refused('bar', f.bar, hi), 1, `${f.name} ${f.style} at ${hi}`);
+  }
+  // The other five faces' thickness corrections (uprights 13% to 21% thicker): only past about 42%.
+  const rest = FACES.sans.filter((f) => !(f.name === 'Carlito' || (f.name === 'DejaVu Sans' && f.style === 'Bold')));
+  assert.equal(rest.length, 5);
+  const restPct = rest.map((f) => DISPLAY.bar(f.bar));
+  assert.ok(Math.round(Math.min(...restPct)) === 13 && Math.round(Math.max(...restPct)) === 21);
+  for (const f of rest) assert.equal(refused('bar', f.bar, 1.41), 0, `${f.name} ${f.style}`);
+  // Middle and halves: no face's correction below about 44%, and some FreeSans one by 49%.
+  for (const k of ['middle', 'halves']) {
+    for (const T of faceValues[k]) assert.equal(refused(k, T, 1.43), 0, `${k} T=${T}`);
+    const hit = FACES.sans.filter((f) => refused(k, k === 'middle' ? f.middle : f.halves8, 1.49) > 0);
+    assert.ok(hit.length > 0 && hit.every((f) => f.name === 'FreeSans'), `${k}: ${hit.map((f) => f.name)}`);
+  }
+  // Round and points: none short of half.
+  for (const k of ['round', 'point']) for (const T of faceValues[k]) assert.equal(refused(k, T, 1.49), 0, `${k} T=${T}`);
+
+  // The README and the page say so, and no longer claim the unqualified version.
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  const app = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  assert.doesNotMatch(readme, /this fixed point is exactly their setting as long as they are steady \(no scatter from try to try\)\./);
+  assert.doesNotMatch(readme, /the fixed point is their setting exactly when they are steady\./);
+  assert.match(readme, /this fixed point is exactly their setting as long as they are steady \(no scatter from try to try\) and no try is stopped by an end of the control's range/);
+  assert.match(readme, /the fixed point is their setting exactly when they are steady and no try runs into an end of the control's range/);
+  assert.match(readme, /Carlito Bold's correction \(uprights 42% thicker\) does so once it overshoots by about a sixth, one with Carlito Regular's \(38%\) by about a fifth and one with DejaVu Sans Bold's \(32%\) by about a quarter/);
+  assert.match(readme, /about 0\.5 to 3\.4 points too far from the ruler at the median/);
+  assert.match(readme, /only 12 of the 20,000 runs of one of their readers/);
+  assert.match(app, /res\.why === 'end'/);
+  assert.match(html, /or a try ends where the strip stops/);
+});
+
+// Found while writing the test above: the fit takes the side the page planned for each try as the
+// side the reader came from. For a reader with a can't-tell band, a nearer try that starts on the
+// other side of its setting from the planned one breaks that, and the result is off with nothing to
+// show it. These pin when that happens, how far off it goes, and what the README says about it.
+test('method: a reader with a can’t-tell band is got back exactly only if every try starts on its planned side', () => {
+  const r = rng(13);
+  const off = {}; // per test: { faces: Set, fs: [], toward: n, away: n, worst }
+  for (const k of KEYS) {
+    off[k] = { faces: new Set(), fs: [], toward: 0, away: 0, worst: 0 };
+    for (const face of k === 'point' ? FACES.pointed : FACES.sans) {
+      const T = { round: face.round, point: face.pointBottom, bar: face.bar, middle: face.middle, halves: face.halves8 }[k];
+      for (let i = 50; i < 150; i++) {
+        const f = i / 100;
+        for (let rep = 0; rep < 40; rep++) {
+          const { held, crossed, res } = runHeld(k, { T, f, zone: SCATTER[k], noise: 0 }, r);
+          if (held >= 0) continue; // refused; the test above
+          if (!res.ok) {
+            assert.equal(res.why, 'anchored', `${k} T=${T} f=${f}: ${res.why}`);
+            continue;
+          }
+          const err = DISPLAY[k](res.value) - DISPLAY[k](T);
+          if (Math.abs(res.value - T) < 1e-9) continue;
+          assert.ok(crossed, `${k} ${face.name} ${face.style} f=${f}: off by ${err} with every try on its planned side`);
+          const o = off[k];
+          o.faces.add(`${face.name} ${face.style}`);
+          o.fs.push(f);
+          if (err * Math.sign(DISPLAY[k](T)) < 0) o.toward++;
+          else o.away++;
+          o.worst = Math.max(o.worst, Math.abs(err));
+        }
+      }
+    }
+  }
+  // Thickness: eyes like Carlito's and DejaVu Sans Bold's that close between half and two thirds of
+  // the distance, always toward the ruler, by up to about 1.8 points.
+  assert.deepEqual([...off.bar.faces].sort(), ['Carlito Bold', 'Carlito Regular', 'DejaVu Sans Bold']);
+  assert.ok(Math.min(...off.bar.fs) >= 0.5 && Math.max(...off.bar.fs) < 0.67, `bar: f ${Math.min(...off.bar.fs)} to ${Math.max(...off.bar.fs)}`);
+  assert.equal(off.bar.away, 0);
+  assert.ok(off.bar.worst > 1.5 && off.bar.worst < 1.85, `bar worst ${off.bar.worst}`);
+  // Middle, halves and round: rarely, for readers who stop nearly half short or overshoot by more
+  // than two fifths, by up to about 0.2% of the cap height (middle, round) or 1.1 points (halves).
+  for (const k of ['middle', 'halves', 'round']) assert.ok(off[k].fs.every((f) => f < 0.6 || f > 1.4), `${k}: ${off[k].fs}`);
+  assert.ok(off.middle.fs.length > 0 && off.halves.fs.length > 0);
+  assert.ok(off.middle.toward > 0 && off.middle.away > 0, 'middle: both ways');
+  assert.ok(off.middle.worst < 0.25 && off.round.worst < 0.25 && off.halves.worst < 1.15, `${off.middle.worst} ${off.round.worst} ${off.halves.worst}`);
+  assert.equal(off.point.fs.length, 0);
+  // Twice the band, about twice as far (the nearer starts do not depend on the band, so the stops
+  // move in proportion to it; the fixed point nearly does).
+  const carlitoBold = FACES.sans.find((f) => f.name === 'Carlito' && f.style === 'Bold').bar;
+  let checked = 0;
+  for (let seed = 1; checked < 20 && seed < 2000; seed++) {
+    const one = runHeld('bar', { T: carlitoBold, f: 0.6, zone: SCATTER.bar, noise: 0 }, rng(seed));
+    const two = runHeld('bar', { T: carlitoBold, f: 0.6, zone: 2 * SCATTER.bar, noise: 0 }, rng(seed));
+    if (!one.res.ok || Math.abs(one.res.value - carlitoBold) < 1e-9) continue;
+    const ratio = (DISPLAY.bar(two.res.value) - DISPLAY.bar(carlitoBold)) / (DISPLAY.bar(one.res.value) - DISPLAY.bar(carlitoBold));
+    assert.ok(ratio > 1.9 && ratio < 2.1, `ratio ${ratio}`);
+    checked++;
+  }
+  assert.equal(checked, 20);
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.match(readme, /every try starts on the side of their setting that the page planned/);
+  assert.match(readme, /eyes like Carlito's and DejaVu Sans Bold's that close between half and two thirds of the distance, always toward the ruler and by up to about 1\.8 points/);
+});
+
 test('method: the README’s simulation tables are what simulate.mjs prints', async () => {
   const sim = await import('./simulate.mjs');
   const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
-  for (const row of [...sim.readmeRows(), ...sim.hardRows()]) assert.ok(readme.includes(row), `README is missing the row\n${row}`);
+  for (const row of [...sim.readmeRows(), ...sim.hardRows(), ...sim.waverRows()]) assert.ok(readme.includes(row), `README is missing the row\n${row}`);
+  // The third table's columns are the readers simulate.mjs runs.
+  assert.deepEqual(sim.WAVER, { noise: 2, fs: [0.75, 1, 1.2], runs: 20000 });
+  assert.ok(readme.includes('| Test | Stops ¼ short | Goes all the way | Overshoots by a fifth | Spread of single results, goes all the way |'));
+});
+
+test('method: refusing a try held at an end leaves the README’s simulated readers as they were, but for 12 runs', async () => {
+  const sim = await import('./simulate.mjs');
+  // Every reader of the three tables, run as summarise() runs them (same seed and count): how many
+  // runs the new rule refuses.
+  const held = [];
+  for (const k of KEYS) {
+    const n = sim.NOISE[k];
+    const R = MTH.PLAN[k].ruler;
+    const T = sim.TYPICAL[k];
+    const readers = [
+      ...[{ T: R, f: 0.75, zone: 0, noise: n }, { T, f: 0.75, zone: 0, noise: n }, { T: R, f: 0, zone: 0, noise: 0 }].map((o) => [o, 2000]),
+      ...[R, T].map((t) => [{ T: t, f: sim.HARD.f, zone: 0, noise: sim.HARD.noise * n }, 2000]),
+      ...sim.WAVER.fs.map((f) => [{ T, f, zone: 0, noise: sim.WAVER.noise * n }, sim.WAVER.runs]),
+    ];
+    for (const [o, runs] of readers) {
+      const rand = sim.rng(1);
+      let count = 0;
+      for (let i = 0; i < runs; i++) if (sim.runNew(k, o, rand).why === 'end') count++;
+      if (count) held.push({ k, f: o.f, count, runs });
+    }
+  }
+  assert.deepEqual(held, [{ k: 'bar', f: 1.2, count: 12, runs: 20000 }]);
 });
 
 test('the page takes settings through method.js, with no slider track and no reading without four moved tries', () => {
@@ -934,4 +1252,10 @@ test('the wording the review corrected stays corrected', () => {
   // The smaller top storey: "the usual reason given", not a stated cause.
   assert.doesNotMatch(app, /which is why every 8/);
   assert.match(app, /that is the usual reason given for the smaller top of every 8 measured here/);
+  // Scatter's leftover pull: toward the ruler only for readers who stop well short (second check).
+  assert.doesNotMatch(readme, /When noise leaves a residual pull, it points toward the ruler/);
+  assert.doesNotMatch(readme, /erring toward the ruler/);
+  assert.match(readme, /with a small leftover pull whose direction depends on the reader/);
+  assert.match(readme, /toward the ruler for one who stops well short and wavers, and slightly away from it for one who closes all of the distance or more/);
+  assert.match(html, /if they also stop well short it leans toward the ruler's value, that is, toward a smaller correction than their own; if they go all the way, it leans very slightly the other way/);
 });

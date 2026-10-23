@@ -271,6 +271,8 @@
       return `<b>No setting can be read off these four tries.</b> Where you stopped followed where you started: on average each try closed only ${fmt(closed, 0)}% of the distance (the page needs at least half), so the stops say more about the starting points than about the letters. Do it again, and keep adjusting until the letters look equal.`;
     if (res.why === 'overshot')
       return '<b>No setting can be read off these four tries.</b> Starting higher made you stop much lower, by more than half as much, so the stops depend on the starts in a way the page cannot correct. Do it again.';
+    if (res.why === 'end')
+      return `<b>No setting can be read off these four tries.</b> Try ${res.at + 1} ended at the end of the range this test can reach, so the page cannot tell where you would have stopped, and a setting fitted through it would be wrong. Do it again. If the letters never look equal before the strip stops, your setting lies beyond what this test can show.`;
     if (res.why === 'outside') return '<b>No setting can be read off these four tries:</b> they do not settle inside the range this test can reach. Do it again.';
     return '<b>No setting can be read off these four tries.</b> Do it again.';
   }
@@ -404,7 +406,7 @@
     const adjust = el('div', { class: 'adjust' }, li);
     const controls = el('div', { class: 'controls' }, adjust);
     const minus = el('button', { type: 'button', class: 'nudge', 'aria-label': t.less, text: '−' }, controls);
-    // A strip with no ends and no middle: dragging it changes the setting by how far you drag,
+    // A strip with no visible ends and no middle: dragging it changes the setting by how far you drag,
     // and nothing on it shows where any value lies.
     // It is announced as a spin button with no minimum or maximum: a slider's aria-valuemin and
     // aria-valuemax would tell a screen reader where the test's range, and so the ruler at its

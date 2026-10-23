@@ -190,6 +190,26 @@ export function hardRows() {
   return rows;
 }
 
+// The README's third table: which way scatter leaves the result. A wavering reader (twice the first
+// table's scatter) whose eye is at the typefaces' median, closing three quarters, all, or 120% of
+// the distance on each try. 20000 runs each, because the medians are small next to the spread of
+// single results. A + is a result beyond the reader's own setting, away from the ruler.
+export const WAVER = { noise: 2, fs: [0.75, 1, 1.2], runs: 20000 };
+export function waverRows() {
+  const rows = [];
+  for (const key of Object.keys(M.PLAN)) {
+    const n = NOISE[key];
+    const res = WAVER.fs.map((f) => summarise(key, { T: TYPICAL[key], f, zone: 0, noise: WAVER.noise * n }, runNew, WAVER.runs));
+    const cells = res.map((b) => {
+      const pct = Math.round(b.none * 100);
+      return sgn(b.median) + (pct > 0 ? ` (no result ${pct}%)` : '');
+    });
+    cells.push(range90(res[WAVER.fs.indexOf(1)]));
+    rows.push(`| ${TITLES[key]} | ${cells.join(' | ')} |`);
+  }
+  return rows;
+}
+
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1]);
 if (isMain) {
   const fmt = (v) => (Number.isNaN(v) ? '—' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2));
@@ -205,4 +225,6 @@ if (isMain) {
   for (const r of readmeRows()) console.log(r);
   console.log('\nREADME rows, harder reader and scatter:');
   for (const r of hardRows()) console.log(r);
+  console.log('\nREADME rows, which way scatter leaves the result:');
+  for (const r of waverRows()) console.log(r);
 }

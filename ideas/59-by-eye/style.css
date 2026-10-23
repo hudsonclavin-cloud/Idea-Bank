@@ -112,7 +112,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .stage .ghost { fill: none; stroke: var(--rule); stroke-width: 3px; vector-effect: non-scaling-stroke; }
 .stage .guide-label { fill: var(--rule); font: 600 34px var(--sans); }
 .controls { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-/* The adjusting strip: ridges that move with your drag, no ends and no middle to aim at. */
+/* The adjusting strip: ridges that move with your drag, no visible ends and no middle to aim at. */
 .jog {
   flex: 1;
   min-width: 0;

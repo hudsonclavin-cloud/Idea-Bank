@@ -14,13 +14,23 @@
  * -1 for one that started below: the setting from which the reader would not have moved, averaged
  * over both directions, a / (1 - b). b is the share of the starting error the reader left in
  * place. For a reader who stops a fixed fraction short (b > 0), who stops at the edge of a band
- * in which they cannot tell the difference (c > 0), or both, this is exactly their setting when
- * there is no noise; the tests check it with simulated observers. A reader who leaves more than
- * half the starting error in place (b > 0.5) gets no result: their stops say more about the
- * starts than about the letters.
+ * in which they cannot tell the difference (c > 0), who overshoots by a fixed fraction of less
+ * than half (b < 0), or any mix of these, this is exactly their setting when there is no noise,
+ * provided no try is stopped by an end of the control's range and, for a reader with a band, every
+ * try starts on the side of their setting that was planned for it (side is the planned side, set
+ * before the try; a near try can start on the other side when the first two stops' mean is far
+ * from the reader's setting, and then the band is not fully allowed for). The tests check all of
+ * this with simulated observers. A reader who leaves more than half the starting error in place
+ * (b > 0.5) gets no result: their stops say more about the starts than about the letters.
  *
- * There is no slider track: the control is a strip with no ends and no middle, so nothing on
- * screen shows where the ruler's value, or any other value, lies.
+ * The control cannot go past the ends of its window, so a try that ends there may have been
+ * stopped by the window rather than by the reader's eye. Where that try would have stopped is
+ * unknown, and fitting the line through the end instead gives a wrong setting with nothing to say
+ * so (in the thickness test, for an eye near the strongest typeface's correction that overshoots
+ * by a sixth or more). So a set of tries with a stop at either end gets no result either.
+ *
+ * There is no slider track: the control is a strip with no visible ends and no middle, so nothing
+ * on screen shows where the ruler's value, or any other value, lies.
  *
  * Classic script: in a browser it defines window.ByEyeMethod; under Node it is a CommonJS module.
  */
@@ -44,6 +54,14 @@
   });
   const TRIES = 4;
   const MAX_LEFT = 0.5; // largest share of the starting error that may be left in place
+  // A stop this close to an end of the window counts as at the end (the page keeps stops to five
+  // decimals, and the control holds a value at an end exactly).
+  const AT_END = 1e-6;
+  // Index of the first try that stopped at an end of the window, or -1.
+  const atEnd = (key, tries) => {
+    const [w0, w1] = PLAN[key].window;
+    return tries.findIndex((q) => q.stop <= w0 + AT_END || q.stop >= w1 - AT_END);
+  };
   // A drag across about 240 px covers the farthest start.
   const perPx = (key) => PLAN[key].far[1] / 240;
 
@@ -108,14 +126,17 @@
   //   value   the fixed point a / (1 - b), when ok
   //   left    b: the share of the starting error left in place (0 for a reader who goes all the way)
   //   offset  c: half the gap between stops approached from above and from below
-  //   why     when not ok: 'unmoved' (a try was committed without moving), 'anchored' (b > 0.5),
-  //           'overshot' (b < -0.5), 'outside' (the fixed point lies outside the window),
-  //           'singular' (the starts do not pin the line down)
+  //   why     when not ok: 'unmoved' (a try was committed without moving), 'end' (a try stopped
+  //           at an end of the window, so where it would have stopped is unknown; `at` is its
+  //           index), 'anchored' (b > 0.5), 'overshot' (b < -0.5), 'outside' (the fixed point
+  //           lies outside the window), 'singular' (the starts do not pin the line down)
   function estimate(key, tries) {
     const p = PLAN[key];
     if (!tries || tries.length < TRIES) return { ok: false, why: 'incomplete' };
     const t = tries.slice(0, TRIES);
     if (t.some((q) => q.moved === false)) return { ok: false, why: 'unmoved' };
+    const end = atEnd(key, t);
+    if (end >= 0) return { ok: false, why: 'end', at: end };
     const fit = lsq(t.map((q) => [1, q.start, q.side]), t.map((q) => q.stop));
     if (!fit) return { ok: false, why: 'singular' };
     const [a, b, c] = fit;
@@ -127,5 +148,5 @@
     return { ok: true, value, ...base };
   }
 
-  return { PLAN, TRIES, MAX_LEFT, perPx, pairOrder, startFor, estimate, lsq };
+  return { PLAN, TRIES, MAX_LEFT, AT_END, perPx, pairOrder, startFor, atEnd, estimate, lsq };
 });
