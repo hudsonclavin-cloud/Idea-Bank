@@ -81,6 +81,13 @@ function runTests(dir, files, errors, notes) {
     if (!r.ok) errors.push(`check.mjs failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
   }
   if (!nodeTests.length && !pyTests.length && !fs.existsSync(ownCheck)) notes.push('no automated tests found');
+  // Printable ideas: every STL must be a closed solid that sits on and fits a small printer's
+  // bed and slices (tools/printcheck.py; it skips itself if trimesh is not installed).
+  if (files.some((f) => /\.stl$/i.test(f))) {
+    const r = run('python3', [path.join(ROOT, 'tools', 'printcheck.py'), dir], ROOT);
+    notes.push(`printcheck: ${r.ok ? (/skipped/.test(r.out) ? 'skipped' : 'pass') : 'FAIL'}`);
+    if (!r.ok) errors.push(`printcheck failed:\n${r.out.split('\n').slice(-25).join('\n')}`);
+  }
 }
 
 function main() {
