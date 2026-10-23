@@ -259,7 +259,12 @@ test('drift: the figures quoted in the README', () => {
   const rows = Object.fromEntries(AK.driftTable().map((r) => [r.id, r]));
   near(rows.moon.perDecade, 0.557, 0.001); near(rows.moon.perCentury, 5.57, 0.01);
   near(rows.anomaly.perCentury, 21.6, 0.05);
-  near(rows.apsides.perCentury, -14.7, 0.05);
+  // the apsides row is in the same frame as the others (against the equinox): perigee = Moon - anomaly,
+  // so its drift must equal the Moon's minus the anomaly's (the old sidereal comparison gave -14.7)
+  near(rows.apsides.perCentury, -16.06, 0.01);
+  near(rows.apsides.perCentury, rows.moon.perCentury - rows.anomaly.perCentury, 0.001, 'apsides = moon - anomaly');
+  // and independently, from Meeus's tropical rates per Julian century: perigee L - M' against e3's 477/4237
+  near(477 / 4237 * 360 * 36525 / 365.242189 - (481267.88123421 - 477198.8675055), -16.06, 0.01);
   near(rows.Mercury.perCentury, 4.12, 0.01); near(rows.Venus.perCentury, 1.52, 0.01); near(rows.Mars.perCentury, 0.44, 0.01);
   near(rows.Jupiter.perCentury, 1.35, 0.01); near(rows.Saturn.perCentury, 1.77, 0.01);
   const f = AK.cycleFacts();
@@ -267,7 +272,7 @@ test('drift: the figures quoted in the README', () => {
   near(f.metonicDayPerYears, 219, 0.5);
   near(f.saros.synodic223, 6585.32, 0.005); near(f.saros.mechanism, 6585.24, 0.005);
   near(f.sarosHours, 7.71, 0.005); near(f.sarosNodeShiftDeg, 0.478, 0.001);
-  near(f.apsidesYears.mechanism, 8.883, 0.0005); near(f.apsidesYears.modern, 8.851, 0.0005);
+  near(f.apsidesYears.mechanism, 8.883, 0.0005); near(f.apsidesYears.modern, 8.848, 0.0005); near(f.apsidesYears.modernSidereal, 8.851, 0.0005);
   near(f.callippic.years76, 27758.41, 0.01); near(f.callippic.months940, 27758.75, 0.01);
   // the modern synodic periods implied by Meeus's mean motions match NASA's fact sheets
   for (const [p, d] of [['Mercury', 115.88], ['Venus', 583.92], ['Mars', 779.94], ['Jupiter', 398.88], ['Saturn', 378.09]]) near(AK.planetSynodicDays(p), d, 0.01, p);
@@ -280,32 +285,68 @@ test('drift: the figures quoted in the README', () => {
 });
 
 test('drift against the full Moon theory over decades (numbers quoted in the README)', () => {
+  const err = (Y) => AK.sgn180(AK.read(Y).moon - AK.sky(AK.jdFromYears(Y)).moon);
+  // Sample every 6 hours (fine enough that a peak is missed by under 0.01 deg), then refine the
+  // largest sample to the minute. The old 3-day sampling understated every maximum by 0.1-0.3 deg.
   const stats = (y0, y1) => {
-    let mx = 0, sum = 0, n = 0;
-    for (let Y = y0; Y <= y1; Y += 3 / 365.25) {
-      const d = AK.sgn180(AK.read(Y).moon - AK.sky(AK.jdFromYears(Y)).moon);
-      mx = Math.max(mx, Math.abs(d)); sum += d; n++;
+    const h = 1 / 4 / 365.25;
+    let mx = 0, at = y0, sum = 0, n = 0;
+    for (let Y = y0; Y <= y1; Y += h) {
+      const d = err(Y);
+      if (Math.abs(d) > mx) { mx = Math.abs(d); at = Y; }
+      sum += d; n++;
     }
+    for (let Y = at - h; Y <= at + h; Y += h / 360) mx = Math.max(mx, Math.abs(err(Y)));
     return { max: mx, mean: sum / n };
   };
-  let s = stats(0, 1); near(s.mean, 0, 0.1); near(s.max, 2.6, 0.1);
-  s = stats(9, 10); near(s.mean, 0.56, 0.05); near(s.max, 3.3, 0.15);
-  s = stats(49, 50); near(s.mean, 2.8, 0.05); near(s.max, 6.6, 0.15);
-  s = stats(99, 100); near(s.mean, 5.6, 0.1); near(s.max, 10.5, 0.2);
+  let s = stats(0, 1); near(s.mean, 0, 0.1); near(s.max, 2.74, 0.03);
+  s = stats(9, 10); near(s.mean, 0.56, 0.05); near(s.max, 3.49, 0.03);
+  near(stats(0, 10).max, 3.49, 0.03, 'first decade: up to about 3.5 deg');
+  s = stats(49, 50); near(s.mean, 2.8, 0.05); near(s.max, 6.62, 0.03);
+  s = stats(99, 100); near(s.mean, 5.6, 0.1); near(s.max, 10.77, 0.03);
+  // by the wreck (c. 65 BC, 140 years on): mean about 8 deg, worst about 14 deg
+  s = stats(140, 141); near(s.mean, 8.0, 0.15); near(s.max, 13.77, 0.03);
   // glyph survival: how many engraved eclipse months still have that eclipse, Saros by Saros
   const g = AK.glyphSurvival(5);
   assert.deepEqual(g[5].lunar, [25, 27]); assert.deepEqual(g[5].solar, [39, 41]); assert.equal(g[5].unmarked, 8);
   near(g[5].years, 90.15, 0.01);
-  // "about 124 degrees off on average" by 2026
+  // "about 125 degrees off on average" today: the page's own Moon against modern theory, averaged
+  // over 2026. (The J2000 rate of 5.57 deg a century alone gives 124; Delta-T and the slow change in
+  // the Moon's real mean motion since 205 BC add about 1 deg.)
   const Y2026 = AK.yearsFromJd(AK.jdFromDate(2026, 1, 1));
-  near(AK.driftTable()[0].degPerYear * Y2026, 124, 0.5);
   near(Y2026, 2230, 1);
-  // by the wreck (c. 65 BC, 140 years on): mean about 8 deg, worst about 14 deg
-  s = stats(140, 141); near(s.mean, 8.0, 0.15); near(s.max, 13.8, 0.3);
+  near(AK.driftTable()[0].degPerYear * Y2026, 124.2, 0.1);
+  let sum = 0, n = 0;
+  for (let Y = Y2026; Y < Y2026 + 1; Y += 1 / 365.25) { sum += err(Y); n++; }
+  near(sum / n, 125.2, 0.3, 'mean error over 2026');
+});
+
+test('the drift table matches what the page itself shows over the first century', () => {
+  // The table uses J2000 mean motions. Run the page's own mechanism against its own modern sky from
+  // 205 BC to 105 BC: the mean Moon, the anomaly and the perigee (mean Moon minus anomaly) must drift
+  // at the table's rates to within the slow change in the Moon's real rates (under 0.6 deg a century).
+  // Before the apsides row was put in the equinox frame it said -14.7 here, against -16.5 simulated.
+  const rows = Object.fromEntries(AK.driftTable().map((r) => [r.id, r]));
+  const r = AK.read(100), s = AK.sky(AK.jdFromYears(100));
+  const r0 = AK.read(0), s0 = AK.sky(AK.jdFromYears(0));
+  const d = (a, b, a0, b0) => AK.sgn180((a - b) - (a0 - b0));
+  const mean = d(r.moonMean, s.moonMean, r0.moonMean, s0.moonMean);
+  const anom = d(r.moonAnomaly, s.moonAnomaly, r0.moonAnomaly, s0.moonAnomaly);
+  const peri = d(r.moonMean - r.moonAnomaly, s.moonMean - s.moonAnomaly, r0.moonMean - r0.moonAnomaly, s0.moonMean - s0.moonAnomaly);
+  near(mean, 5.67, 0.02); near(anom, 22.16, 0.02); near(peri, -16.48, 0.02);
+  near(mean, rows.moon.perCentury, 0.6, 'Moon');
+  near(anom, rows.anomaly.perCentury, 0.6, 'anomaly');
+  near(peri, rows.apsides.perCentury, 0.6, 'apsides');
 });
 
 test('README states the key numbers the model computes', () => {
-  for (const s of ['254/19', '477/4237', '940/4237', '235/12711', '56165/4237', '6.58°', '0.1146', '8.88', '8.85', '5.6° per century', '219 years']) {
+  for (const s of ['254/19', '477/4237', '940/4237', '235/12711', '56165/4237', '6.58°', '0.1146', '8.88', '8.85', '5.6° per century', '219 years',
+    'loses 16.1° per century', 'up to about 3.5°', 'about 125° off on average', 'max 2.7°', 'max 3.5°', 'max 6.6°', 'max 10.8°',
+    'against the period relation it encodes']) {
     assert.ok(README.includes(s), `README should mention ${s}`);
+  }
+  // figures the independent review found wrong must not come back
+  for (const s of ['14.7° per century', 'up to about 3°)', 'about 124° off', 'against the sky it copies']) {
+    assert.ok(!README.includes(s), `README should no longer say ${s}`);
   }
 });

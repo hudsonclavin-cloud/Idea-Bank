@@ -608,7 +608,7 @@
   var pinC = canvas('pin', drawPin);
   function drawPin(c, r) {
     var ctx = begin(c), S = Math.min(c.w, c.h), cx = c.w / 2, cy = c.h / 2;
-    var Rk = S * 0.36, m = 2 * Rk / 50, pinR = 0.8 * Rk; // pin 9.6 mm on a ~12 mm pitch radius
+    var Rk = S * 0.36, m = 2 * Rk / 50, pinR = 0.8 * Rk; // pin 9.6 mm (Freeth et al. 2006) on a ~12 mm pitch radius
     var off = AK.ECC * pinR * state.pinScale;
     var phi1 = r.kin.pinAngle;
     // the slot angle for the drawn (possibly exaggerated) offset
@@ -800,7 +800,7 @@
       ' years. Its Saros is ' + f.saros.mechanism.toFixed(2) + ' days long against ' + f.saros.synodic223.toFixed(2) +
       '. The real Saros is itself only nearly a cycle: 239 anomalistic months are ' + f.saros.anomalistic239.toFixed(2) + ' days and 242 draconic months ' + f.saros.draconic242.toFixed(2) +
       ', so each return finds the Moon ' + f.sarosNodeShiftDeg.toFixed(2) + '° further from its node. And it is ' + f.sarosHours.toFixed(2) +
-      ' hours over a whole number of days, which the Exeligmos dial rounds to 8. The turntable’s period is ' + f.apsidesYears.mechanism.toFixed(3) + ' years; the Moon’s line of apsides takes ' + f.apsidesYears.modern.toFixed(3) + '. The planets’ rows use the period relations of Freeth et al. 2021.';
+      ' hours over a whole number of days, which the Exeligmos dial rounds to 8. The turntable’s period is ' + f.apsidesYears.mechanism.toFixed(3) + ' years; the Moon’s line of apsides takes ' + f.apsidesYears.modern.toFixed(3) + ' measured against the equinox, the frame of every row here (' + f.apsidesYears.modernSidereal.toFixed(3) + ' against the stars). The planets’ rows use the period relations of Freeth et al. 2021.';
     t.parentNode.parentNode.insertBefore(p, t.parentNode.nextSibling);
   }
   function buildGlyphTable() {
@@ -1109,7 +1109,7 @@
   buildGlyphTable();
   buildEvidence();
   $('#pinNote').innerHTML = 'Offset over pin radius: 1.1/9.6 = ' + AK.ECC.toFixed(4) + '. The largest lead or lag this gives is asin(' + AK.ECC.toFixed(4) + ') = ' + (Math.asin(AK.ECC) / D2R).toFixed(2) +
-    '°, reached when the slot stands at right angles to the line between the two axes. Hipparchus’s two values, as Ptolemy reports them (<i>Almagest</i> IV.11), give 5.98° (eccentre, 327⅔ : 3144) and 4.55° (epicycle, 247½ : 3122½). Modern theory’s largest lunar term is 6.29° sin M. The pin turns once per anomalistic month: 4237/56165 of a year, 27.553 days against the true 27.555. The measurements of a corroded original are good to perhaps 5 per cent, which spans roughly 6.3° to 6.9°.';
+    '°, reached when the slot stands at right angles to the line between the two axes. Hipparchus’s two values, as Ptolemy reports them (<i>Almagest</i> IV.11), give 5.98° (eccentre, 327⅔ : 3144) and 4.55° (epicycle, 247½ : 3122½). Modern theory’s largest lunar term is 6.29° sin M. The pin turns once per anomalistic month: 4237/56165 of a year, 27.553 days against the true 27.555. The 1.1 mm and 9.6 mm are Freeth et al. 2006’s estimates from the CT of a corroded original, good to perhaps 5 per cent, which spans roughly 6.3° to 6.9°; a later re-measurement by Voulgaris and colleagues is reported as 9.9 mm, which gives 6.4°.';
   setTimeout(function () { computeDrift(); driftC.dots = null; driftC.stale = true; request(); }, 60);
   request();
 })();

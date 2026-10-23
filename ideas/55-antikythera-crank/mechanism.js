@@ -533,7 +533,10 @@
     row('moon', 'Moon’s mean longitude', R.moon, 1 + Yd / MODERN.synodicMonth, 'turns/yr', 'b1 is set to the Sun, so this is also the error in the Moon’s place');
     row('phase', 'Lunar phase (Moon − Sun)', R.moon - 1, Yd / MODERN.synodicMonth, 'turns/yr', 'the same error, seen as the phase');
     row('anomaly', 'Lunar anomaly (pin on k1)', R.moon - R.platform, Yd / MODERN.anomalisticMonth, 'turns/yr', '239 anomalistic months in 223 synodic');
-    row('apsides', 'Line of apsides (turntable e3)', R.platform, Yd / MODERN.siderealMonth - Yd / MODERN.anomalisticMonth, 'turns/yr', 'period 8.88 yr; modern 8.85 yr');
+    // Every row is measured against the equinox, the frame b1 is set in (one turn per tropical year,
+    // longitudes of date). Perigee = mean longitude - anomaly, so the modern apsidal rate here is
+    // tropical months minus anomalistic months per year, and this row equals moon minus anomaly.
+    row('apsides', 'Line of apsides (turntable e3)', R.platform, Yd / MODERN.tropicalMonth - Yd / MODERN.anomalisticMonth, 'turns/yr', 'Moon minus anomaly; period 8.88 yr, modern 8.85 yr');
     DATA.planets.forEach(function (p) {
       row(p.name, p.name + ' synodic phase', p.synodic_cycles / p.years, Yd / planetSynodicDays(p.name), 'turns/yr', p.synodic_cycles + ' synodic cycles in ' + p.years + ' years');
     });
@@ -551,7 +554,8 @@
       sarosHours: (223 * S - Math.floor(223 * S)) * 24,
       sarosNodeShiftDeg: (242 * MODERN.draconicMonth - 223 * S) * 360 / MODERN.draconicMonth,
       callippic: { days27759: 27759, years76: 76 * Yd, months940: 940 * S },
-      apsidesYears: { mechanism: 1 / R.platform, modern: 1 / (Yd / MODERN.siderealMonth - Yd / MODERN.anomalisticMonth) }
+      // modern: against the equinox, like the drift table; modernSidereal: against the stars
+      apsidesYears: { mechanism: 1 / R.platform, modern: 1 / (Yd / MODERN.tropicalMonth - Yd / MODERN.anomalisticMonth), modernSidereal: 1 / (Yd / MODERN.siderealMonth - Yd / MODERN.anomalisticMonth) }
     };
   }
 

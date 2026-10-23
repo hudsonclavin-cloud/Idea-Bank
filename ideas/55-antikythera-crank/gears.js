@@ -691,7 +691,7 @@ window.AK_GEARS = {
  "pin_and_slot": {
   "offset_mm": 1.1,
   "pin_radius_mm": 9.6,
-  "note": "The axes of k1 and k2 are about 1.1 mm apart (Freeth et al. 2006). The pin sits about 9.6 mm from k1's axis; the ratio 1.1/9.6 = 0.1146 is the figure later authors quote for the device. Both are measurements from CT of a corroded original, good to perhaps 5 per cent.",
+  "note": "Both figures are Freeth et al. 2006's own estimates from CT of a corroded original: the axes of k1 and k2 about 1.1 mm apart and the pin about 9.6 mm from k1's axis, an angular variation of about 6.5 degrees. The ratio 1.1/9.6 = 0.1146 that later authors quote for the device comes from these. Good to perhaps 5 per cent; a later re-measurement by Voulgaris et al. is reported as about 9.9 mm (asin(1.1/9.9) = 6.38 degrees), inside that range.",
   "sources": [
    "F2006",
    "Carman2012"
