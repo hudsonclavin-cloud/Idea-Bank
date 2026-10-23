@@ -79,7 +79,7 @@
       ['Interior vertices', String(st.vertices) + ', each of degree 4'],
       ["Kawasaki's theorem", 'alternate angles sum to 180°, worst error ' + sci(st.kawasakiMaxDeg) + '°'],
       ["Maekawa's theorem", st.maekawaFail === 0 ? 'mountains − valleys = ±2 at all ' + st.vertices : st.maekawaFail + ' failures'],
-      ['Big–little–big', st.oddFail === 0 ? 'the odd crease borders a smallest angle at all ' + st.vertices : st.oddFail + ' failures'],
+      ['Crimp condition', st.oddFail === 0 ? 'the odd crease borders a smallest angle at all ' + st.vertices + ', so each vertex folds by crimping' : st.oddFail + ' failures'],
       ['Two-stage folding', st.twoStage ? 'preconditions hold (straight columns, mirrored rows, accordion order)' : 'FAILED'],
       ['Folded positions agree', 'whatever path is taken, to ' + sci(st.holonomy * st.sheetScale) + ' mm'],
       ['Thickest point', st.layers + ' layers (of 576 points sampled)'],
@@ -91,7 +91,7 @@
       ['Line', fmt(m, 1) + ' m (black ' + fmt(st.pen.black.draw / 1000, 1) + ', red ' + fmt(st.pen.red.draw / 1000, 1) + ')'],
       ['Pen lifts', String(st.lifts)],
       ['Estimated time', '≈ ' + Math.round(st.seconds / 60) + ' min'],
-      ['Sheet', st.columns + ' columns × ' + st.rows + ' rows; the folded drawing is shown ' + fmt(st.foldedScale, 1) + '× larger'],
+      ['Sheet', st.columns + ' columns × ' + st.rows + ' rows of faces; the folded drawing is shown ' + fmt(st.foldedScale, 1) + '× larger'],
     ]);
   }
 

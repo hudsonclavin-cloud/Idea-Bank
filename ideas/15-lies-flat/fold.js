@@ -147,10 +147,14 @@
   // ------------------------------------------------------------------ paper, pens, plotter
   const PAGE = { w: 420, h: 297 }; // A3 landscape, millimetres
   const PEN_WIDTH = 0.3; // mm, both pens
+  // Each pen is an Inkscape layer. AxiDraw software reads a layer's number from the start of its
+  // label and pauses before a layer whose label begins with "!", so plotting the whole file stops
+  // for the pen change before red; vpype takes the layer number from the label's digits.
   const PENS = [
-    { id: 'pen-1-black', name: 'black', colour: '#000000' },
-    { id: 'pen-2-red', name: 'red', colour: '#c8102e' },
+    { id: 'pen-1-black', name: 'black', colour: '#000000', layer: '1 black' },
+    { id: 'pen-2-red', name: 'red', colour: '#c8102e', layer: '!2 red' },
   ];
+  const INKSCAPE_NS = 'http://www.inkscape.org/namespaces/inkscape';
   const PLOT = { draw: 40, travel: 80, lift: 0.25 }; // mm/s pen down, mm/s pen up, s per pen lift (estimate only)
   const MARGIN = 34; // mm, at least, on all four sides
   const GUTTER = 30; // mm between the two panels
@@ -163,8 +167,11 @@
   const MOUNTAIN = 1, VALLEY = 0;
 
   // ------------------------------------------------------------------ the design (seed -> parameters)
-  // With constant zigzag angle phi the folded strip turns 4*phi every two rows; phi = 90k/n brings
-  // it back to its start after n turns, an {n/k} rosette. Only n >= 7: smaller n retrace too soon.
+  // With constant zigzag angle phi the folded strip turns 4*phi every two rows; with phi = 90k/n,
+  // n such turns make exactly k full circles, so a sheet with at least 2n rows of faces comes back
+  // to its start (exactly only if its rows are evenly spaced) and draws a star with n-fold symmetry.
+  // Most sheets have fewer rows and draw part of the star (README, "Why rings"). Only n >= 7:
+  // smaller n retrace too soon.
   const CLOSING = [[9, 2], [13, 3], [11, 3], [7, 2], [10, 3], [13, 4], [11, 4], [8, 3]]
     .map(([n, k]) => ({ n, k, phi: (90 * k) / n }));
 
@@ -307,6 +314,9 @@
   // Rows: a checkerboard, alternating along each row and down each strip.
   // At every vertex the two row arms differ and both halves of the column match one of them:
   // three of one kind and one of the other (Maekawa), the odd one beside a smallest angle.
+  // The two smallest angles are equal (90 - phi each, either side of one column half), so the strict
+  // big-little-big lemma does not apply; what holds is the crimp condition: the odd crease and its
+  // neighbour across a smallest angle differ, so that angle can be crimped away and the vertex folds.
   function colType(d, i) { return (i + d.mvCol) % 2 === 0 ? MOUNTAIN : VALLEY; }
   function rowType(d, r, i) { return (r + i + d.mvRow) % 2 === 0 ? MOUNTAIN : VALLEY; }
 
@@ -348,7 +358,7 @@
         let m = 0;
         for (const c of creases) m += c.type;
         if (m !== 1 && m !== 3) { rep.maekawaFail++; continue; }
-        // big-little-big: the odd crease must bound a smallest sector
+        // crimp condition: the odd crease must bound a smallest sector
         const oddType = m === 3 ? VALLEY : MOUNTAIN;
         const odd = creases.findIndex((c) => c.type === oddType);
         const mn = Math.min(...sectors);
@@ -922,12 +932,13 @@
     const desc = `Lies Flat, seed ${seed}. A3 landscape, ${PAGE.w} x ${PAGE.h} mm. Two pens, both ${PEN_WIDTH} mm: ` +
       `black (${PENS[0].colour}) for the sheet's outline and its mountain folds, red (${PENS[1].colour}) for its valley folds. ` +
       `Left: the crease pattern; each of its ${report.vertices} interior vertices passes Kawasaki's and Maekawa's conditions. ` +
-      `Right: the same creases after the sheet is folded flat, as if the paper were transparent (cut edges left out); where creases of both colours coincide, black is drawn.`;
+      `Right: the same creases after the sheet is folded flat, as if the paper were transparent (cut edges left out); where creases of both colours coincide, black is drawn. ` +
+      `Each pen is an Inkscape layer; the red layer's name starts with "!" so AxiDraw software pauses for the pen change.`;
     let svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}mm" height="${PAGE.h}mm" viewBox="0 0 ${PAGE.w} ${PAGE.h}">\n` +
+      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="${INKSCAPE_NS}" width="${PAGE.w}mm" height="${PAGE.h}mm" viewBox="0 0 ${PAGE.w} ${PAGE.h}">\n` +
       `<title>Lies Flat ${escapeXml(seed)}</title>\n<desc>${escapeXml(desc)}</desc>\n`;
     const group = (pen, strokes) => {
-      let s = `<g id="${pen.id}" fill="none" stroke="${pen.colour}" stroke-width="${PEN_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
+      let s = `<g id="${pen.id}" inkscape:groupmode="layer" inkscape:label="${escapeXml(pen.layer)}" fill="none" stroke="${pen.colour}" stroke-width="${PEN_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
       for (const st of strokes) s += `<path d="${pathD(st)}"/>\n`;
       return s + '</g>\n';
     };
@@ -942,7 +953,9 @@
         fold: { x: L.fold.x, y: L.fold.y, w: L.fold.w, h: L.fold.h },
       },
       register: d.register,
-      columns: d.C, rows: mesh.R + 1,
+      // faces of the cut sheet: columns are the strips between column lines, rows the bands between
+      // zigzags (rows built above the top edge or below the bottom one are cut away and not counted)
+      columns: d.C, rows: ed.r1 - ed.r0,
       foldedScale: L.fold.k / L.sheet.k, // the right panel is drawn this many times larger than the left
       phi: { mode: d.phiMode, a: d.phiA, b: d.phiB, closing: d.closing ? `${d.closing.n}/${d.closing.k}` : null },
       gapGrad: d.gapGrad, widthGrad: d.widthGrad,
@@ -977,6 +990,6 @@
   return {
     generate, steps, makeRng, cyrb128,
     PAGE, PEN_WIDTH, PENS, PLOT, MIN_SECTOR, MOUNTAIN, VALLEY,
-    internals: { sinCos, datan2, makeDesign, buildMesh, chooseEdges, verify, twoStageOk, foldFaces, sheetLines, attempt, compose, colType, rowType, mergeCollinear, chainSegments, rowShape, inkMetrics, closeOverlap, CURATE },
+    internals: { sinCos, datan2, makeDesign, buildMesh, chooseEdges, verify, vertexCreases, twoStageOk, foldFaces, sheetLines, attempt, compose, colType, rowType, mergeCollinear, chainSegments, rowShape, inkMetrics, closeOverlap, CURATE, CLOSING },
   };
 });

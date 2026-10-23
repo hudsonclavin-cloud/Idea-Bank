@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="420mm" height="297mm" viewBox="0 0 420 297">
 <title>Lies Flat 22</title>
-<desc>Lies Flat, seed 22. A3 landscape, 420 x 297 mm. Two pens, both 0.3 mm: black (#000000) for the sheet&apos;s outline and its mountain folds, red (#c8102e) for its valley folds. Left: the crease pattern; each of its 143 interior vertices passes Kawasaki&apos;s and Maekawa&apos;s conditions. Right: the same creases after the sheet is folded flat, as if the paper were transparent (cut edges left out); where creases of both colours coincide, black is drawn.</desc>
-<g id="pen-1-black" fill="none" stroke="#000000" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
+<desc>Lies Flat, seed 22. A3 landscape, 420 x 297 mm. Two pens, both 0.3 mm: black (#000000) for the sheet&apos;s outline and its mountain folds, red (#c8102e) for its valley folds. Left: the crease pattern; each of its 143 interior vertices passes Kawasaki&apos;s and Maekawa&apos;s conditions. Right: the same creases after the sheet is folded flat, as if the paper were transparent (cut edges left out); where creases of both colours coincide, black is drawn. Each pen is an Inkscape layer; the red layer&apos;s name starts with &quot;!&quot; so AxiDraw software pauses for the pen change.</desc>
+<g id="pen-1-black" inkscape:groupmode="layer" inkscape:label="1 black" fill="none" stroke="#000000" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M34 62.97L41.71 67.61L49.86 62.71L58.44 67.87L67.46 62.45L76.92 68.14L86.82 62.19L97.15 68.4L107.92 61.92L119.13 68.66L130.77 61.66L142.85 68.92L155.37 61.4L168.33 69.19L181.72 61.13L181.72 229.12L168.33 235.87L155.37 229.34L142.85 235.65L130.77 229.56L119.13 235.43L107.92 229.78L97.15 235.2L86.82 230L76.92 234.98L67.46 230.22L58.44 234.76L49.86 230.44L41.71 234.54L34 230.66L34 62.97"/>
 <path d="M41.71 67.61L41.71 76.16"/>
 <path d="M41.71 76.16L49.86 81.18"/>
@@ -114,7 +114,7 @@
 <path d="M374.89 90.07L370.33 213.56L337.07 235.78L290.82 61.13"/>
 <path d="M211.72 153.6L290.82 61.13L330.6 65.26L248.47 211.31"/>
 </g>
-<g id="pen-2-red" fill="none" stroke="#c8102e" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
+<g id="pen-2-red" inkscape:groupmode="layer" inkscape:label="!2 red" fill="none" stroke="#c8102e" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
 <path d="M49.86 62.71L49.86 81.18"/>
 <path d="M49.86 81.18L58.44 75.89"/>
 <path d="M49.86 81.18L49.86 89.88L49.86 109.73L49.86 118.77L49.86 139.6L49.86 148.71L49.86 169.15L49.86 178L49.86 196.85L49.86 205.26L49.86 222.38L49.86 230.44"/>
