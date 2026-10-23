@@ -164,7 +164,7 @@ function card(i, repo) {
     : `<div class="thumb term" aria-hidden="true"><code><span>$</span> ${esc(i.run)}</code></div>`;
   const primary = i.web
     ? `<a class="btn primary" href="${open}">Open</a>`
-    : `<a class="btn primary" href="${notes}">How to run</a>`;
+    : `<a class="btn primary" href="${notes}">Run in terminal</a>`;
   return `      <article class="slip">
         ${thumb}
         <div class="meta"><span class="no">No. ${esc(i.no)}</span><span class="kind">${esc(i.kind)}</span></div>

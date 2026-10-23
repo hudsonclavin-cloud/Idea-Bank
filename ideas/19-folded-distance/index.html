@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Folded Distance</title><link rel="stylesheet" href="style.css"></head><body><main>
+<header><a href="../../index.html">← IDEA BANK / 019</a><span>FIELD STUDIES IN TAKING THE LONG WAY</span></header>
+<section class="intro"><div><p class="eyebrow">ONE WALK. EVERY POINT.</p><h1>Folded Distance</h1></div><p>A map of numbers that keeps<br>taking the scenic route.</p></section>
+<div class="bench"><section class="print"><div class="print-label"><span>HILBERT / <span id="grid-label">32 × 32</span></span><span>COOL → WARM = EARLIER → LATER</span></div><div id="field" tabindex="0" role="group" aria-label="Select a grid point by clicking, or use arrow keys to walk the curve"></div><p class="caption">Tap a point to find its place in the walk. Arrow keys walk one step.</p></section>
+<aside><p class="eyebrow">THE LENGTH OF A SHORTCUT</p><label for="order">Folds <output id="order-value">5</output></label><input id="order" type="range" min="1" max="7" step="1" value="5"><div class="facts"><div><span>VISITED ONCE</span><strong id="count">1,024 points</strong></div><div><span>ONE STEP ALWAYS</span><strong>1 grid unit</strong></div></div>
+<label for="cursor">A place on the walk <output id="cursor-value">85</output></label><input id="cursor" type="range" min="0" max="1023" step="1" value="85"><div class="walk"><button id="previous">← Previous</button><button id="next">Next →</button></div>
+<div class="coordinate"><span class="dot blue"></span><div>YOU ARE HERE<strong id="location"></strong></div></div><div class="coordinate"><span class="dot amber"></span><div>A NEXT-DOOR NEIGHBOUR<strong id="neighbour"></strong></div></div><p id="gap" class="gap" aria-live="polite"></p><button class="seam" id="seam">Find the longest detour ↗</button><button class="save" id="save">Keep this print / SVG ↓</button>
+</aside></div>
+<footer><p>Nearby footsteps stay nearby on the page. Nearby points can be far apart in the walk.</p><p>A finite mathematical drawing, not a map of real distances.</p></footer>
+</main><script src="model.js"></script><script src="app.js"></script></body></html>

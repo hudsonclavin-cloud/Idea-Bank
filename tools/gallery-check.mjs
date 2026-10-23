@@ -16,8 +16,10 @@ try { ({ chromium } = req('playwright')); }
 catch {
   ({ chromium } = createRequire(path.join(execSync('npm root -g', { encoding: 'utf8' }).trim(), 'noop.js'))('playwright'));
 }
-const count = fs.readdirSync(path.join(ROOT, 'ideas'), { withFileTypes: true })
-  .filter((d) => d.isDirectory() && /^\d{2,}-/.test(d.name)).length;
+const ideas = fs.readdirSync(path.join(ROOT, 'ideas'), { withFileTypes: true })
+  .filter((d) => d.isDirectory() && /^\d{2,}-/.test(d.name))
+  .map((d) => ({ name: d.name, web: fs.existsSync(path.join(ROOT, 'ideas', d.name, 'index.html')) }));
+const count = ideas.length;
 const types = { '.html': 'text/html; charset=utf-8', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const server = http.createServer((request, response) => {
   let file = path.join(ROOT, decodeURIComponent(new URL(request.url, 'http://local').pathname));
@@ -40,7 +42,7 @@ try {
       const url = protocol === 'file' ? pathToFileURL(path.join(ROOT, 'index.html')).href
         : `http://127.0.0.1:${server.address().port}/index.html`;
       await page.goto(url);
-      const result = await page.evaluate(async () => {
+      const result = await page.evaluate(async (ideas) => {
         const cards = [...document.querySelectorAll('article.slip')];
         const images = [...document.images];
         for (const image of images) image.loading = 'eager';
@@ -50,14 +52,24 @@ try {
           catch { failed.push(image.getAttribute('src')); }
           if (!image.naturalWidth || !image.naturalHeight) failed.push(image.getAttribute('src'));
         }));
-        return { cards: cards.length, images: images.length, failed,
+        const wrongActions = [];
+        for (const idea of ideas) {
+          const card = cards.find((c) => c.querySelector('img')?.getAttribute('src') === `ideas/${idea.name}/preview.jpg` ||
+            c.querySelector('img')?.getAttribute('src') === `ideas/${idea.name}/preview.png`);
+          const primary = card?.querySelector('.actions .primary');
+          const href = primary?.getAttribute('href');
+          if (!primary || primary.textContent !== (idea.web ? 'Open' : 'Run in terminal') ||
+            (idea.web && href !== `ideas/${idea.name}/index.html`) ||
+            (card?.querySelector('a.thumb')?.getAttribute('href') !== href)) wrongActions.push(idea.name);
+        }
+        return { cards: cards.length, images: images.length, failed, wrongActions,
           withoutImage: cards.filter((c) => !c.querySelector('img')).map((c) => c.querySelector('h2')?.textContent),
           overflow: document.documentElement.scrollWidth > innerWidth + 1 };
-      });
-      if (result.cards !== count || result.images !== count || result.failed.length || result.withoutImage.length || result.overflow || errors.length) {
+      }, ideas);
+      if (result.cards !== count || result.images !== count || result.failed.length || result.wrongActions.length || result.withoutImage.length || result.overflow || errors.length) {
         throw new Error(`${protocol} ${width}px: ${JSON.stringify({ expected: count, ...result, errors })}`);
       }
-      console.log(`ok  gallery ${protocol} ${width}px: all ${count} previews decoded; no overflow`);
+      console.log(`ok  gallery ${protocol} ${width}px: all ${count} previews decoded; correct launch links; no overflow`);
       await page.close();
     }
   }

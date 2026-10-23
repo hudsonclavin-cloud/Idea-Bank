@@ -18,16 +18,16 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 | 08 | [The Sky-Cooled Bed](ideas/08-sky-cooled-bed/) — A mattress pad plumbed to the night sky: no compressor, no pump, no plug, and it shuts itself off by day. | dossier | Nightjar | [open](ideas/08-sky-cooled-bed/index.html) |
 | 09 | [Unconformity](ideas/09-unconformity/) — Every seed is an invented geological history, hundreds of millions of years long. The picture is the only evidence left. | art | Siccar | [open](ideas/09-unconformity/index.html) |
 | 10 | [Alignment Charts](ideas/10-alignment-charts/) — Paper calculators that run on a straightedge: live, warpable, printable nomograms. | tool | Hairline | [open](ideas/10-alignment-charts/index.html) |
-| 11 | [Beat Braid](ideas/11-beat-braid/) — Two clocks share a bar, but disagree about where its footsteps belong. | music tool | Codex / Stillwater | `python3 ideas/11-beat-braid/beat_braid.py --help` |
-| 12 | [Moire Mail](ideas/12-moire-mail/) — A postcard whose large waves are made entirely from small straight lines. | generative art | Codex / Stillwater | `python3 ideas/12-moire-mail/moire_mail.py --help` |
-| 13 | [Loaded Circle](ideas/13-loaded-circle/) — Three honest dice take turns being the best die. | probability toy | Codex / Stillwater | `python3 ideas/13-loaded-circle/loaded_circle.py --help` |
-| 14 | [Afterimage](ideas/14-afterimage/) — A cellular world that can remember yesterday without saving its history. | simulation | Codex / Stillwater | `python3 ideas/14-afterimage/afterimage.py --help` |
-| 15 | [One Thread](ideas/15-one-thread/) — An entire lattice sewn with one unbroken thread, without retracing an edge. | craft tool | Codex / Stillwater | `python3 ideas/15-one-thread/one_thread.py --help` |
-| 16 | [Last Lantern](ideas/16-last-lantern/) — How long should you look before choosing something you cannot return to? | decision experiment | Codex / Stillwater | `python3 ideas/16-last-lantern/last_lantern.py --help` |
-| 17 | [Borrowed Words](ideas/17-borrowed-words/) — Find a hidden sentence inside a passage, without changing the order of a single word. | word tool | Codex / Stillwater | `python3 ideas/17-borrowed-words/borrowed_words.py --help` |
-| 18 | [Rain Ledger](ideas/18-rain-ledger/) — A roof, a barrel, and the difference between enough rain and rain at the right time. | resource simulation | Codex / Stillwater | `python3 ideas/18-rain-ledger/rain_ledger.py --help` |
-| 19 | [Folded Distance](ideas/19-folded-distance/) — A map of numbers that keeps taking the scenic route. | mathematical art | Codex / Stillwater | `python3 ideas/19-folded-distance/folded_distance.py --help` |
-| 20 | [Equal Shares](ideas/20-equal-shares/) — A fair division can change when the pie gets bigger. | allocation experiment | Codex / Stillwater | `python3 ideas/20-equal-shares/equal_shares.py --help` |
+| 11 | [Beat Braid](ideas/11-beat-braid/) — Two clocks share a bar, but disagree about where its footsteps belong. | music tool | Codex / Stillwater | [open](ideas/11-beat-braid/index.html) |
+| 12 | [Moire Mail](ideas/12-moire-mail/) — A postcard whose large waves are made entirely from small straight lines. | generative art | Codex / Stillwater | [open](ideas/12-moire-mail/index.html) |
+| 13 | [Loaded Circle](ideas/13-loaded-circle/) — Three honest dice take turns being the best die. | probability toy | Codex / Stillwater | [open](ideas/13-loaded-circle/index.html) |
+| 14 | [Afterimage](ideas/14-afterimage/) — A cellular world that can remember yesterday without saving its history. | simulation | Codex / Stillwater | [open](ideas/14-afterimage/index.html) |
+| 15 | [One Thread](ideas/15-one-thread/) — An entire lattice sewn with one unbroken thread, without retracing an edge. | craft tool | Codex / Stillwater | [open](ideas/15-one-thread/index.html) |
+| 16 | [Last Lantern](ideas/16-last-lantern/) — How long should you look before choosing something you cannot return to? | decision experiment | Codex / Stillwater | [open](ideas/16-last-lantern/index.html) |
+| 17 | [Borrowed Words](ideas/17-borrowed-words/) — Find a hidden sentence inside a passage, without changing the order of a single word. | word tool | Codex / Stillwater | [open](ideas/17-borrowed-words/index.html) |
+| 18 | [Rain Ledger](ideas/18-rain-ledger/) — A roof, a barrel, and the difference between enough rain and rain at the right time. | resource simulation | Codex / Stillwater | [open](ideas/18-rain-ledger/index.html) |
+| 19 | [Folded Distance](ideas/19-folded-distance/) — A map of numbers that keeps taking the scenic route. | mathematical art | Codex / Stillwater | [open](ideas/19-folded-distance/index.html) |
+| 20 | [Equal Shares](ideas/20-equal-shares/) — A fair division can change when the pie gets bigger. | allocation experiment | Codex / Stillwater | [open](ideas/20-equal-shares/index.html) |
 | 21 | [Weather Within](ideas/21-weather-within/) — You can be glad and grieving. A sky has room for both. | emotional art instrument | Codex / Isobar | [open](ideas/21-weather-within/index.html) |
 | 22 | [Between the Lines](ideas/22-between-the-lines/) — A few words, three possible inner voices, and a reply with room for the person you cannot read. | emotional microfiction | Margin Wren | [open](ideas/22-between-the-lines/index.html) |
 | 23 | [Thermal Pebble](ideas/23-thermal-pebble/) — A reusable thermal buffer that spends a change of state to buy a little more time. | product concept / engineering simulator | Stillwater / Codex | [open](ideas/23-thermal-pebble/index.html) |
@@ -57,7 +57,7 @@ Every idea lives in its own folder, `ideas/NN-slug/`, and follows the same contr
 | `node tools/check.mjs` | Checks every idea's README format, size, and its own tests, then smoke-tests all browser ideas. Exits non-zero on failure. |
 | `node tools/smoke.mjs ideas/NN-slug` | Loads one idea in headless Chromium at desktop and phone sizes, pokes it (taps, keys, drags, buttons), and fails on console errors, uncaught exceptions, broken requests, or phone-width overflow. Prints screenshot paths. |
 | `node tools/gallery.mjs` | Rebuilds `index.html` and the ledger above, and captures missing previews for browser ideas and command-line ideas (using their saved `example.svg` or `example.txt` output). `--force-thumbs` refreshes existing previews. |
-| `node tools/gallery-check.mjs` | Decodes every gallery image at desktop and phone sizes, over HTTP and `file://`, so missing or broken previews fail the check. Also included in the full `tools/check.mjs` run. |
+| `node tools/gallery-check.mjs` | Checks launch labels and links, and decodes every gallery image at desktop and phone sizes over HTTP and `file://`. Browser projects must open directly; terminal projects are marked explicitly. Also included in the full `tools/check.mjs` run. |
 
 The smoke test and gallery script need Playwright with Chromium (`npm i -g playwright && npx playwright install chromium`). Everything else needs only Node 22+ and Python 3.
 
