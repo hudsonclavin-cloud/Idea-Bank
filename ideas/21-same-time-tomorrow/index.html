@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same Time Tomorrow</title>
+<meta name="description" content="Catch the Sun at the same clock time every day for a year and it draws a figure-8. Bend the orbit, retilt the planet, and find out why the earliest sunset comes before the shortest day.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">Space, as seen from here</p>
+  <h1>Same Time Tomorrow</h1>
+  <p class="tagline">Catch the Sun at the same clock time every day for a year and it draws a figure-8 on the sky. Bend the orbit, retilt the planet, and find out why the earliest sunset comes before the shortest day: two weeks before, at the latitude of New York or Madrid.</p>
+</header>
+
+<main>
+
+<!-- ============ 1. THE SKY ============ -->
+<section id="sky-section" aria-labelledby="h-sky">
+  <h2 id="h-sky"><span class="num">1</span> A year of the same minute</h2>
+  <p>Stand in one spot. Look at the Sun at one clock time, today, and again tomorrow, and every day for a year. It is never in the same place twice. Each dot below is where the Sun stands at that minute on one day of <span class="js-year">this year</span>, seen from the ground. Press <em>Expose the year</em> and watch the figure develop one day at a time, or drag across the picture to visit a date.</p>
+
+  <figure class="panel">
+    <div class="canvas-wrap">
+      <canvas id="sky" role="img" aria-label="The Sun's position in the sky at one clock time on every day of the year, drawn over a horizon."></canvas>
+    </div>
+    <p class="readout" id="skyReadout" aria-live="polite"></p>
+    <div class="controls">
+      <div class="ctl">
+        <label for="lat">Latitude <output id="latOut" for="lat"></output></label>
+        <input id="lat" type="range" min="-90" max="90" step="0.5" value="40">
+      </div>
+      <div class="ctl">
+        <label for="clock">Clock time <output id="clockOut" for="clock"></output></label>
+        <input id="clock" type="range" min="0" max="23.75" step="0.25" value="9">
+      </div>
+      <div class="ctl">
+        <label for="day">Day of the year <output id="dayOut" for="day"></output></label>
+        <input id="day" type="range" min="0" max="364" step="1" value="0">
+      </div>
+      <div class="ctl row">
+        <button id="play" type="button" class="btn btn-primary">Expose the year</button>
+        <button id="today" type="button" class="btn">Jump to today</button>
+      </div>
+      <details class="place">
+        <summary>Where exactly? <span class="muted" id="placeSummary"></span></summary>
+        <div class="row wrap">
+          <label class="inline">Longitude (° east) <input id="lon" type="number" min="-180" max="180" step="0.01"></label>
+          <label class="inline">Clock is UTC <input id="zone" type="number" min="-12" max="14" step="0.25"></label>
+          <button id="placeReset" type="button" class="btn btn-small">Use my zone's meridian</button>
+        </div>
+        <p class="note">The time zone's own meridian is 15° × its UTC offset. Standing east or west of it shifts the whole figure sideways, 4 minutes of clock time per degree. Clock time here is standard time all year, without the daylight-saving jump, which is how analemma photographs are taken.</p>
+      </details>
+    </div>
+    <figcaption>The picture is what a camera with an ordinary straight-line (rectilinear) lens would record, held level and aimed at the middle of the figure: the same projection as the photographs, so the figure keeps the proportions a photograph would show. Each disc is drawn at the Sun's real angular size, half a degree, or a few pixels across when the picture is zoomed out further than that. Hollow discs are days when the Sun is still below the horizon at this clock time. Thin curves are lines of equal altitude; the compass points along the bottom edge say which way that edge of the picture faces. Dates in <span class="js-year">this year</span>.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 2. TWO REASONS ============ -->
+<section id="why-section" aria-labelledby="h-why">
+  <h2 id="h-why"><span class="num">2</span> Two reasons, one figure</h2>
+  <p>The figure is <em>tall</em> because of the tilt. Over a year the Sun's declination swings between +ε and −ε, so at a fixed clock time it climbs and sinks. The figure is <em>wide</em> because the Sun runs fast and slow against the clock. Clocks keep <em>mean</em> solar time, a fiction in which the Sun moves at a perfectly even rate. The real Sun does not, for two separate reasons:</p>
+  <ol class="reasons">
+    <li><strong class="c-orbit">The orbit is an ellipse.</strong> Earth moves fastest near perihelion (early January) and slowest near aphelion (early July), so the Sun drifts along the ecliptic unevenly. On its own this would put a sundial up to <span id="orbitAmp">7.7</span> minutes ahead or behind the clock, once each per year.</li>
+    <li><strong class="c-tilt">The axis is tilted.</strong> Even perfectly even motion along the ecliptic is not even when projected onto the celestial equator, which is what a clock measures. Near the equinoxes the ecliptic runs diagonally across the equator, so a day's travel counts for less; near the solstices it runs parallel, so it counts for more. This part is worth up to <span id="tiltAmp">9.9</span> minutes, twice each per year.</li>
+  </ol>
+  <p>Their sum is the <em>equation of time</em>: how far a sundial reads ahead (+) or behind (−) a clock set to its time zone's meridian. Plot it against declination and you get the figure's own shape, the same at every latitude and clock time. Then change the planet.</p>
+
+  <figure class="panel">
+    <div class="grid2">
+      <div class="stack">
+        <div class="chart-title">Sundial minus clock, through the year <span class="legend"><i class="sw sw-tilt"></i>tilt alone <i class="sw sw-orbit"></i>orbit alone <i class="sw sw-total"></i>both</span></div>
+        <canvas id="eotChart" role="img" aria-label="Equation of time through the year, with its tilt and orbit components."></canvas>
+        <div class="chart-title">Declination of the Sun</div>
+        <canvas id="decChart" role="img" aria-label="Solar declination through the year."></canvas>
+      </div>
+      <div class="stack">
+        <div class="chart-title">The figure's own shape</div>
+        <canvas id="shapeChart" role="img" aria-label="Equation of time plotted against declination: the analemma's shape."></canvas>
+      </div>
+    </div>
+    <p class="readout" id="shapeReadout" aria-live="polite"></p>
+    <div class="controls">
+      <div class="ctl row wrap presets" role="group" aria-label="Presets">
+        <button type="button" class="btn btn-small" data-preset="earth">Earth</button>
+        <button type="button" class="btn btn-small" data-preset="circular">Earth, circular orbit</button>
+        <button type="button" class="btn btn-small" data-preset="untilted">Earth, no tilt</button>
+        <button type="button" class="btn btn-small" data-preset="mars">Mars</button>
+        <button type="button" class="btn btn-small" data-preset="saturn">Saturn</button>
+        <button type="button" class="btn btn-small" data-preset="jupiter">Jupiter</button>
+      </div>
+      <div class="ctl">
+        <label for="ecc">Orbital eccentricity <output id="eccOut" for="ecc"></output></label>
+        <input id="ecc" type="range" min="0" max="0.25" step="0.0005" value="0.0167">
+      </div>
+      <div class="ctl">
+        <label for="obl">Axial tilt <output id="oblOut" for="obl"></output></label>
+        <input id="obl" type="range" min="0" max="60" step="0.05" value="23.44">
+      </div>
+      <div class="ctl">
+        <label for="peri">Perihelion date <output id="periOut" for="peri"></output></label>
+        <input id="peri" type="range" min="0" max="364" step="1" value="2">
+      </div>
+    </div>
+    <figcaption>Mars, Jupiter and Saturn use their own eccentricity and tilt (and, for Mars, its own perihelion season), drawn on Earth's day and calendar: the shapes are right, the dates are borrowed. The sliders also redraw the sky in section 1 and the sunsets in section 3, so you can see any of these figures from your own latitude.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 3. THE LOPSIDED SOLSTICE ============ -->
+<section id="sunset-section" aria-labelledby="h-sunset">
+  <h2 id="h-sunset"><span class="num">3</span> The lopsided solstice</h2>
+  <p>At most latitudes the shortest day falls around 21 December, but the earliest sunset comes before it and the latest sunrise after it. The reason is in the chart above. In December the equation of time is falling steeply, by about half a minute a day, which drags both sunrise and sunset later by that much every day. Around the solstice the length of the day is hardly changing, so the drag wins: sunsets have already started getting later while sunrises are still getting later too. June is the mirror image: the earliest sunrise comes before the longest day and the latest sunset after it.</p>
+  <p>How far apart the dates sit depends on latitude. Near the poles the day length changes so fast around the solstice that the drag hardly matters, and the three dates nearly coincide. Near the equator the day length barely changes at all, so sunrise and sunset simply follow the equation of time, and the earliest sunset is in early November.</p>
+
+  <figure class="panel">
+    <div class="chart-title">Sunrise, solar noon and sunset at <span id="riseLat">40°N</span>, clock time <span class="legend"><i class="sw sw-rise"></i>sunrise <i class="sw sw-noon"></i>solar noon <i class="sw sw-set"></i>sunset</span></div>
+    <canvas id="riseChart" role="img" aria-label="Sunrise and sunset clock times through the year, with the earliest and latest marked."></canvas>
+    <div class="verdict" id="verdict" aria-live="polite"></div>
+    <figcaption>Sunrise and sunset are when the Sun's centre is 50 arcminutes below the horizon: 34′ of refraction plus a 16′ semi-diameter, the convention almanacs use. Times are clock times for the longitude and UTC offset in section 1.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4. YOUR NOON ============ -->
+<section id="noon-section" aria-labelledby="h-noon">
+  <h2 id="h-noon"><span class="num">4</span> Your noon</h2>
+  <p>Your clock says 12:00 when the <em>mean</em> Sun crosses your time zone's meridian, not when the real Sun crosses yours. Set your longitude and UTC offset in section 1, pick a date, and see when noon actually happens where you stand.</p>
+  <figure class="panel">
+    <div class="row wrap">
+      <label class="inline">Date <input id="noonDate" type="date"></label>
+    </div>
+    <div class="noon-grid" id="noonGrid"></div>
+  </figure>
+</section>
+
+<footer class="notes">
+  <h2>Notes on the model</h2>
+  <p>A planet on a fixed Kepler ellipse, spin axis tilted by ε, Kepler's equation solved by Newton's method; mean longitude, mean anomaly, eccentricity and obliquity from the J2000 values with their linear drifts (Meeus, <em>Astronomical Algorithms</em>, chapters 22 and 25); aberration of −20.5″ applied, nutation (up to ±17″, about one second of time) not. Mean solar time is taken as UTC. Every number on this page comes from <code>sun.js</code>, which is checked by <code>sun.test.mjs</code> against an independent NOAA/Meeus implementation, closed forms, Allison &amp; McEwen's Mars series, and published USNO and almanac values. Details and an honest assessment are in the README.</p>
+</footer>
+
+</main>
+<script src="sun.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
