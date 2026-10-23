@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A mirror game for two people on one screen. Each of you is secretly told to lead or to follow; afterwards the trace shows who really went first.">
+<title>After You</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="screen" class="screen" aria-live="polite"></main>
+
+<div id="field-wrap" hidden>
+  <canvas id="field" role="img" aria-label="The glass: two halves, one for each player, with a mirror line between them. Drag your dot so it is the mirror image of your partner's."></canvas>
+  <section class="half" id="half0" aria-label="Orange's side">
+    <div class="count" aria-hidden="true"></div>
+    <div class="prompt"></div>
+    <div class="slot"></div>
+    <div class="who">Orange</div>
+  </section>
+  <section class="half" id="half1" aria-label="Blue's side">
+    <div class="count" aria-hidden="true"></div>
+    <div class="prompt"></div>
+    <div class="slot"></div>
+    <div class="who">Blue</div>
+  </section>
+  <div id="mid"><button id="begin" class="btn" type="button" hidden>Begin</button></div>
+  <button id="quit" type="button" aria-label="Stop and go back to the title">×</button>
+  <div id="announce" class="sr" aria-live="polite"></div>
+</div>
+
+<script src="mirror.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
