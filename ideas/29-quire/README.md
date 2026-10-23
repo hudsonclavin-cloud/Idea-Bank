@@ -1,0 +1,56 @@
+# Quire
+> Fold any PDF into a booklet with the printer you already have.
+
+**Kind:** tool
+**Run:** open `ideas/29-quire/index.html` in a browser. It works straight from disk: no server, no build, no network, nothing uploaded. Type a page count, or drop a PDF on it. `probe.html` is the two-sheet printer test. Tests, from the repo root: `node --test ideas/29-quire/impose.test.mjs` (Node 22; when poppler's `pdftotext` and `pdfinfo` are installed, the tests also read every reordered PDF back with them).
+**Made by:** Bone Folder
+
+## What it is
+
+A booklet is a stack of sheets folded once down the middle, so each sheet carries four pages and they have to be printed two to a side in an order that looks like nonsense: `24,1,2,23,22,3,4,21,…`. Every home printer can make one, but the step in between, the *imposition*, is where people lose an evening and a ream of paper.
+
+Quire does that step. You tell it how many pages the document has (or drop the PDF in, and it counts), whether you want one stapled booklet or sewn signatures of *n* sheets, whether the printer does both sides itself, and which way the book reads. It gives you:
+
+- **The page order**, as a string to paste into a print dialog's "Pages" box, with the settings to go with it (2 per sheet, two-sided, flipped on the short edge). Per-signature strings, a cover-sheet-only string, and two-pass strings for single-sided printers.
+- **A reordered copy of your PDF.** For apps whose dialogs sort the page list (browsers do), or when you simply don't want to type: drop the file, click Save, and you get your PDF with the pages already in booklet order and the blank padding pages inserted. It is made in the page, with no library, by appending a short update to your file; the original bytes are untouched.
+- **A preview that folds.** The printed sheets are drawn as they come out of the printer, fanned so you can read every front; press Fold and they fold together into a booklet; then turn the pages and watch 1, 2, 3… come out in order, blanks included. It is the same geometry the tests use.
+- **A probe**: a two-sheet, eight-page booklet already in print order. Print it once and fold it, and it tells you whether your driver's "short edge" is the right one, or, for a single-sided printer, which way to turn the stack between passes.
+
+## Why I made it
+
+I wanted a thing that is useful on the day you find it. Someone, right now, is trying to print a 22-page PDF as a little A5 booklet for a wedding, a zine, a knitting pattern, a liturgy, a kid's story, and is about to discover that "booklet mode" in their print dialog doesn't exist, doesn't work with their PDF, or prints half the pages upside down. The arithmetic is a few lines. What makes it hard is everything around the arithmetic: the padding to a multiple of four, the fact that a print dialog cannot print a page that isn't there, the two meanings of "flip", the apps that silently sort your carefully typed page list, and the single-sided printers where the second pass depends on which way you turned the stack.
+
+The thing I most wanted to exist was the reordered-PDF part done honestly: no upload, no 500 KB library, no re-rendering of the file. PDF has had the answer since 1993, an *incremental update*, where you append new copies of only the objects you change. Reordering a book of any size turns out to need about half a kilobyte. I liked that very much.
+
+The brief for this batch asked for a part that can be proven and a part that can only be felt. The proof is the fold: a simulator that folds a signature from the physical description and reads it, and a model of a two-up duplex printer, so the tests check the print string by printing it and folding the result. The felt part is the preview, when the fanned sheets with their absurd numbers close up and the pages start to turn in order.
+
+## How it works
+
+**The order** (`impose.js`, pure, shared by the page and the tests). A padded book of *N* pages in a signature of *S* sheets: sheet *j* (outermost first) carries pages `first = 2j+1` and `last = N−2j` on its front, as `[last | first]`, and `[first+1 | last−1]` on its back. For a right-to-left book the halves are mirrored. Blanks can go at the end, just before the last page (so your last page stays the back cover), or inside the front cover. Signatures are consecutive runs of *S* sheets; the last takes what is left.
+
+**Two simulators** check it. `readingOrder` folds a signature with the front outward and reads it, outermost front-right half, then the back of that half, inward to the middle and out again, exactly as a hand would. `printerModel` takes a page sequence and does what a printer does when told "2 per sheet, two-sided, short edge": 1st page front-left, 2nd front-right, 3rd and 4th on the back, left and right as seen after the sheet is turned over around its short edge. The tests build every plan for 1–120 pages, both reading directions, three blank placements and seven binding variants (over 4,000 plans), print each one with the printer model, fold the result and require it to read 1…N. The two-pass single-sided model is checked both ways round. The classic strings (`8,1,2,7,6,3,4,5`; the 16-page one) are checked literally.
+
+**The PDF** (`pdfupdate.js`, also pure, also dependency-free, with its own small inflate). A PDF's pages are the leaves of a tree hanging off the catalog's `/Pages` object. The reorderer scans the whole file for `N G obj` and keeps the last definition of every object number (which is what readers do when they repair a file), unpacks compressed object streams (`/ObjStm`, Flate, with PNG predictors if any), merges every trailer it finds (linearized files split `/Root` and `/Size` across two), walks the tree collecting inherited `MediaBox`, `CropBox`, `Rotate` and `Resources`, and then appends an update: a new root `/Pages` with `/Kids` in booklet order, a fresh copy of each page that used to hang off an in-between node (with the attributes it inherited written in, so flattening loses nothing), one empty page object per blank, and a cross-reference table or stream to match the file's own style, with `/Prev` pointing back at the old one. Encrypted files that open without a password work as long as no rewritten dictionary holds a string (strings would need encrypting); encrypted files whose page tree lives inside object streams are refused with a message that says to print to a new PDF first. Every output is read back by the reorderer's own parser in the tests, and by poppler when it is installed.
+
+**The preview** is one SVG drawn from the plan: a fan of the first signature's sheets (front sides, outer sheet on top, each captioned with its back), a fold animation in which the non-cover halves rotate behind, the fore-edges of nested sheets creeping out of the closed booklet, and a page-turn animation whose spreads come from the same page numbers. It honours `prefers-reduced-motion` by jumping straight to the result.
+
+**The probe** is four landscape pages carrying `8|1`, `2|7`, `6|3`, `4|5` with "this way up" arrows and fold lines, so it needs no page list and prints the same from any app.
+
+## Honest assessment
+
+- [Certain] The page orders are right. They are checked by simulation against a printer model, and the standard sequences match those published in GNOME's own booklet-printing documentation for Evince.
+- [Certain] The reordered PDF is the original file plus an appended update; the first *n* bytes of the output are the input, and the tests assert it. In the shipped tests, synthetic PDFs of six shapes (xref tables, xref streams with packed object streams, nested trees with inherited attributes, wrong `/Length`, junk after deflate data, a linearized-style split trailer) all read back correctly with the module's own parser and with poppler. Outside the shipped tests, I also ran 42 variants of six real-world files (ReportLab, LibreOffice, Chromium/Skia, pypdf, and qpdf re-saves of each with object streams, linearization and AES encryption) through three independent readers, poppler, pypdf and qpdf's `--check`; 36 passed with zero warnings, and the other six were encrypted files with object streams, which are refused on purpose with a clear message.
+- [Certain] The Chromium file exercised the tree-flattening path for real: Skia builds a tree with eight kids per node, so all eleven pages were re-parented and still rendered with their resources.
+- [Likely] "Flip on the short edge" is the right two-sided setting for a two-up landscape sheet. It is the standard advice and what the GNOME documentation uses, but drivers name the options inconsistently, and I have no printer in this sandbox. That is exactly why the probe exists: your printer gets the last word, at a cost of two sheets.
+- [Likely] Browser print dialogs sort a custom page list into document order rather than printing it as typed. I could not find documentation either way; I am going from memory of Chromium's print-preview code, and I say "appear to" on the page. The reordered PDF sidesteps the question entirely.
+- [Likely] Creep is about a paper thickness per nested sheet, and more than about eight nested sheets of office paper is unpleasant to fold and staple; the page warns at nine. These are rules of thumb, not measurements.
+- [Speculative] The single-sided two-pass instructions cover the three things I know can go wrong (stack turned the wrong way, rotated, or reversed by a face-up tray). There may be printers whose paths produce a combination I have not described; the probe will still show *something* is wrong, but the diagnosis table might not name it.
+- What's rough: the typed route cannot invent blank pages, so you have to add them to the document yourself (the page says where). The reordered PDF leaves orphaned page-tree nodes in the file, which is harmless but means a fussy optimizer may report unreferenced objects. Only the first signature, and at most eight of its sheets, is drawn in the preview. Pages of different sizes in one PDF will be scaled oddly by any 2-up print, and Quire does nothing about that. There is no quarto (two folds) or cut-and-stack imposition.
+
+## Where it could go next
+
+- Quarto and octavo imposition (two or three folds), with a cutting diagram.
+- Creep compensation: shifting each sheet's content inward by its position in the signature. This can also be done as an incremental update by wrapping each page's content stream in a transform, without touching the original streams.
+- Decrypt the standard security handler (RC4 and AES with an empty user password) so encrypted files with object streams work too.
+- A trim-and-cover calculator: spine width from sheet count and paper weight, and a printable cover template.
+- Drop the probe's result back into the page ("pages 2 and 3 were upside down") and have it rewrite the settings for you.

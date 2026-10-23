@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Fold any PDF into a booklet with the printer you already have: the page order for your print dialog, or a reordered copy of your PDF, plus a preview that folds.">
+<title>Quire</title>
+<style>
+  :root {
+    --bg: #f5f1e8;
+    --card: #fcfaf5;
+    --ink: #201c17;
+    --muted: #6d6459;
+    --line: #d9d2c4;
+    --accent: #b4461c;
+    --accent-ink: #fff;
+    --paper: #fffdf7;
+    --paper-edge: #b9b09e;
+    --code-bg: #efe9dc;
+    --ok: #3d7a3a;
+    --warn: #8a5a00;
+    --warn-bg: #fff5dc;
+    --err: #a3261b;
+    --err-bg: #fde8e4;
+    --shadow: 0 1px 2px rgba(40, 30, 10, 0.08), 0 8px 24px -12px rgba(40, 30, 10, 0.25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17140f;
+      --card: #211d17;
+      --ink: #ece5d8;
+      --muted: #a79d8e;
+      --line: #3b352c;
+      --accent: #e8895c;
+      --accent-ink: #1b120c;
+      --paper: #efe7d6;
+      --paper-edge: #8c8270;
+      --code-bg: #2b2620;
+      --ok: #8fcf86;
+      --warn: #f0c060;
+      --warn-bg: #2e2612;
+      --err: #ff8f80;
+      --err-bg: #3a1c17;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+  }
+  h1, h2, h3 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif; font-weight: 600; letter-spacing: 0.005em; }
+  h1 { font-size: 2.6rem; margin: 0 0 0.1em; line-height: 1.1; }
+  h2 { font-size: 1.35rem; margin: 0 0 0.6rem; }
+  h3 { font-size: 1.05rem; margin: 1.2rem 0 0.4rem; }
+  p { margin: 0.5rem 0; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { padding: 28px 0 12px; }
+  .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 0 0.8rem; font-family: Georgia, serif; font-style: italic; }
+  .intro { max-width: 60ch; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 18px 20px;
+    margin: 18px 0;
+    box-shadow: var(--shadow);
+  }
+  .card h2 .step { color: var(--accent); margin-right: 0.35em; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-top: 12px; }
+  @media (max-width: 520px) { .fields { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field > span.lbl { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  input[type=number], select {
+    font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; max-width: 100%;
+  }
+  input[type=number] { width: 9em; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg label {
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; user-select: none; background: var(--bg); font-size: 0.95rem;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sub { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.95rem; }
+  .sub input { width: 5em; }
+  .drop {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); margin-bottom: 4px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop.over { border-color: var(--accent); background: var(--code-bg); }
+  .drop strong { color: var(--ink); }
+  .drop input { display: none; }
+  .drop .pick { color: var(--accent); text-decoration: underline; cursor: pointer; }
+  .fileinfo { font-size: 0.95rem; margin-top: 8px; }
+  .fileinfo b { font-weight: 600; }
+  .summary { font-size: 1.1rem; }
+  .summary .big { font-family: Georgia, serif; font-size: 1.6rem; display: block; margin-bottom: 4px; }
+  .note { font-size: 0.93rem; color: var(--muted); }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; margin-top: 10px; }
+  .err { background: var(--err-bg); color: var(--err); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; margin-top: 10px; }
+  .settings { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 0.97rem; }
+  .settings dt { color: var(--muted); }
+  .settings dd { margin: 0; }
+  @media (max-width: 420px) { .settings { grid-template-columns: 1fr; gap: 0; } .settings dd { margin-bottom: 6px; } }
+  .codebox { position: relative; margin: 8px 0 4px; }
+  .codebox pre {
+    margin: 0; background: var(--code-bg); border-radius: 10px; padding: 12px 92px 12px 14px; white-space: pre-wrap; word-break: break-all; font-size: 0.98rem; line-height: 1.5;
+  }
+  .codebox button { position: absolute; top: 8px; right: 8px; }
+  button {
+    font: inherit; font-size: 0.95rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 7px 14px; cursor: pointer;
+  }
+  button:hover { border-color: var(--ink); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; padding: 10px 18px; }
+  button.primary:hover { filter: brightness(1.07); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+  .label-small { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 12px; }
+  details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 8px; }
+  details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  details[open] summary { margin-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  .blank { color: var(--muted); font-style: italic; }
+  ol.steps { padding-left: 1.3em; }
+  ol.steps li { margin: 6px 0; }
+  .preview { margin-top: 10px; }
+  .preview svg { width: 100%; height: auto; display: block; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); touch-action: manipulation; }
+  .preview .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .preview .controls .spacer { flex: 1; }
+  .preview .status { font-size: 0.93rem; color: var(--muted); }
+  .sr { position: absolute; left: -9999px; }
+  footer { color: var(--muted); font-size: 0.9rem; margin-top: 30px; }
+  kbd { font: 0.85em ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+  .pagecount-hint { font-size: 0.9rem; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Quire</h1>
+  <p class="tagline">Fold any PDF into a booklet with the printer you already have.</p>
+  <p class="intro">A booklet is a stack of sheets folded in half, so the pages have to be printed two to a side in a strange order: the last beside the first, then the second beside the second-to-last, and so on inward. Quire works that order out, hands it to you as a page list for your print dialog or as a reordered copy of your PDF (made right here, nothing is uploaded), and folds a preview so you can see it come right before you spend any paper.</p>
+</header>
+
+<main>
+<section class="card" id="setup">
+  <h2><span class="step">1</span>Your book</h2>
+  <div class="drop" id="drop">
+    <input type="file" id="file" accept="application/pdf,.pdf">
+    <div><strong>Drop a PDF here</strong> or <span class="pick" id="pick" role="button" tabindex="0">choose one</span>. It stays on your computer.</div>
+    <div class="note">Or just type the page count below, if you only want the print order.</div>
+    <div class="fileinfo" id="fileinfo" hidden></div>
+  </div>
+  <div class="fields">
+    <label class="field">
+      <span class="lbl">Pages in the document</span>
+      <input type="number" id="pages" min="1" max="4000" step="1" value="22" inputmode="numeric">
+      <span class="pagecount-hint" id="pagehint"></span>
+    </label>
+    <div class="field">
+      <span class="lbl">Binding</span>
+      <div class="seg" role="radiogroup" aria-label="Binding">
+        <label><input type="radio" name="binding" value="booklet" checked>One booklet</label>
+        <label><input type="radio" name="binding" value="signatures">Sewn signatures</label>
+      </div>
+      <div class="sub" id="sigsub" hidden>
+        <label for="sps">Sheets per signature</label>
+        <input type="number" id="sps" min="1" max="32" step="1" value="4" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">Your printer</span>
+      <div class="seg" role="radiogroup" aria-label="Printer">
+        <label><input type="radio" name="printer" value="duplex" checked>Prints both sides itself</label>
+        <label><input type="radio" name="printer" value="simplex">One side at a time</label>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">The book reads</span>
+      <div class="seg" role="radiogroup" aria-label="Reading direction">
+        <label><input type="radio" name="direction" value="ltr" checked>Left to right</label>
+        <label><input type="radio" name="direction" value="rtl">Right to left</label>
+      </div>
+    </div>
+    <label class="field">
+      <span class="lbl">Blank pages go</span>
+      <select id="blanks">
+        <option value="end">at the end</option>
+        <option value="beforeLast">just before the last page (it stays the back cover)</option>
+        <option value="afterFirst">right after the first page (inside the front cover)</option>
+      </select>
+    </label>
+  </div>
+  <div class="summary" id="summary" style="margin-top:16px"></div>
+  <div id="warnings"></div>
+</section>
+
+<section class="card" id="pdfpath" hidden>
+  <h2><span class="step">2</span>Your reordered PDF</h2>
+  <p id="pdfexplain"></p>
+  <div class="btnrow" id="pdfbuttons"></div>
+  <div id="pdferr"></div>
+  <p class="label-small">Then print it with these settings</p>
+  <dl class="settings" id="pdfsettings"></dl>
+  <p class="note" id="pdfnote"></p>
+</section>
+
+<section class="card" id="dialogpath">
+  <h2><span class="step">2</span><span id="dialogtitle">Or type the page order</span></h2>
+  <p id="padstep"></p>
+  <p class="label-small">Print settings</p>
+  <dl class="settings" id="dialogsettings"></dl>
+  <div id="orders"></div>
+  <p class="note">This only works in apps that print the pages in the order you type them. GNOME's document viewer documents exactly this method, and Acrobat Reader and Word are widely reported to honour the order. Browser print dialogs (Chrome, Edge, Firefox) appear to sort the list back into document order, which quietly ruins the booklet; when in doubt, use the reordered PDF, which needs no list at all.</p>
+</section>
+
+<section class="card" id="foldcard">
+  <h2><span class="step">3</span>Fold</h2>
+  <div id="foldsteps"></div>
+  <div class="preview" id="preview">
+    <svg id="stage" viewBox="0 0 640 380" role="img" aria-labelledby="stagetitle" tabindex="0">
+      <title id="stagetitle">Preview of the printed sheets, folding into a booklet, with page numbers</title>
+    </svg>
+    <div class="controls">
+      <button id="btnSheets" type="button">Sheets</button>
+      <button id="btnFold" type="button" class="primary">Fold</button>
+      <button id="btnPrev" type="button" aria-label="Previous spread">‹ Back</button>
+      <button id="btnNext" type="button" aria-label="Next spread">Turn page ›</button>
+      <span class="spacer"></span>
+      <span class="status" id="status"></span>
+    </div>
+    <p class="note">The numbers are padded page numbers (what the document has once the blanks are in). Use <kbd>←</kbd> <kbd>→</kbd> to turn pages when the preview is focused.</p>
+  </div>
+  <details id="sheetdetails">
+    <summary>Every sheet, side by side</summary>
+    <div class="tablewrap"><table id="sheettable"></table></div>
+  </details>
+</section>
+
+<section class="card">
+  <h2>Before you spend paper</h2>
+  <p>Printer drivers disagree about what “flip on the short edge” means, and single-sided printers differ in how a re-fed stack comes out. <a href="probe.html">The probe</a> is a two-sheet, eight-page booklet already in print order. Print it once with the settings above, fold it, and it tells you exactly which setting (or which way to turn the stack) is right for your printer. It takes two sheets and a minute, and after that every booklet you print will be right.</p>
+  <details>
+    <summary>Things that go wrong, and why</summary>
+    <ul>
+      <li><b>Pages 2 and 3 come out upside down.</b> The back was flipped around the long edge instead of the short one. Pick the other two-sided option in your driver; some call it “short-edge binding”, some “flip up”, some “tumble”.</li>
+      <li><b>The page count is not a multiple of four.</b> Every sheet carries four pages, so the document is padded with blanks. The reordered PDF adds them for you; the typed route needs you to add them to the document first, because a print dialog cannot print a page that is not there.</li>
+      <li><b>The app sorted my page list.</b> Browsers do. Use the reordered PDF, which prints correctly with “all pages”.</li>
+      <li><b>The middle pages stick out.</b> That is creep: each nested sheet sits a paper thickness further round the fold. Trim the fore-edge after folding, or use signatures of fewer sheets.</li>
+      <li><b>Half of each page is cut off.</b> The app scaled nothing and the pages were larger than half a sheet. Choose “fit to printable area” or “shrink to fit”, not “actual size”.</li>
+      <li><b>The last signature is thin.</b> Normal: it holds whatever sheets are left over. Sew it like the others.</li>
+    </ul>
+  </details>
+</section>
+</main>
+
+<footer>
+  <p>Quire, by Bone Folder. The page order comes from a folding simulation that is tested against a model of the printer, and the PDF is reordered by appending an incremental update, so your original bytes are never touched. <a href="README.md">Read the notes</a>.</p>
+</footer>
+</div>
+
+<script src="impose.js"></script>
+<script src="pdfupdate.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ---------- state ----------
+  let plan = null;
+  let pdf = null; // { name, bytes, info }
+
+  function options() {
+    const pagesEl = $('pages');
+    let pages = Math.floor(Number(pagesEl.value));
+    if (!Number.isFinite(pages) || pages < 1) pages = 1;
+    if (pages > Quire.MAX_PAGES) pages = Quire.MAX_PAGES;
+    const binding = document.querySelector('input[name=binding]:checked').value;
+    let sps = Math.floor(Number($('sps').value));
+    if (!Number.isFinite(sps) || sps < 1) sps = 1;
+    return {
+      pages,
+      binding,
+      sheetsPerSignature: sps,
+      direction: document.querySelector('input[name=direction]:checked').value,
+      blanks: $('blanks').value,
+      printer: document.querySelector('input[name=printer]:checked').value,
+    };
+  }
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  // ---------- rendering the plan ----------
+  function render() {
+    const o = options();
+    plan = Quire.plan(o);
+    const p = plan;
+    $('sigsub').hidden = o.binding !== 'signatures';
+    $('pagehint').textContent = p.pages === p.padded ? '' : `${p.pages} pages pad to ${p.padded}.`;
+
+    // summary
+    const sigText = p.binding === 'signatures' ? `${plural(p.signatures.length, 'signature')} of up to ${plural(p.sheetsPerSignature, 'sheet')}` : 'one booklet';
+    $('summary').innerHTML =
+      `<span class="big">${p.pages} pages → ${plural(p.sheets.length, 'sheet')}, ${esc(sigText)}.</span>` +
+      `<span class="note">${esc(Quire.describeBlanks(p))}</span>`;
+    $('warnings').innerHTML = p.warnings.map((w) => `<div class="warn">${esc(w)}</div>`).join('');
+
+    renderDialogPath(o);
+    renderPdfPath(o);
+    renderFoldSteps(o);
+    renderTable();
+    preview.reset();
+  }
+
+  function settingsList(o, forPdf) {
+    const rows = [];
+    if (forPdf) rows.push(['Pages', 'all']);
+    rows.push(['Pages per sheet', '2, laid out left to right']);
+    rows.push(['Orientation', 'landscape (if the dialog asks)']);
+    rows.push(['Scale', 'fit to printable area, or shrink to fit']);
+    if (o.printer === 'duplex') rows.push(['Two-sided', 'on, flipped on the short edge (“short-edge binding”)']);
+    else rows.push(['Two-sided', 'off: you will run the sheets through twice']);
+    return rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  }
+
+  function codebox(label, seq, id) {
+    const text = Quire.format(seq);
+    return `<p class="label-small">${esc(label)}</p><div class="codebox"><pre id="${id}">${esc(text)}</pre><button type="button" data-copy="${id}">Copy</button></div>`;
+  }
+
+  function renderDialogPath(o) {
+    const p = plan;
+    $('dialogtitle').textContent = pdf ? 'Or type the page order yourself' : 'Type the page order';
+    $('padstep').innerHTML = p.blankCount
+      ? `<b>First pad the document.</b> ${esc(Quire.describeBlanks(p))} In Word or LibreOffice, insert page breaks; in Preview or Acrobat, insert blank pages; or add them and print to a new PDF. The numbers below assume the blanks are in.`
+      : `<b>No padding needed:</b> ${p.pages} is a multiple of four.`;
+    $('dialogsettings').innerHTML = settingsList(o, false);
+    let html = '';
+    if (o.printer === 'duplex') {
+      html += codebox('Page order (paste into the “Pages” box)', p.order, 'order-all');
+      if (p.binding === 'signatures' && p.signatures.length > 1) {
+        html += `<details><summary>One signature at a time</summary><p class="note">Handy for printing a cover on heavier paper, or when a printer's output tray mixes up long jobs.</p>`;
+        for (const g of p.signatures) html += codebox(`Signature ${g.n} (sheets ${g.sheets[0].n}–${g.sheets[g.sheets.length - 1].n}, pages ${g.firstPage}–${g.lastPage})`, Quire.signatureOrder(g), `order-sig-${g.n}`);
+        html += `</details>`;
+      } else if (p.sheets.length > 1) {
+        html += `<details><summary>Cover sheet on its own</summary><p class="note">To print the outer sheet on heavier paper, print this first, then the rest.</p>`;
+        html += codebox('Sheet 1 only', Quire.signatureOrder({ sheets: [p.sheets[0]] }), 'order-cover');
+        html += codebox('Sheets 2 onward', Quire.signatureOrder({ sheets: p.sheets.slice(1) }), 'order-rest');
+        html += `</details>`;
+      }
+    } else {
+      html += codebox('Pass 1: the fronts', p.manual.fronts, 'order-fronts');
+      html += `<p class="note">Take the printed stack out, turn it over as a stack without shuffling the sheets, and put it back in the tray. Which way to turn it depends on your printer: the <a href="probe.html">probe</a> finds out for you. Then print:</p>`;
+      html += codebox('Pass 2: the backs', p.manual.backs, 'order-backs');
+      html += `<details><summary>If your printer stacks its output face up</summary><p class="note">Then the sheet printed first ends up at the bottom, so the backs must go in reverse order:</p>${codebox('Pass 2, reversed', p.manual.backsReversed, 'order-backs-rev')}</details>`;
+    }
+    $('orders').innerHTML = html;
+  }
+
+  function renderPdfPath(o) {
+    const card = $('pdfpath');
+    card.hidden = !pdf;
+    if (!pdf) return;
+    const p = plan;
+    const sig = p.binding === 'signatures' && p.signatures.length > 1 ? ` Sheets come out in order, ${p.sheetsPerSignature} to a signature; ${p.signatures.length > 1 ? `the last signature has ${plural(p.signatures[p.signatures.length - 1].sheets.length, 'sheet')}.` : ''}` : '';
+    const blanks = p.blankCount ? ` ${plural(p.blankCount, 'blank page')} ${p.blankCount === 1 ? 'is' : 'are'} added for you, ${p.blankPlacement === 'afterFirst' ? 'inside the front cover' : p.blankPlacement === 'beforeLast' ? 'before the back cover' : 'at the end'}.` : '';
+    $('pdfexplain').innerHTML = `A copy of <b>${esc(pdf.name)}</b> with its ${p.pages} pages in booklet order (${p.padded} pages, ${plural(p.sheets.length, 'sheet')}).${esc(blanks)}${esc(sig)} The copy is your file plus a short note at the end that tells readers the new page order; not one original byte is changed.`;
+    let btns = '';
+    if (o.printer === 'duplex') btns += `<button type="button" class="primary" data-pdf="all">Save booklet PDF</button>`;
+    else {
+      btns += `<button type="button" class="primary" data-pdf="fronts">Save pass 1 (fronts)</button>`;
+      btns += `<button type="button" class="primary" data-pdf="backs">Save pass 2 (backs)</button>`;
+      btns += `<button type="button" data-pdf="backsrev">Pass 2, reversed (face-up trays)</button>`;
+    }
+    $('pdfbuttons').innerHTML = btns;
+    $('pdferr').innerHTML = '';
+    $('pdfsettings').innerHTML = settingsList(o, true);
+    $('pdfnote').textContent =
+      o.printer === 'duplex'
+        ? 'Any PDF app will do, browsers included, because the pages are already in order: print all of them, two per sheet, two-sided on the short edge.'
+        : 'Print pass 1 (all pages, two per sheet, single-sided), turn the stack over and put it back, then print pass 2 the same way. The probe tells you which way to turn it.';
+  }
+
+  function renderFoldSteps(o) {
+    const p = plan;
+    const ltr = p.direction === 'ltr';
+    let html = '<ol class="steps">';
+    if (p.binding === 'booklet') {
+      html += `<li>Stack the printed sheets in the order they came out, sheet 1 on top, all the same way up. Sheet 1 shows <b>${p.sheets[0].front[ltr ? 1 : 0]}</b> on the ${ltr ? 'right' : 'left'} of its front; that is your cover.</li>`;
+      html += `<li>Fold the whole stack in half at once, ${ltr ? 'left half behind the right' : 'right half behind the left'}, so the cover faces out. Crease hard with a bone folder, a ruler edge or the back of a spoon.</li>`;
+      html += `<li>Staple twice through the fold (a long-reach stapler, or open an ordinary one flat over a bit of cardboard), or sew it: three holes along the fold, in at the middle, out at one end, in at the other, out at the middle, tie off.</li>`;
+    } else {
+      html += `<li>Deal the sheets into signatures: ${p.signatures.map((g) => `sheets ${g.sheets[0].n}–${g.sheets[g.sheets.length - 1].n}`).join(', ')}. Keep each in order, first sheet on top, all the same way up.</li>`;
+      html += `<li>Fold each signature as a stack, ${ltr ? 'left half behind the right' : 'right half behind the left'}, and crease hard. The front of the first sheet shows <b>${p.sheets[0].front[ltr ? 1 : 0]}</b> on the ${ltr ? 'right' : 'left'}: that is the cover, so it goes on the outside.</li>`;
+      html += `<li>Stack the folded signatures in order, folds together, and sew through the folds: a pamphlet stitch per signature onto tapes, or a kettle stitch linking each to the last. Glue the spine, or case it in.</li>`;
+    }
+    html += `<li>Check: the book should read ${ltr ? 'left to right' : 'right to left'} from <b>1</b> to <b>${p.padded}</b>${p.blankCount ? `, with the blank${p.blankCount === 1 ? '' : 's'} where you asked` : ''}. The preview below does the same fold.</li>`;
+    html += '</ol>';
+    $('foldsteps').innerHTML = html;
+  }
+
+  function label(padded) {
+    const orig = plan.book[padded - 1];
+    if (orig === 0) return `<span class="blank">${padded} blank</span>`;
+    return orig === padded ? String(padded) : `${padded} <span class="note">(was ${orig})</span>`;
+  }
+
+  function renderTable() {
+    const p = plan;
+    const rows = p.sheets
+      .map(
+        (s) =>
+          `<tr><td class="num">${s.n}</td><td class="num">${p.binding === 'signatures' ? s.sig : '1'}</td><td class="num">${label(s.front[0])} | ${label(s.front[1])}</td><td class="num">${label(s.back[0])} | ${label(s.back[1])}</td></tr>`
+      )
+      .join('');
+    $('sheettable').innerHTML = `<thead><tr><th>Sheet</th><th>Sig.</th><th>Front (left | right)</th><th>Back (left | right)</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  // ---------- copy ----------
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-copy]');
+    if (!btn) return;
+    const text = $(btn.dataset.copy).textContent;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (err) {
+      const range = document.createRange();
+      range.selectNodeContents($(btn.dataset.copy));
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try {
+        ok = document.execCommand('copy');
+      } catch (e2) {
+        ok = false;
+      }
+    }
+    const old = btn.textContent;
+    btn.textContent = ok ? 'Copied' : 'Select & copy';
+    setTimeout(() => (btn.textContent = old), 1400);
+  });
+
+  // ---------- PDF loading and saving ----------
+  function setFileInfo(html, isErr) {
+    const el = $('fileinfo');
+    el.hidden = false;
+    el.innerHTML = isErr ? `<div class="err">${html}</div>` : html;
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const bytes = new Uint8Array(reader.result);
+      try {
+        const info = QuirePDF.inspect(bytes);
+        pdf = { name: file.name, bytes, info };
+        $('pages').value = info.pages;
+        setFileInfo(
+          `<b>${esc(file.name)}</b>: ${plural(info.pages, 'page')}, ${(bytes.length / 1024).toFixed(0)} KB${info.encrypted ? ', encrypted (opens without a password; the reordered copy keeps the same protection)' : ''}.` +
+            (info.warnings.length ? ` <span class="note">${esc(info.warnings.join(' '))}</span>` : '')
+        );
+        render();
+        $('pdfpath').scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'start' });
+      } catch (err) {
+        pdf = null;
+        setFileInfo(`Could not read <b>${esc(file.name)}</b>: ${esc(err.message)} You can still type the page count and use the page order.`, true);
+        render();
+      }
+    };
+    reader.onerror = () => setFileInfo('Could not read that file.', true);
+    reader.readAsArrayBuffer(file);
+  }
+
+  const drop = $('drop');
+  $('pick').addEventListener('click', () => $('file').click());
+  $('pick').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      $('file').click();
+    }
+  });
+  $('file').addEventListener('change', () => loadFile($('file').files[0]));
+  ['dragenter', 'dragover'].forEach((ev) =>
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add('over');
+    })
+  );
+  ['dragleave', 'drop'].forEach((ev) =>
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.remove('over');
+    })
+  );
+  drop.addEventListener('drop', (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    loadFile(f);
+  });
+
+  function download(bytes, name) {
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-pdf]');
+    if (!btn || !pdf) return;
+    const which = btn.dataset.pdf;
+    const p = plan;
+    const toOrig = (seq) => seq.map((n) => p.book[n - 1]);
+    const seq = which === 'all' ? p.order : which === 'fronts' ? p.manual.fronts : which === 'backs' ? p.manual.backs : p.manual.backsReversed;
+    const base = pdf.name.replace(/\.pdf$/i, '');
+    const suffix = { all: 'booklet', fronts: 'pass1-fronts', backs: 'pass2-backs', backsrev: 'pass2-backs-reversed' }[which];
+    const old = btn.textContent;
+    btn.textContent = 'Working…';
+    btn.disabled = true;
+    $('pdferr').innerHTML = '';
+    setTimeout(() => {
+      try {
+        const res = QuirePDF.reorder(pdf.bytes, toOrig(seq));
+        download(res.bytes, `${base}-${suffix}.pdf`);
+        btn.textContent = 'Saved';
+        setTimeout(() => (btn.textContent = old), 1600);
+      } catch (err) {
+        $('pdferr').innerHTML = `<div class="err">${esc(err.message)}</div>`;
+        btn.textContent = old;
+      } finally {
+        btn.disabled = false;
+      }
+    }, 30);
+  });
+
+  // ---------- the preview: sheets, fold, read ----------
+  const SVG = 'http://www.w3.org/2000/svg';
+  const stage = $('stage');
+  const preview = {
+    scene: 'sheets', // 'sheets' | 'folding' | 'folded' | 'read'
+    spread: 0,
+    raf: null,
+    reset() {
+      this.cancel();
+      this.scene = 'sheets';
+      this.spread = 0;
+      this.draw();
+    },
+    cancel() {
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.raf = null;
+    },
+    animate(ms, step, done) {
+      this.cancel();
+      if (reduced.matches) {
+        step(1);
+        if (done) done();
+        return;
+      }
+      const t0 = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - t0) / ms);
+        step(t);
+        if (t < 1) this.raf = requestAnimationFrame(tick);
+        else {
+          this.raf = null;
+          if (done) done();
+        }
+      };
+      this.raf = requestAnimationFrame(tick);
+    },
+    fold() {
+      if (this.scene === 'read' || this.scene === 'folded') {
+        this.scene = 'sheets';
+        this.draw();
+      }
+      this.scene = 'folding';
+      this.updateControls();
+      this.animate(1600, (t) => this.drawSheets(t), () => {
+        this.scene = 'folded';
+        this.spread = 0;
+        this.draw();
+      });
+    },
+    turn(dir) {
+      if (this.scene !== 'read' && this.scene !== 'folded') {
+        this.fold();
+        return;
+      }
+      const spreads = this.spreadCount();
+      const from = this.scene === 'folded' ? 0 : this.spread;
+      const to = from + dir;
+      if (to < 0 || to >= spreads) return;
+      this.scene = 'read';
+      this.animate(700, (t) => this.drawTurn(from, to, t), () => {
+        this.spread = to;
+        this.draw();
+      });
+    },
+    spreadCount() {
+      return plan.padded / 2 + 1; // cover alone, (padded/2 - 1) openings, back cover alone
+    },
+    draw() {
+      if (this.scene === 'sheets') this.drawSheets(0);
+      else if (this.scene === 'folded') this.drawSheets(1);
+      else if (this.scene === 'read') this.drawTurn(this.spread, this.spread, 1);
+      this.updateControls();
+    },
+    updateControls() {
+      const sc = this.scene;
+      $('btnSheets').disabled = sc === 'sheets';
+      $('btnPrev').disabled = !(sc === 'read' && this.spread > 0);
+      $('btnNext').disabled = sc === 'folding' || (sc === 'read' && this.spread >= this.spreadCount() - 1);
+      $('btnFold').textContent = sc === 'sheets' ? 'Fold' : 'Fold again';
+      const sig = plan.signatures[0];
+      const where =
+        sc === 'sheets'
+          ? `${plural(sig.sheets.length, 'sheet')} as printed${plan.signatures.length > 1 ? ' (signature 1 of ' + plan.signatures.length + ')' : ''}`
+          : sc === 'folding'
+            ? 'folding…'
+            : sc === 'folded'
+              ? 'folded: the cover'
+              : this.spreadText(this.spread);
+      $('status').textContent = where;
+    },
+    spreadText(k) {
+      const n = plan.padded;
+      const ltr = plan.direction === 'ltr';
+      const first = 2 * k; // left page in an LTR book
+      const second = 2 * k + 1;
+      if (k === 0) return `the cover, page 1`;
+      if (second > n) return `the back cover, page ${n}`;
+      return ltr ? `open at pages ${first}–${second}` : `open at pages ${second}–${first}`;
+    },
+  };
+
+  function el(name, attrs, text) {
+    const e = document.createElementNS(SVG, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function clear() {
+    while (stage.childNodes.length > 1) stage.removeChild(stage.lastChild);
+  }
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  function paper() {
+    return { fill: css('--paper'), edge: css('--paper-edge'), ink: '#2a251e', muted: '#8a8172', accent: css('--accent') };
+  }
+  function pageLabel(group, x, y, padded, size, scaleX) {
+    const orig = plan.book[padded - 1];
+    const c = paper();
+    const t = el('text', {
+      x,
+      y,
+      'text-anchor': 'middle',
+      'font-family': 'Georgia, "Iowan Old Style", serif',
+      'font-size': size,
+      fill: orig === 0 ? c.muted : c.ink,
+      'font-style': orig === 0 ? 'italic' : 'normal',
+      transform: scaleX !== undefined && scaleX !== 1 ? `translate(${x} 0) scale(${scaleX} 1) translate(${-x} 0)` : '',
+    });
+    t.textContent = orig === 0 ? 'blank' : String(padded);
+    group.appendChild(t);
+  }
+
+  // Only the first signature is drawn (it is what you fold first); up to 8 sheets fanned.
+  function sheetsToDraw() {
+    const sheets = plan.signatures[0].sheets;
+    return sheets.slice(0, 8);
+  }
+
+  // t: 0 = fanned stack as printed, 0..0.35 gather, 0.35..1 fold the non-cover half behind.
+  function drawSheets(t) {
+    clear();
+    const c = paper();
+    const sheets = sheetsToDraw();
+    const total = plan.signatures[0].sheets.length;
+    const ltr = plan.direction === 'ltr';
+    const W = 300;
+    const H = 190;
+    const half = W / 2;
+    const gather = Math.min(1, t / 0.35);
+    const foldT = Math.max(0, (t - 0.35) / 0.65);
+    const theta = (foldT * Math.PI) / 2;
+    const cosT = Math.cos(theta);
+    const fanX = 12 * (1 - gather) + 2.2 * gather;
+    const fanY = 20 * (1 - gather);
+    const n = sheets.length;
+    // centre the fan
+    const foldX = 320 - ((n - 1) * fanX) / 2;
+    const top = 182 - H / 2 - ((n - 1) * fanY) / 2;
+    const g = el('g', {});
+    stage.appendChild(g);
+    // draw from innermost (bottom of fan) to outermost (top)
+    for (let i = n - 1; i >= 0; i--) {
+      const s = sheets[i];
+      const x0 = foldX + i * fanX; // this sheet's fold line
+      const y0 = top + i * fanY;
+      const sg = el('g', {});
+      g.appendChild(sg);
+      // cover half (stays flat)
+      const coverX = ltr ? x0 : x0 - half;
+      sg.appendChild(el('rect', { x: coverX, y: y0, width: half, height: H, fill: c.fill, stroke: c.edge, 'stroke-width': 1 }));
+      pageLabel(sg, coverX + half / 2, y0 + H / 2 + 14, ltr ? s.front[1] : s.front[0], 40);
+      // the other half folds behind: its projected width shrinks
+      const w = half * cosT;
+      if (w > 0.5) {
+        const fx = ltr ? x0 - w : x0;
+        sg.appendChild(el('rect', { x: fx, y: y0, width: w, height: H, fill: c.fill, stroke: c.edge, 'stroke-width': 1 }));
+        pageLabel(sg, fx + w / 2, y0 + H / 2 + 14, ltr ? s.front[0] : s.front[1], 40, cosT);
+        // fold line (stopping short of the caption strip while the sheets are fanned)
+        sg.appendChild(el('line', { x1: x0, y1: y0, x2: x0, y2: y0 + H - (t === 0 ? 18 : 0), stroke: c.accent, 'stroke-width': 1.2, 'stroke-dasharray': '5 4', opacity: 0.8 }));
+      }
+      // small back-side caption on the fanned sheets
+      if (t === 0) {
+        sg.appendChild(
+          el(
+            'text',
+            { x: x0, y: y0 + H - 6, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif', 'font-size': 10.5, fill: c.muted },
+            `sheet ${s.n} · back: ${s.back[0]} | ${s.back[1]}`
+          )
+        );
+      }
+    }
+    if (foldT >= 1) {
+      // closed booklet: show the fore-edges of nested sheets creeping out
+      const x0 = foldX + (n - 1) * fanX;
+      const edgeX = ltr ? x0 + half : x0 - half;
+      for (let k = 1; k < Math.min(total, 12); k++) {
+        const ex = edgeX + (ltr ? 1 : -1) * k * 1.6;
+        g.appendChild(el('line', { x1: ex, y1: top + 2 + k * 0.3, x2: ex, y2: top + H - 2 - k * 0.3, stroke: c.edge, 'stroke-width': 1, opacity: 0.8 }));
+      }
+      g.appendChild(el('text', { x: 320, y: 370, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif', 'font-size': 13, fill: css('--muted') }, `Folded. Fold on the ${ltr ? 'left' : 'right'}; turn the page to read.`));
+    } else if (t === 0) {
+      g.appendChild(
+        el(
+          'text',
+          { x: 320, y: 370, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif', 'font-size': 13, fill: css('--muted') },
+          total > n ? `Front sides of the first ${n} of ${total} sheets, outer sheet on top.` : `Front sides, outer sheet on top. Dashed line: the fold.`
+        )
+      );
+    }
+  }
+
+  // The open book. Spread k: pages 2k (one side of the fold) and 2k+1 (the other).
+  // t animates a turn from spread `from` to spread `to` (one step either way).
+  function drawTurn(from, to, t) {
+    clear();
+    const c = paper();
+    const n = plan.padded;
+    const ltr = plan.direction === 'ltr';
+    const W = 320;
+    const H = 212;
+    const half = W / 2;
+    const foldX = 320;
+    const top = 190 - H / 2;
+    const g = el('g', {});
+    stage.appendChild(g);
+    // page positions: in an LTR book the lower-numbered page of a spread is on the left
+    const leftOf = (k) => (ltr ? 2 * k : 2 * k + 1);
+    const rightOf = (k) => (ltr ? 2 * k + 1 : 2 * k);
+    const inBook = (p) => p >= 1 && p <= n;
+    const drawPage = (side, p, width, scaleX, showFold) => {
+      if (!inBook(p) || width < 0.5) return;
+      const x = side < 0 ? foldX - width : foldX;
+      g.appendChild(el('rect', { x, y: top, width, height: H, fill: c.fill, stroke: c.edge, 'stroke-width': 1 }));
+      pageLabel(g, x + width / 2, top + H / 2 + 14, p, 40, scaleX);
+    };
+    // table shadow under the book
+    g.appendChild(el('rect', { x: foldX - half - 6, y: top + H + 4, width: W + 12, height: 6, rx: 3, fill: c.edge, opacity: 0.35 }));
+    const dir = to - from;
+    const base = dir >= 0 ? from : to; // the spread whose pages stay put underneath
+    if (dir === 0 || t >= 1) {
+      drawPage(-1, leftOf(to), half, 1);
+      drawPage(1, rightOf(to), half, 1);
+    } else {
+      // forward: the right leaf (LTR) lifts and lands on the left. backward: mirror.
+      const movingSide = ltr ? dir : -dir; // +1 = right leaf moves, -1 = left leaf moves
+      const k0 = from;
+      const k1 = to;
+      // underneath: the staying page of `from` on the far side, the newly revealed page of `to` on the moving side
+      const stayingSide = -movingSide;
+      const pageStaying = stayingSide < 0 ? leftOf(k0) : rightOf(k0);
+      const pageRevealed = movingSide < 0 ? leftOf(k1) : rightOf(k1);
+      const pageLeafFront = movingSide < 0 ? leftOf(k0) : rightOf(k0);
+      const pageLeafBack = stayingSide < 0 ? leftOf(k1) : rightOf(k1);
+      drawPage(stayingSide, pageStaying, half, 1);
+      drawPage(movingSide, pageRevealed, half, 1);
+      const ang = t * Math.PI;
+      if (t < 0.5) {
+        const w = half * Math.cos(ang);
+        drawPage(movingSide, pageLeafFront, w, Math.cos(ang));
+      } else {
+        const w = half * -Math.cos(ang);
+        drawPage(stayingSide, pageLeafBack, w, -Math.cos(ang));
+      }
+    }
+    // spine
+    g.appendChild(el('line', { x1: foldX, y1: top, x2: foldX, y2: top + H, stroke: c.edge, 'stroke-width': 1.5 }));
+    const k = t >= 1 || dir === 0 ? to : from;
+    g.appendChild(el('text', { x: 320, y: 370, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif', 'font-size': 13, fill: css('--muted') }, preview.spreadText(k)));
+  }
+  preview.drawSheets = drawSheets;
+  preview.drawTurn = drawTurn;
+
+  $('btnSheets').addEventListener('click', () => preview.reset());
+  $('btnFold').addEventListener('click', () => preview.fold());
+  $('btnNext').addEventListener('click', () => preview.turn(1));
+  $('btnPrev').addEventListener('click', () => preview.turn(-1));
+  stage.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      preview.turn(1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      preview.turn(-1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (preview.scene === 'sheets') preview.fold();
+      else preview.turn(1);
+    }
+  });
+  stage.addEventListener('click', (e) => {
+    if (preview.scene === 'sheets') preview.fold();
+    else {
+      const r = stage.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      preview.turn(x < 0.5 ? -1 : 1);
+    }
+  });
+  if (window.matchMedia) {
+    const dark = window.matchMedia('(prefers-color-scheme: dark)');
+    if (dark.addEventListener) dark.addEventListener('change', () => preview.draw());
+  }
+
+  // ---------- wiring ----------
+  for (const id of ['pages', 'sps', 'blanks']) $(id).addEventListener('input', render);
+  for (const name of ['binding', 'printer', 'direction']) document.querySelectorAll(`input[name=${name}]`).forEach((r) => r.addEventListener('change', render));
+  render();
+})();
+</script>
+</body>
+</html>
