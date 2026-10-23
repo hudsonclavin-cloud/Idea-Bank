@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Plateau Bottle</title>
-<meta name="description" content="A redesign of the rubber hot water bottle: a lauric-acid jacket that melts at 43.8 C holds the skin side near 40 C, with the model, the evidence and the test that would kill it.">
+<meta name="description" content="A redesign of the rubber hot water bottle: a lauric-acid jacket that melts at 43.8 C holds the skin side near 40 C while some wax stays solid, with the model, the evidence, where it fails, and the test that would kill it.">
 <style>
 :root {
   --bg: #fbf8f3; --fg: #23201c; --muted: #6c645a; --card: #ffffff; --line: #e2dbd0; --soft: #f3eee6;
@@ -63,6 +63,8 @@ svg .co text { font-size: 12px; font-weight: 700; text-anchor: middle; }
 .seg.s1, .barkey .k1::before { background: var(--hot); }
 .seg.s2, .barkey .k2::before { background: var(--cool); }
 .seg.s3, .barkey .k3::before { background: var(--wax); }
+.seg.s4, .barkey .k4::before { background: linear-gradient(90deg, var(--hot), var(--cool)); }
+.seg.s5, .barkey .k5::before { background: var(--muted); }
 .barkey { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.88rem; }
 .barkey > span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 figure svg { width: 100%; height: auto; display: block; }
@@ -100,7 +102,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <main>
 <button class="theme" id="theme" type="button" aria-label="Switch light or dark theme">Theme</button>
 <h1>The Plateau Bottle</h1>
-<p class="tag">A hot water bottle you can hug all night: a wax jacket that melts at <span class="n"><span data-v="G_Tm">43.8</span> °C</span> holds the skin side near <span class="n"><span data-v="R_Ts1h">40.6</span> °C</span> instead of starting at <span class="n"><span data-v="O_peak">48.4</span> °C</span> and sliding.</p>
+<p class="tag">A wax jacket that melts at <span class="n"><span data-v="G_Tm">43.8</span> °C</span> holds a hot water bottle's skin side near <span class="n"><span data-v="R_Ts1h">40.6</span> °C</span> instead of starting at <span class="n"><span data-v="O_peak">48.4</span> °C</span> and sliding, as long as some of the wax stays solid.</p>
 <p class="meta">Kind: redesign · Made by Mushy Zone · Every number on this page is computed by the model embedded in it (<code>model.js</code>), and <code>check.mjs</code> recomputes it, partly with separately written code.</p>
 
 <div class="card verdict">
@@ -108,8 +110,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <ul class="tight">
 <li>Used exactly as its makers say (water at 80 °C, two thirds full, inside its fleece cover), a plain rubber bottle puts, in the model's base case, <b class="n"><span data-v="O_peak">48.4</span> °C</b> on the skin it touches. It stays above the all-night burn line of <span data-v="L_long">43</span> °C for <b class="n"><span data-v="O_h43">2.9</span> h</b>. Skin with better circulation sees less (<span data-v="S_warmSkin_orig_peak">43.7</span> °C); skin with poor circulation sees more (<span data-v="S_poor_orig_peak">54.6</span> °C).</li>
 <li>The cheapest fix is a cover <span data-v="T_thickRatio">3</span>× thicker. On that night it works as well as my jacket. I didn't expect that, and it is the most important thing on this page.</li>
-<li>The jacket earns its weight on the nights that actually put people in burns units: kettle-hot water, a lost cover, poor circulation. Out of the <span data-v="N_nights">9</span> nights modelled below, the plain bottle spends time above <span data-v="L_long">43</span> °C on <b><span data-v="N_over_orig">8</span></b>, the thick cover on <b><span data-v="N_over_thick">6</span></b>, and the jacket on <b><span data-v="N_over_plateau">0</span></b>.</li>
-<li>It costs <span class="n">+<span data-v="W_added">801</span> g</span> (+<span data-v="W_addedPct">44</span>%), two to three times the price, and people with warm, well-perfused skin will find it lukewarm. My estimate is that it is better than the plain bottle for most people at 30%, and for people who can't feel or can't move away from heat at 75%.</li>
+<li>The jacket earns its weight on the misuse nights: kettle-hot water, a lost cover, poor circulation. Out of the <span data-v="N_nights">13</span> nights modelled below, the plain bottle spends time above <span data-v="L_long">43</span> °C on <b><span data-v="N_over_orig">12</span></b>, the thick cover on <b><span data-v="N_over_thick">10</span></b>, and the jacket on <b><span data-v="N_over_plateau">2</span></b>. That count depends on which nights I chose, so section 4 also maps where the jacket fails.</li>
+<li><b>The melting point is a ceiling only while some wax is still solid.</b> If the skin carries little heat away (poor circulation, or tissue pressed under body weight) and the water is hotter or fuller than instructed, the wax can melt through, and then the skin heads for the water temperature. With poor circulation, kettle-hot water and the bottle filled to the top, that gives <span class="n"><span data-v="S_poorBrim_plateau_peak">46.3</span> °C</span> and <span data-v="S_poorBrim_plateau_h43">4.7</span> h above <span data-v="L_long">43</span> °C. Filled as instructed it never melts through in the model, but skin that sheds almost no heat would still sit just under <span data-v="G_Tm">43.8</span> °C for hours, which is a burn risk in itself.</li>
+<li>It costs <span class="n">+<span data-v="W_added">801</span> g</span> (+<span data-v="W_addedPct">44</span>%), two to three times the price, and people with warm, well-perfused skin will find it lukewarm. My estimates: for most people it is better than the plain bottle at <span data-v="PR_mostVsPlain">30</span>%, and better than a thick cover at <span data-v="PR_mostVsThick">20</span>%. For people who can't feel or can't move away from heat, it is less harmful than the plain bottle at <span data-v="PR_vulnVsPlain">70</span>%, and less harmful than a thick cover at <span data-v="PR_vulnVsThick">60</span>%. Less harmful is not the same as safe.</li>
 </ul>
 </div>
 
@@ -119,19 +122,25 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <h3>The evidence that it hurts people</h3>
 <ul class="tight">
 <li>The International Burn Injury Database recorded <b><span data-v="EV_total">5944</span></b> hot water bottle burns in England and Wales in 2014–2023, <span data-v="EV_perYear">594</span> a year. Winter 2022, when energy prices spiked, had <span data-v="EV_w22">423</span> against <span data-v="EV_w21">295</span> the winter before, a rise of <span data-v="EV_risePct">43</span>% (<i>Burns</i>, 2024).</li>
-<li>One regional burns unit's series of <span data-v="EV_n">85</span> patients broke them down by cause: the bottle burst <span data-v="EV_rupture">48.2</span>%, spilled while being filled <span data-v="EV_spill">33.0</span>%, and simply touched skin for too long <span data-v="EV_contact">18.8</span>% (2013). Apply that last share to the national figure and it suggests roughly <span data-v="EV_contactPerYear">112</span> contact burns a year. That is a rough number, since it mixes two datasets.</li>
-<li>Another UK unit saw 80 patients, 30 of them with full-thickness burns, and costed their care at over £68,000 (<i>Burns</i>, 2019).</li>
+<li>One regional burns unit's series of <span data-v="EV_n">85</span> patients (2004–13) broke them down by cause: the bottle burst <span data-v="EV_rupture">48.2</span>%, spilled while being filled <span data-v="EV_spill">33.0</span>%, and simply touched skin for too long <span data-v="EV_contact">18.8</span>%. Its only pure full-thickness burns, <span data-v="EV_ftContact">3</span> of them, all came from prolonged contact in people with sensory deficits.</li>
+<li>Another UK unit (Chelsea and Westminster, January 2017 to March 2018) saw <span data-v="EV_n2">80</span> patients: <span data-v="EV_c2">41</span> contact burns (<span data-v="EV_contact2">51.3</span>%), <span data-v="EV_s2">38</span> scalds (<span data-v="EV_scald2">47.5</span>%) and one steam burn. <span data-v="EV_ft2">30</span> had full-thickness burns, and their care cost over £68,000 (<i>Burns</i>, 2019). An Australian audit found <span data-v="EV_adC">7</span> contact burns among <span data-v="EV_adN">23</span> (<i>Eplasty</i>, 2010).</li>
+<li>So contact is between a fifth and a half of hot water bottle burns, depending on the unit and the years, and it includes the deepest ones. Applied to the national figure, that is roughly <span data-v="EV_contactPerYear">112</span> to <span data-v="EV_contactPerYear2">305</span> contact burns a year. That is a rough range, since it mixes datasets. None of these series records the fill temperature or whether a cover was used.</li>
 <li>Repeated heat at 43–47 °C causes <i>erythema ab igne</i>, "toasted skin syndrome", a net-like brown stain. Case reports put the lower back as now the commonest site, because of hot water bottles held there for pain.</li>
 <li>Fashy, a major German maker, says in its own safety sheet: "For children or sensitive skin, a surface temperature of &lt; 42 °C must be maintained and there must be no direct skin contact."</li>
 </ul>
 
 <figure>
-<div class="small">How <span data-v="EV_n">85</span> hot water bottle burns happened (one UK burns unit, 2013)</div>
+<div class="small">How <span data-v="EV_n">85</span> hot water bottle burns happened (one UK burns unit, 2004–13)</div>
 <div class="bar" role="img" aria-label="Of the burns in one UK series, about half from bursts, a third from spills while filling, a fifth from contact">
 <div class="seg s1" style="flex:48.2"></div><div class="seg s2" style="flex:33"></div><div class="seg s3" style="flex:18.8"></div>
 </div>
 <div class="barkey"><span class="k1">burst <span data-v="EV_rupture">48.2</span>%</span><span class="k2">spilled while filling <span data-v="EV_spill">33.0</span>%</span><span class="k3">contact <span data-v="EV_contact">18.8</span>%</span></div>
-<figcaption>Figure 1. The jacket addresses the smallest of the three causes, contact. It does nothing for spills while filling. After the first hour it does make a burst less severe, because the water behind it is cooler: <span data-v="R_Tw1h">56</span> °C at one hour against <span data-v="O_Tw1h">68</span> °C in a plain bottle. US scald tables give about 25 s for a permanent burn at 55 °C, against about 1 s at 68 °C.</figcaption>
+<div class="small" style="margin-top:12px">How <span data-v="EV_n2">80</span> happened (another UK burns unit, 2017–18)</div>
+<div class="bar" role="img" aria-label="Of the burns in a second UK series, about half from contact and half scalds, with one steam burn">
+<div class="seg s4" style="flex:38"></div><div class="seg s3" style="flex:41"></div><div class="seg s5" style="flex:1"></div>
+</div>
+<div class="barkey"><span class="k4">scald: burst, leak or spill <span data-v="EV_scald2">47.5</span>%</span><span class="k3">contact <span data-v="EV_contact2">51.3</span>%</span><span class="k5">steam, 1 patient</span></div>
+<figcaption>Figure 1. The jacket addresses contact only: a fifth of the burns in one series, half in the other. It does nothing for spills while filling, and its extra weight may add to them (risk 9). After the first hour it does make a burst less severe, because the water behind it is cooler: <span data-v="R_Tw1h">56</span> °C at one hour against <span data-v="O_Tw1h">68</span> °C in a plain bottle. US scald tables give about 25 s for a permanent burn at 55 °C, against about 1 s at 68 °C.</figcaption>
 </figure>
 
 <h3>Why contact is too hot, from first principles</h3>
@@ -161,8 +170,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <p><b>How it works.</b> Lauric acid (dodecanoic acid, a fatty acid from coconut and palm-kernel oil) melts at <span class="n"><span data-v="G_Tm">43.8</span> °C</span> and soaks up <span class="n"><span data-v="G_LkJ">175</span> kJ/kg</span> doing it. Hot water melts the wax from the inside. While any solid wax remains between the melt front and the skin, the outer surface <i>cannot</i> rise above the melting point, however hot the water is. When the water falls below <span data-v="G_Tm">43.8</span> °C the wax freezes again and hands the heat back. The skin under a melting front sits at</p>
 <ul class="tight">
 <li><span class="n"><span data-v="C_plateauLo">40.1</span>–<span data-v="C_plateauHi">41.5</span> °C</span> for normal tissue, depending on where the front is;</li>
-<li><span class="n"><span data-v="C_plateauPoor">42.4</span> °C</span> at most with poor circulation, which is under the 8-hour line;</li>
-<li><span class="n"><span data-v="C_plateauBare">43.8</span> °C</span> if the tissue carried no heat away at all. That is the hard ceiling, <span data-v="G_TmAbove">0.8</span> K above the ISO 8-hour line.</li>
+<li><span class="n"><span data-v="C_plateauPoor">42.4</span> °C</span> at most with poor circulation (<i>R</i><sub>t</sub> = 0.06), which is under the 8-hour line;</li>
+<li><span class="n"><span data-v="C_plateauBare">43.8</span> °C</span> if the tissue carried no heat away at all, but only while solid wax is left. That is <span data-v="G_TmAbove">0.8</span> K above the ISO 8-hour line, so it is not a safe ceiling: held for a night it is a burn dose. And if the wax melts through while the water is still hotter than the melting point, the skin heads for the water temperature. Section 4 maps when that happens.</li>
 </ul>
 
 <figure class="fig2">
@@ -257,12 +266,12 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <div class="scroll"><table>
 <tr><th>Part</th><th>Value</th><th>Why</th></tr>
 <tr><td>Bottle</td><td>2 L, <span data-v="G_faceW">180</span> × <span data-v="G_faceH">280</span> mm face, 2 mm rubber, smooth faces</td><td>Bought in unchanged. Smooth faces, because ribs leave air gaps under the panels.</td></tr>
-<tr><td>Wax</td><td>Lauric acid, <span data-v="G_waxT">7.5</span> mm average per face, <span data-v="G_waxTotal">761</span> g</td><td>Melting point <span data-v="G_Tm">43.8</span> °C, set by the most vulnerable user: under it, poorly perfused skin sits at <span data-v="C_plateauPoor">42.4</span> °C. Myristic acid (about 52–54 °C) would put them over the line, and anything lower is tepid for everyone.</td></tr>
+<tr><td>Wax</td><td>Lauric acid, <span data-v="G_waxT">7.5</span> mm average per face, <span data-v="G_waxTotal">761</span> g</td><td>Melting point <span data-v="G_Tm">43.8</span> °C, set by poorly perfused skin: under a melting front, skin with <i>R</i><sub>t</sub> 0.06 sits at <span data-v="C_plateauPoor">42.4</span> °C. Skin that sheds much less heat (above <i>R</i><sub>t</sub> ≈ <span data-v="C_overRt">0.113</span>) would sit over 43 °C. A paraffin melting at 42 °C, as in US 7,041,123, would cap even that, at the price of a plateau about 1 K cooler for everyone (<span data-v="C_plateau42Lo">39.3</span>–<span data-v="C_plateau42Hi">40.3</span> °C). Myristic acid (about 52–54 °C) would put poorly perfused skin over the line.</td></tr>
 <tr><td>Layers</td><td>2 per face, tubes 42 × 174 mm at 45 mm pitch, offset half a pitch</td><td>Stops slump. No seal line goes straight through. Thinnest point <span data-v="G_layerT">4.3</span> mm.</td></tr>
 <tr><td>Felt spacer</td><td>1 mm needle felt, <span data-v="G_spacer">0.025</span> m²K/W</td><td>Without it, kettle-hot water melts the wax faster than skin takes heat away. The bad night then peaks at <span data-v="A_noSpacer_badPeak">44.2</span> °C, against <span data-v="A_plateau_badPeak">42.3</span> °C with it.</td></tr>
 <tr><td>Both faces</td><td>wax on front and back</td><td>A one-panel bottle used the wrong way round peaks at <span data-v="A_onePanelFlipped_peak">54.3</span> °C.</td></tr>
 <tr><td>Sleeve</td><td>thin woven cotton, <span data-v="G_sleeve">0.015</span> m²K/W</td><td>The wax does the protecting. With the sleeve off, the as-instructed peak is still <span data-v="S_bare_plateau_peak">41.8</span> °C.</td></tr>
-<tr><td>Fill</td><td>unchanged: two thirds full, up to 80 °C</td><td>The jacket is a margin, not a licence. Spills while filling are a third of the burns.</td></tr>
+<tr><td>Fill</td><td>unchanged: two thirds full, up to 80 °C</td><td>The jacket is a margin, not a licence. Filled like this it never melts through in the model; hotter or fuller fills can, on skin that sheds little heat (section 4). Spills while filling are a third of the burns in one series.</td></tr>
 </table></div>
 
 <h2>3. The numbers that decide it: a live calculator</h2>
@@ -271,7 +280,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <div class="controls">
 <label>Water temperature at filling <span class="v" id="vFill"></span><input type="range" id="iFill" min="50" max="100" step="1" value="80"></label>
 <label>Water in the bottle <span class="v" id="vVol"></span><input type="range" id="iVol" min="0.8" max="2" step="0.1" value="1.4"></label>
-<label>Tissue resistance (circulation) <span class="v" id="vTis"></span><input type="range" id="iTis" min="0.015" max="0.06" step="0.005" value="0.03"></label>
+<label>Tissue resistance (circulation) <span class="v" id="vTis"></span><input type="range" id="iTis" min="0.015" max="0.2" step="0.005" value="0.03"></label>
 <label>Minutes in the empty bed first <span class="v" id="vPre"></span><input type="range" id="iPre" min="0" max="180" step="15" value="0"></label>
 <label>Wax per face (design) <span class="v" id="vWax"></span><input type="range" id="iWax" min="0" max="10" step="0.5" value="7.5"></label>
 <label>Room temperature <span class="v" id="vRoom"></span><input type="range" id="iRoom" min="10" max="24" step="1" value="18"></label>
@@ -284,6 +293,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <button type="button" data-preset="asTold">As instructed</button>
 <button type="button" data-preset="kettle">Kettle-hot</button>
 <button type="button" data-preset="poorKettle">Poor circulation + kettle</button>
+<button type="button" data-preset="poorBrim">Poor circulation + kettle + full</button>
+<button type="button" data-preset="high">Little heat drained + kettle</button>
 <button type="button" data-preset="warmSkin">Warm skin</button>
 <button type="button" data-preset="early">Kettle + 2 h in empty bed</button>
 </div>
@@ -293,54 +304,99 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <thead><tr><th></th><th class="r">plain, fleece</th><th class="r">thick cover</th><th class="r">plateau</th></tr></thead>
 <tbody></tbody>
 </table></div>
-<p class="small" id="calcNote">Skin temperature is the temperature where cover or sleeve meets skin. "In band" means 38–43 °C: clearly warm, and under the ISO 13732-1 line for contact of eight hours or more. The small steps in the plateau line are the model's six wax slices freezing one at a time, not physics.</p>
+<p class="small" id="calcNote">Skin temperature is the temperature where cover or sleeve meets skin. "In band" means 38–43 °C: clearly warm, and under the ISO 13732-1 line for contact of eight hours or more. Tissue resistance above 0.06 stands for skin that sheds little heat, such as tissue pressed under body weight; there the plateau line can break upward when the last wax melts. The small steps in the plateau line are the model's six wax slices freezing one at a time, not physics.</p>
 </div>
 
 <h3>Checks you can do on the back of an envelope</h3>
 <ul class="tight">
-<li><b>Heat budget.</b> At 80 °C the water holds 1.4 kg × 4186 J/kg·K × (80 − <span data-v="G_Tm">43.8</span>) K = <b class="n"><span data-v="B_excess80">212</span> kJ</b> above the melting point; at 95 °C, <span data-v="B_excess95">300</span> kJ. The wax can absorb <span data-v="B_latent">133</span> kJ melting, plus <span data-v="B_sensible">40</span> kJ warming from 18 °C, <span data-v="B_store">173</span> kJ in all. So the wax alone could not swallow a kettle fill. The body and the bed must take the rest. That is why the failure case is kettle-hot water left a long time in an empty bed (section 4).</li>
+<li><b>Heat budget.</b> At 80 °C the water holds 1.4 kg × 4186 J/kg·K × (80 − <span data-v="G_Tm">43.8</span>) K = <b class="n"><span data-v="B_excess80">212</span> kJ</b> above the melting point; at 95 °C, <span data-v="B_excess95">300</span> kJ. The wax can absorb <span data-v="B_latent">133</span> kJ melting, plus <span data-v="B_sensible">40</span> kJ warming from 18 °C, <span data-v="B_store">173</span> kJ in all. So the wax alone could not swallow a kettle fill. The body and the bed must take the rest. That is why the failure cases are a kettle fill against skin that sheds little heat, or left a long time in an empty bed (section 4).</li>
 <li><b>Melt speed.</b> A Stefan estimate for a front crossing <span data-v="G_waxT">7.5</span> mm of wax, with the hot side held at 80 °C, gives <span data-v="S_stefanMin">12</span> min (<span data-v="S_stefan95Min">8</span> min at 95 °C). That is fast, which is why the felt spacer is there: it slows the heat going into the wax.</li>
 <li><b>Plain bottle time constant.</b> 1.4 kg of water plus the rubber is <span data-v="O_C_kJK">6.53</span> kJ/K. It loses heat at <span data-v="O_ua">0.32</span> W/K, mostly through the skin, which gives τ = <span data-v="O_tauH">5.6</span> h. That is why a plain bottle is still lukewarm in the morning if it stays against you: <span data-v="O_Tw8h">42</span> °C water at eight hours.</li>
 <li><b>Heat into the body.</b> Over nine hours, <span data-v="O_qBodyKJ">131</span> kJ from the plain bottle against <span data-v="R_qBodyKJ">58</span> kJ from the plateau bottle. The jacket gives less than half the heat. What you feel is skin temperature, but less heat is less heat, and for cold feet that may matter [Likely].</li>
 <li><b>Warm-up.</b> The jacket starts at room temperature, so the plateau bottle takes <span data-v="R_tWarmMin">7</span> min to reach 38 °C at the skin. Most people put the bottle in the bed first anyway. After 30 minutes there, it is warm from the first touch: <span data-v="R_pw30_tWarmMin">0</span> min to 38 °C, peak <span data-v="R_pw30_peak">41.2</span> °C.</li>
 </ul>
 
-<h2>4. Nine nights, three bottles</h2>
-<p>Each cell shows the peak skin temperature in bold, then beneath it the hours above <span data-v="L_long">43</span> °C and the hours of the 9 spent in the 38–43 °C band.</p>
+<h2>4. Thirteen nights, three bottles</h2>
+<p>Each cell shows the peak skin temperature in bold, then beneath it the hours above <span data-v="L_long">43</span> °C and the hours of the 9 spent in the 38–43 °C band. For the plateau bottle a third figure gives the most skin-side wax ever melted: 100% means it melted through.</p>
 <div class="scroll"><table>
 <tr><th>Night</th><th class="r">plain, fleece</th><th class="r">thick cover</th><th class="r">plateau</th></tr>
-<tr><td>As instructed: 80 °C, ⅔ full</td><td class="r"><b><span data-v="S_asTold_orig_peak">48.4</span>°</b><span class="sub"><span data-v="S_asTold_orig_h43">2.9</span> · <span data-v="S_asTold_orig_band">6.0</span></span></td><td class="r"><b><span data-v="S_asTold_thick_peak">42.7</span>°</b><span class="sub"><span data-v="S_asTold_thick_h43">0.0</span> · <span data-v="S_asTold_thick_band">9.0</span></span></td><td class="r"><b><span data-v="S_asTold_plateau_peak">40.6</span>°</b><span class="sub"><span data-v="S_asTold_plateau_h43">0.0</span> · <span data-v="S_asTold_plateau_band">8.9</span></span></td></tr>
-<tr><td>Careful: 60 °C</td><td class="r"><b><span data-v="S_cool_orig_peak">42.9</span>°</b><span class="sub"><span data-v="S_cool_orig_h43">0.0</span> · <span data-v="S_cool_orig_band">6.0</span></span></td><td class="r"><b><span data-v="S_cool_thick_peak">40.0</span>°</b><span class="sub"><span data-v="S_cool_thick_h43">0.0</span> · <span data-v="S_cool_thick_band">5.7</span></span></td><td class="r"><b><span data-v="S_cool_plateau_peak">40.2</span>°</b><span class="sub"><span data-v="S_cool_plateau_h43">0.0</span> · <span data-v="S_cool_plateau_band">5.3</span></span></td></tr>
-<tr><td>Kettle-hot: 95 °C</td><td class="r"><b><span data-v="S_kettle_orig_peak">52.6</span>°</b><span class="sub"><span data-v="S_kettle_orig_h43">4.4</span> · <span data-v="S_kettle_orig_band">4.6</span></span></td><td class="r"><b><span data-v="S_kettle_thick_peak">44.8</span>°</b><span class="sub"><span data-v="S_kettle_thick_h43">1.9</span> · <span data-v="S_kettle_thick_band">7.0</span></span></td><td class="r"><b><span data-v="S_kettle_plateau_peak">41.1</span>°</b><span class="sub"><span data-v="S_kettle_plateau_h43">0.0</span> · <span data-v="S_kettle_plateau_band">8.9</span></span></td></tr>
-<tr><td>Kettle-hot and filled to the top (2 L)</td><td class="r"><b><span data-v="S_brim_orig_peak">53.1</span>°</b><span class="sub"><span data-v="S_brim_orig_h43">6.4</span> · <span data-v="S_brim_orig_band">2.6</span></span></td><td class="r"><b><span data-v="S_brim_thick_peak">45.1</span>°</b><span class="sub"><span data-v="S_brim_thick_h43">3.1</span> · <span data-v="S_brim_thick_band">5.9</span></span></td><td class="r"><b><span data-v="S_brim_plateau_peak">42.3</span>°</b><span class="sub"><span data-v="S_brim_plateau_h43">0.0</span> · <span data-v="S_brim_plateau_band">8.9</span></span></td></tr>
-<tr><td>Poor circulation (<i>R</i><sub>t</sub> 0.06)</td><td class="r"><b><span data-v="S_poor_orig_peak">54.6</span>°</b><span class="sub"><span data-v="S_poor_orig_h43">5.5</span> · <span data-v="S_poor_orig_band">3.5</span></span></td><td class="r"><b><span data-v="S_poor_thick_peak">47.0</span>°</b><span class="sub"><span data-v="S_poor_thick_h43">3.7</span> · <span data-v="S_poor_thick_band">5.2</span></span></td><td class="r"><b><span data-v="S_poor_plateau_peak">41.9</span>°</b><span class="sub"><span data-v="S_poor_plateau_h43">0.0</span> · <span data-v="S_poor_plateau_band">8.9</span></span></td></tr>
-<tr><td>Poor circulation and kettle-hot</td><td class="r"><b><span data-v="S_poorKettle_orig_peak">61.0</span>°</b><span class="sub"><span data-v="S_poorKettle_orig_h43">7.3</span> · <span data-v="S_poorKettle_orig_band">1.7</span></span></td><td class="r"><b><span data-v="S_poorKettle_thick_peak">50.6</span>°</b><span class="sub"><span data-v="S_poorKettle_thick_h43">6.2</span> · <span data-v="S_poorKettle_thick_band">2.8</span></span></td><td class="r"><b><span data-v="S_poorKettle_plateau_peak">42.3</span>°</b><span class="sub"><span data-v="S_poorKettle_plateau_h43">0.0</span> · <span data-v="S_poorKettle_plateau_band">8.9</span></span></td></tr>
-<tr><td>Warm, well-perfused skin (<i>R</i><sub>t</sub> 0.015)</td><td class="r"><b><span data-v="S_warmSkin_orig_peak">43.7</span>°</b><span class="sub"><span data-v="S_warmSkin_orig_h43">0.5</span> · <span data-v="S_warmSkin_orig_band">6.4</span></span></td><td class="r"><b><span data-v="S_warmSkin_thick_peak">40.1</span>°</b><span class="sub"><span data-v="S_warmSkin_thick_h43">0.0</span> · <span data-v="S_warmSkin_thick_band">7.0</span></span></td><td class="r"><b><span data-v="S_warmSkin_plateau_peak">39.4</span>°</b><span class="sub"><span data-v="S_warmSkin_plateau_h43">0.0</span> · <span class="bad" data-v="S_warmSkin_plateau_band">3.7</span></span></td></tr>
-<tr><td>Cover or sleeve left off</td><td class="r"><b><span data-v="S_bare_orig_peak">59.8</span>°</b><span class="sub"><span data-v="S_bare_orig_h43">3.5</span> · <span data-v="S_bare_orig_band">3.3</span></span></td><td class="r"><b><span data-v="S_bare_thick_peak">59.8</span>°</b><span class="sub"><span data-v="S_bare_thick_h43">3.5</span> · <span data-v="S_bare_thick_band">3.3</span></span></td><td class="r"><b><span data-v="S_bare_plateau_peak">41.8</span>°</b><span class="sub"><span data-v="S_bare_plateau_h43">0.0</span> · <span data-v="S_bare_plateau_band">8.9</span></span></td></tr>
-<tr><td>Kettle-hot, an hour in the empty bed first</td><td class="r"><b><span data-v="S_early_orig_peak">53.3</span>°</b><span class="sub"><span data-v="S_early_orig_h43">4.0</span> · <span data-v="S_early_orig_band">5.0</span></span></td><td class="r"><b><span data-v="S_early_thick_peak">44.6</span>°</b><span class="sub"><span data-v="S_early_thick_h43">1.4</span> · <span data-v="S_early_thick_band">7.6</span></span></td><td class="r"><b><span data-v="S_early_plateau_peak">41.4</span>°</b><span class="sub"><span data-v="S_early_plateau_h43">0.0</span> · <span data-v="S_early_plateau_band">9.0</span></span></td></tr>
+<tr><td>As instructed: 80 °C, ⅔ full</td><td class="r"><b><span data-v="S_asTold_orig_peak">48.4</span>°</b><span class="sub"><span data-v="S_asTold_orig_h43">2.9</span> · <span data-v="S_asTold_orig_band">6.0</span></span></td><td class="r"><b><span data-v="S_asTold_thick_peak">42.7</span>°</b><span class="sub"><span data-v="S_asTold_thick_h43">0.0</span> · <span data-v="S_asTold_thick_band">9.0</span></span></td><td class="r"><b><span data-v="S_asTold_plateau_peak">40.6</span>°</b><span class="sub"><span data-v="S_asTold_plateau_h43">0.0</span> · <span data-v="S_asTold_plateau_band">8.9</span> · <span data-v="S_asTold_plateau_melt">41</span>%</span></td></tr>
+<tr><td>Careful: 60 °C</td><td class="r"><b><span data-v="S_cool_orig_peak">42.9</span>°</b><span class="sub"><span data-v="S_cool_orig_h43">0.0</span> · <span data-v="S_cool_orig_band">6.0</span></span></td><td class="r"><b><span data-v="S_cool_thick_peak">40.0</span>°</b><span class="sub"><span data-v="S_cool_thick_h43">0.0</span> · <span data-v="S_cool_thick_band">5.7</span></span></td><td class="r"><b><span data-v="S_cool_plateau_peak">40.2</span>°</b><span class="sub"><span data-v="S_cool_plateau_h43">0.0</span> · <span data-v="S_cool_plateau_band">5.3</span> · <span data-v="S_cool_plateau_melt">0</span>%</span></td></tr>
+<tr><td>Kettle-hot: 95 °C</td><td class="r"><b><span data-v="S_kettle_orig_peak">52.6</span>°</b><span class="sub"><span data-v="S_kettle_orig_h43">4.4</span> · <span data-v="S_kettle_orig_band">4.6</span></span></td><td class="r"><b><span data-v="S_kettle_thick_peak">44.8</span>°</b><span class="sub"><span data-v="S_kettle_thick_h43">1.9</span> · <span data-v="S_kettle_thick_band">7.0</span></span></td><td class="r"><b><span data-v="S_kettle_plateau_peak">41.1</span>°</b><span class="sub"><span data-v="S_kettle_plateau_h43">0.0</span> · <span data-v="S_kettle_plateau_band">8.9</span> · <span data-v="S_kettle_plateau_melt">73</span>%</span></td></tr>
+<tr><td>Kettle-hot and filled to the top (2 L)</td><td class="r"><b><span data-v="S_brim_orig_peak">53.1</span>°</b><span class="sub"><span data-v="S_brim_orig_h43">6.4</span> · <span data-v="S_brim_orig_band">2.6</span></span></td><td class="r"><b><span data-v="S_brim_thick_peak">45.1</span>°</b><span class="sub"><span data-v="S_brim_thick_h43">3.1</span> · <span data-v="S_brim_thick_band">5.9</span></span></td><td class="r"><b><span data-v="S_brim_plateau_peak">42.3</span>°</b><span class="sub"><span data-v="S_brim_plateau_h43">0.0</span> · <span data-v="S_brim_plateau_band">8.9</span> · <span data-v="S_brim_plateau_melt">100</span>%</span></td></tr>
+<tr><td>Poor circulation (<i>R</i><sub>t</sub> 0.06)</td><td class="r"><b><span data-v="S_poor_orig_peak">54.6</span>°</b><span class="sub"><span data-v="S_poor_orig_h43">5.5</span> · <span data-v="S_poor_orig_band">3.5</span></span></td><td class="r"><b><span data-v="S_poor_thick_peak">47.0</span>°</b><span class="sub"><span data-v="S_poor_thick_h43">3.7</span> · <span data-v="S_poor_thick_band">5.2</span></span></td><td class="r"><b><span data-v="S_poor_plateau_peak">41.9</span>°</b><span class="sub"><span data-v="S_poor_plateau_h43">0.0</span> · <span data-v="S_poor_plateau_band">8.9</span> · <span data-v="S_poor_plateau_melt">52</span>%</span></td></tr>
+<tr><td>Poor circulation and kettle-hot</td><td class="r"><b><span data-v="S_poorKettle_orig_peak">61.0</span>°</b><span class="sub"><span data-v="S_poorKettle_orig_h43">7.3</span> · <span data-v="S_poorKettle_orig_band">1.7</span></span></td><td class="r"><b><span data-v="S_poorKettle_thick_peak">50.6</span>°</b><span class="sub"><span data-v="S_poorKettle_thick_h43">6.2</span> · <span data-v="S_poorKettle_thick_band">2.8</span></span></td><td class="r"><b><span data-v="S_poorKettle_plateau_peak">42.3</span>°</b><span class="sub"><span data-v="S_poorKettle_plateau_h43">0.0</span> · <span data-v="S_poorKettle_plateau_band">8.9</span> · <span data-v="S_poorKettle_plateau_melt">94</span>%</span></td></tr>
+<tr><td>Warm, well-perfused skin (<i>R</i><sub>t</sub> 0.015)</td><td class="r"><b><span data-v="S_warmSkin_orig_peak">43.7</span>°</b><span class="sub"><span data-v="S_warmSkin_orig_h43">0.5</span> · <span data-v="S_warmSkin_orig_band">6.4</span></span></td><td class="r"><b><span data-v="S_warmSkin_thick_peak">40.1</span>°</b><span class="sub"><span data-v="S_warmSkin_thick_h43">0.0</span> · <span data-v="S_warmSkin_thick_band">7.0</span></span></td><td class="r"><b><span data-v="S_warmSkin_plateau_peak">39.4</span>°</b><span class="sub"><span data-v="S_warmSkin_plateau_h43">0.0</span> · <span class="bad" data-v="S_warmSkin_plateau_band">3.7</span> · <span data-v="S_warmSkin_plateau_melt">33</span>%</span></td></tr>
+<tr><td>Cover or sleeve left off</td><td class="r"><b><span data-v="S_bare_orig_peak">59.8</span>°</b><span class="sub"><span data-v="S_bare_orig_h43">3.5</span> · <span data-v="S_bare_orig_band">3.3</span></span></td><td class="r"><b><span data-v="S_bare_thick_peak">59.8</span>°</b><span class="sub"><span data-v="S_bare_thick_h43">3.5</span> · <span data-v="S_bare_thick_band">3.3</span></span></td><td class="r"><b><span data-v="S_bare_plateau_peak">41.8</span>°</b><span class="sub"><span data-v="S_bare_plateau_h43">0.0</span> · <span data-v="S_bare_plateau_band">8.9</span> · <span data-v="S_bare_plateau_melt">33</span>%</span></td></tr>
+<tr><td>Kettle-hot, an hour in the empty bed first</td><td class="r"><b><span data-v="S_early_orig_peak">53.3</span>°</b><span class="sub"><span data-v="S_early_orig_h43">4.0</span> · <span data-v="S_early_orig_band">5.0</span></span></td><td class="r"><b><span data-v="S_early_thick_peak">44.6</span>°</b><span class="sub"><span data-v="S_early_thick_h43">1.4</span> · <span data-v="S_early_thick_band">7.6</span></span></td><td class="r"><b><span data-v="S_early_plateau_peak">41.4</span>°</b><span class="sub"><span data-v="S_early_plateau_h43">0.0</span> · <span data-v="S_early_plateau_band">9.0</span> · <span data-v="S_early_plateau_melt">86</span>%</span></td></tr>
+<tr><td colspan="4" class="small">Added after the independent review: two misuses at once, and skin pressed under body weight.</td></tr>
+<tr><td>Poor circulation, kettle-hot, filled to the top</td><td class="r"><b><span data-v="S_poorBrim_orig_peak">61.7</span>°</b><span class="sub"><span data-v="S_poorBrim_orig_h43">9.0</span> · <span data-v="S_poorBrim_orig_band">0.0</span></span></td><td class="r"><b><span data-v="S_poorBrim_thick_peak">51.0</span>°</b><span class="sub"><span data-v="S_poorBrim_thick_h43">9.0</span> · <span data-v="S_poorBrim_thick_band">0.0</span></span></td><td class="r"><b><span data-v="S_poorBrim_plateau_peak">46.3</span>°</b><span class="sub"><span data-v="S_poorBrim_plateau_h43">4.7</span> · <span data-v="S_poorBrim_plateau_band">4.2</span> · <span data-v="S_poorBrim_plateau_melt">100</span>%</span></td></tr>
+<tr><td>Poor circulation, boiling (100 °C)</td><td class="r"><b><span data-v="S_poorBoil_orig_peak">63.1</span>°</b><span class="sub"><span data-v="S_poorBoil_orig_h43">7.8</span> · <span data-v="S_poorBoil_orig_band">1.2</span></span></td><td class="r"><b><span data-v="S_poorBoil_thick_peak">51.8</span>°</b><span class="sub"><span data-v="S_poorBoil_thick_h43">6.9</span> · <span data-v="S_poorBoil_thick_band">2.1</span></span></td><td class="r"><b><span data-v="S_poorBoil_plateau_peak">44.0</span>°</b><span class="sub"><span data-v="S_poorBoil_plateau_h43">1.5</span> · <span data-v="S_poorBoil_plateau_band">7.4</span> · <span data-v="S_poorBoil_plateau_melt">100</span>%</span></td></tr>
+<tr><td>Lying on it: no blood flow in 40 mm of tissue, 80 °C</td><td class="r"><b><span data-v="S_pressed_orig_peak">52.7</span>°</b><span class="sub"><span data-v="S_pressed_orig_h43">8.3</span> · <span data-v="S_pressed_orig_band">0.7</span></span></td><td class="r"><b><span data-v="S_pressed_thick_peak">47.0</span>°</b><span class="sub"><span data-v="S_pressed_thick_h43">7.1</span> · <span data-v="S_pressed_thick_band">1.8</span></span></td><td class="r"><b><span data-v="S_pressed_plateau_peak">42.4</span>°</b><span class="sub"><span data-v="S_pressed_plateau_h43">0.0</span> · <span data-v="S_pressed_plateau_band">8.7</span> · <span data-v="S_pressed_plateau_melt">43</span>%</span></td></tr>
+<tr><td>Lying on it, kettle-hot</td><td class="r"><b><span data-v="S_pressedKettle_orig_peak">58.8</span>°</b><span class="sub"><span data-v="S_pressedKettle_orig_h43">8.9</span> · <span data-v="S_pressedKettle_orig_band">0.0</span></span></td><td class="r"><b><span data-v="S_pressedKettle_thick_peak">50.9</span>°</b><span class="sub"><span data-v="S_pressedKettle_thick_h43">8.7</span> · <span data-v="S_pressedKettle_thick_band">0.3</span></span></td><td class="r"><b><span data-v="S_pressedKettle_plateau_peak">42.9</span>°</b><span class="sub"><span data-v="S_pressedKettle_plateau_h43">0.0</span> · <span data-v="S_pressedKettle_plateau_band">8.7</span> · <span data-v="S_pressedKettle_plateau_melt">99</span>%</span></td></tr>
 </table></div>
 <p><b>Where the plateau bottle loses.</b></p>
 <ul class="tight">
 <li><b>Warm skin.</b> Against well-perfused skin it peaks at only <span data-v="S_warmSkin_plateau_peak">39.4</span> °C and is in the band for just <span data-v="S_warmSkin_plateau_band">3.7</span> h; the thick cover manages <span data-v="S_warmSkin_thick_band">7.0</span> h. Heated skin opens its blood vessels, so this case may be commoner than my base case. It is the most likely way the design fails (section 7).</li>
-<li><b>A careful 60 °C fill.</b> There is too little heat above the melting point for the wax to matter: <span data-v="S_cool_plateau_band">5.3</span> h in band, about the same as the others.</li>
-<li><b>The ceiling is not absolute.</b> Put kettle-hot water in an empty bed for two hours and all the skin-side wax melts while the water is still <span data-v="P_120_TwC">55</span> °C. The first touch then reaches <span class="n"><span data-v="P_120_peak">46.3</span> °C</span>, against <span data-v="P_0_peak">41.1</span>, <span data-v="P_30_peak">41.2</span> and <span data-v="P_60_peak">41.4</span> °C after 0, 30 and 60 min. The skin freezes the outer wax again within minutes: <span data-v="P_120_min43">4</span> min above <span data-v="L_long">43</span> °C, well short of the 10-minute line. It still breaks the ceiling the design is built around. Try it in the calculator. The same applies to the half of the face that looks at the duvet. As instructed, its wax only ever gets <span data-v="R_meltDuvetPct">79</span>% melted. Kettle-hot, it reaches <span data-v="R_meltDuvetKettlePct">100</span>%, so rolling onto that side early in the night would give a brief spike too. The empty-bed case is a conservative stand-in for it, because in bed the other half of the face is draining heat into the sleeper.</li>
+<li><b>A careful 60 °C fill.</b> There is too little heat above the melting point for the wax to matter: <span data-v="S_cool_plateau_band">5.3</span> h in band, about the same as the others. The plain bottle's <span data-v="S_cool_orig_peak">42.9</span> °C on this night is only <span data-v="S_cool_orig_margin">0.07</span> K under the line, so a slightly different bottle would count this night against it too.</li>
+<li><b>Two misuses at once, on poor circulation.</b> Kettle-hot water in a bottle filled to the top, or boiling water, melts the skin-side wax through. The skin then reaches <span class="n"><span data-v="S_poorBrim_plateau_peak">46.3</span> °C</span> with <span data-v="S_poorBrim_plateau_h43">4.7</span> h above <span data-v="L_long">43</span>, or <span class="n"><span data-v="S_poorBoil_plateau_peak">44.0</span> °C</span> with <span data-v="S_poorBoil_plateau_h43">1.5</span> h. On the night the jacket was designed around (poor circulation and kettle-hot), it ends <span data-v="S_poorKettle_plateau_melt">94</span>% melted: right at its limit. Melting through does not always mean going over 43 °C. Filled to the top with normal circulation it melts through, but the liquid wax still insulates, and the peak is <span data-v="S_brim_plateau_peak">42.3</span> °C.</li>
+<li><b>The empty bed.</b> Put kettle-hot water in an empty bed for two hours and all the skin-side wax melts while the water is still <span data-v="P_120_TwC">55</span> °C. The first touch then reaches <span class="n"><span data-v="P_120_peak">46.3</span> °C</span>, against <span data-v="P_0_peak">41.1</span>, <span data-v="P_30_peak">41.2</span> and <span data-v="P_60_peak">41.4</span> °C after 0, 30 and 60 min. The skin freezes the outer wax again within minutes: <span data-v="P_120_min43">4</span> min above <span data-v="L_long">43</span> °C, well short of the 10-minute line. It still breaks the ceiling the design is built around. Try it in the calculator. The same applies to the half of the face that looks at the duvet. As instructed, its wax only ever gets <span data-v="R_meltDuvetPct">79</span>% melted. Kettle-hot, it reaches <span data-v="R_meltDuvetKettlePct">100</span>%, so rolling onto that side early in the night would give a brief spike too. The empty-bed case is a conservative stand-in for it, because in bed the other half of the face is draining heat into the sleeper.</li>
 <li><b>Seal lines.</b> If heat did not spread sideways at all, a seal line would behave like a jacket only one layer thick. As instructed, that bound peaks at <span data-v="H_asTold_peak">41.3</span> °C, which is fine. Kettle-hot, it peaks at <span data-v="H_kettle_peak">44.2</span> °C with <span data-v="H_kettle_h43">1.3</span> h above <span data-v="L_long">43</span>. The seal is 3 mm wide and the wax around it is 4–9 mm thick, so heat should spread sideways and the true value should sit near the cell's. That is an argument, not a calculation [Likely]. The test puts a probe on a seal line.</li>
 </ul>
+
+<h3>When the wax runs out: where the ceiling fails</h3>
+<p>The melting point caps the skin only while solid wax lies between the melt front and the skin. The wax can absorb <span data-v="B_store">173</span> kJ, and a kettle fill holds <span data-v="B_excess95">300</span> kJ above the melting point, so the body and the bed have to take the rest. Skin that carries little heat away doesn't. Then hot water keeps melting the wax until none is left on the skin side, and the skin heads for the water temperature. How much heat the skin can take is the tissue resistance <i>R</i><sub>t</sub>: 0.03 m²K/W in my base case, 0.06 for poor circulation. Pressure is worse. Lying on the bottle stops the blood flow in the tissue under it, and someone who can't feel the heat doesn't shift. I model that two ways. One is a constant resistance, which ignores the tissue's own heat capacity, so it is pessimistic for the first hours. The other is a slab of tissue 40 or 60 mm deep with no blood flow at all, conducting down to a 37 °C core. Its steady resistance is <span data-v="TS_pressR">0.108</span> or <span data-v="TS_press60R">0.162</span>, but it takes hours to get there, because the tissue has to warm up first. (Tissue with no blood flow and no depth limit resists like <span data-v="TS_semiR4h">0.18</span> after four hours, but over those four hours it draws as much heat as a constant <span data-v="TS_semiReq4h">0.09</span>.) As a check on the slab, giving it blood flow of <span data-v="TS_baseFlow">4.5</span> ml per 100 ml a minute, which makes its steady resistance the base case's 0.03, reproduces the base night: <span data-v="TS_base_peak">40.6</span> °C against <span data-v="R_peak">40.6</span> °C.</p>
+<p>The jacket as drawn, by fill and by how much heat the skin can take away. Each cell gives the peak skin temperature, then the hours above <span data-v="L_long">43</span> °C and the most skin-side wax melted (100% means it melted through):</p>
+<div class="scroll"><table id="melt-map">
+<tr><th>Fill</th><th class="r"><i>R</i><sub>t</sub> 0.06</th><th class="r"><i>R</i><sub>t</sub> 0.1</th><th class="r"><i>R</i><sub>t</sub> 0.2</th><th class="r">no flow, 40 mm</th><th class="r">no flow, 60 mm</th><th class="r">none taken (<i>R</i><sub>t</sub> 5)</th></tr>
+<tr><td>80 °C, ⅔ full (as instructed)</td><td class="r"><b><span data-v="MT_f80_poor_peak">41.9</span>°</b><span class="sub"><span data-v="MT_f80_poor_h43">0.0</span> h · <span data-v="MT_f80_poor_melt">52</span>%</span></td><td class="r"><b><span data-v="MT_f80_r10_peak">42.5</span>°</b><span class="sub"><span data-v="MT_f80_r10_h43">0.0</span> h · <span data-v="MT_f80_r10_melt">62</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f80_r20_peak">43.2</span>°</b><span class="sub"><span data-v="MT_f80_r20_h43">5.6</span> h · <span data-v="MT_f80_r20_melt">74</span>%</span></td><td class="r"><b><span data-v="MT_f80_p40_peak">42.4</span>°</b><span class="sub"><span data-v="MT_f80_p40_h43">0.0</span> h · <span data-v="MT_f80_p40_melt">43</span>%</span></td><td class="r"><b><span data-v="MT_f80_p60_peak">42.6</span>°</b><span class="sub"><span data-v="MT_f80_p60_h43">0.0</span> h · <span data-v="MT_f80_p60_melt">40</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f80_none_peak">43.8</span>°</b><span class="sub"><span data-v="MT_f80_none_h43">8.8</span> h · <span data-v="MT_f80_none_melt">98</span>%</span></td></tr>
+<tr><td>90 °C, ⅔ full</td><td class="r"><b><span data-v="MT_f90_poor_peak">42.1</span>°</b><span class="sub"><span data-v="MT_f90_poor_h43">0.0</span> h · <span data-v="MT_f90_poor_melt">79</span>%</span></td><td class="r"><b><span data-v="MT_f90_r10_peak">42.8</span>°</b><span class="sub"><span data-v="MT_f90_r10_h43">0.0</span> h · <span data-v="MT_f90_r10_melt">93</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f90_r20_peak">45.6</span>°</b><span class="sub"><span data-v="MT_f90_r20_h43">8.4</span> h · <span data-v="MT_f90_r20_melt">100</span>%</span></td><td class="r"><b><span data-v="MT_f90_p40_peak">42.7</span>°</b><span class="sub"><span data-v="MT_f90_p40_h43">0.0</span> h · <span data-v="MT_f90_p40_melt">75</span>%</span></td><td class="r"><b><span data-v="MT_f90_p60_peak">43.0</span>°</b><span class="sub"><span data-v="MT_f90_p60_h43">0.0</span> h · <span data-v="MT_f90_p60_melt">72</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f90_none_peak">51.4</span>°</b><span class="sub"><span data-v="MT_f90_none_h43">8.8</span> h · <span data-v="MT_f90_none_melt">100</span>%</span></td></tr>
+<tr><td>95 °C, ⅔ full (kettle)</td><td class="r"><b><span data-v="MT_f95_poor_peak">42.3</span>°</b><span class="sub"><span data-v="MT_f95_poor_h43">0.0</span> h · <span data-v="MT_f95_poor_melt">94</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f95_r10_peak">44.9</span>°</b><span class="sub"><span data-v="MT_f95_r10_h43">2.5</span> h · <span data-v="MT_f95_r10_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f95_r20_peak">48.4</span>°</b><span class="sub"><span data-v="MT_f95_r20_h43">8.5</span> h · <span data-v="MT_f95_r20_melt">100</span>%</span></td><td class="r"><b><span data-v="MT_f95_p40_peak">42.9</span>°</b><span class="sub"><span data-v="MT_f95_p40_h43">0.0</span> h · <span data-v="MT_f95_p40_melt">99</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f95_p60_peak">43.2</span>°</b><span class="sub"><span data-v="MT_f95_p60_h43">4.8</span> h · <span data-v="MT_f95_p60_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f95_none_peak">55.1</span>°</b><span class="sub"><span data-v="MT_f95_none_h43">8.8</span> h · <span data-v="MT_f95_none_melt">100</span>%</span></td></tr>
+<tr><td>100 °C, ⅔ full (boiling)</td><td class="r"><b class="bad"><span data-v="MT_f100_poor_peak">44.0</span>°</b><span class="sub"><span data-v="MT_f100_poor_h43">1.5</span> h · <span data-v="MT_f100_poor_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f100_r10_peak">47.0</span>°</b><span class="sub"><span data-v="MT_f100_r10_h43">4.3</span> h · <span data-v="MT_f100_r10_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f100_r20_peak">51.0</span>°</b><span class="sub"><span data-v="MT_f100_r20_h43">8.5</span> h · <span data-v="MT_f100_r20_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f100_p40_peak">44.7</span>°</b><span class="sub"><span data-v="MT_f100_p40_h43">4.2</span> h · <span data-v="MT_f100_p40_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f100_p60_peak">45.0</span>°</b><span class="sub"><span data-v="MT_f100_p60_h43">6.6</span> h · <span data-v="MT_f100_p60_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_f100_none_peak">58.7</span>°</b><span class="sub"><span data-v="MT_f100_none_h43">8.8</span> h · <span data-v="MT_f100_none_melt">100</span>%</span></td></tr>
+<tr><td>80 °C, full (2 L)</td><td class="r"><b><span data-v="MT_b80_poor_peak">42.1</span>°</b><span class="sub"><span data-v="MT_b80_poor_h43">0.0</span> h · <span data-v="MT_b80_poor_melt">79</span>%</span></td><td class="r"><b><span data-v="MT_b80_r10_peak">42.8</span>°</b><span class="sub"><span data-v="MT_b80_r10_h43">0.0</span> h · <span data-v="MT_b80_r10_melt">98</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b80_r20_peak">46.4</span>°</b><span class="sub"><span data-v="MT_b80_r20_h43">8.3</span> h · <span data-v="MT_b80_r20_melt">100</span>%</span></td><td class="r"><b><span data-v="MT_b80_p40_peak">42.7</span>°</b><span class="sub"><span data-v="MT_b80_p40_h43">0.0</span> h · <span data-v="MT_b80_p40_melt">83</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b80_p60_peak">43.1</span>°</b><span class="sub"><span data-v="MT_b80_p60_h43">2.5</span> h · <span data-v="MT_b80_p60_melt">84</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b80_none_peak">52.3</span>°</b><span class="sub"><span data-v="MT_b80_none_h43">8.8</span> h · <span data-v="MT_b80_none_melt">100</span>%</span></td></tr>
+<tr><td>95 °C, full (2 L)</td><td class="r"><b class="bad"><span data-v="MT_b95_poor_peak">46.3</span>°</b><span class="sub"><span data-v="MT_b95_poor_h43">4.7</span> h · <span data-v="MT_b95_poor_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b95_r10_peak">49.8</span>°</b><span class="sub"><span data-v="MT_b95_r10_h43">7.8</span> h · <span data-v="MT_b95_r10_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b95_r20_peak">54.6</span>°</b><span class="sub"><span data-v="MT_b95_r20_h43">8.5</span> h · <span data-v="MT_b95_r20_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b95_p40_peak">47.5</span>°</b><span class="sub"><span data-v="MT_b95_p40_h43">7.3</span> h · <span data-v="MT_b95_p40_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b95_p60_peak">48.1</span>°</b><span class="sub"><span data-v="MT_b95_p60_h43">7.2</span> h · <span data-v="MT_b95_p60_melt">100</span>%</span></td><td class="r"><b class="bad"><span data-v="MT_b95_none_peak">64.2</span>°</b><span class="sub"><span data-v="MT_b95_none_h43">8.8</span> h · <span data-v="MT_b95_none_melt">100</span>%</span></td></tr>
+</table></div>
+<ul class="tight">
+<li><b>Filled as instructed, it never melts through</b>, even if the skin takes no heat away at all (<span data-v="MT_f80_none_melt">98</span>% melted at most). But skin that sheds very little heat sits just under the melting point instead of near 41 °C. Above <i>R</i><sub>t</sub> ≈ <span data-v="MT_over80Rt">0.15</span> it goes over 43 °C: <span data-v="MT_f80_r20_peak">43.2</span> °C for <span data-v="MT_f80_r20_h43">5.6</span> h at 0.2, and <span data-v="MT_f80_none_peak">43.8</span> °C for <span data-v="MT_f80_none_h43">8.8</span> h if none is taken away. That last is a thermal dose of about <span data-v="MT_f80_none_cem">901</span> equivalent minutes at 43 °C (CEM43). The ISO 8-hour line is <span data-v="L_isoDose">480</span>. Moritz and Henriques saw the epidermis die right through after about 6 h at 44 °C, which is about <span data-v="L_mhDose">720</span>. So for someone who can't shed heat, the melting point itself is not a safe ceiling; only a lower one would be.</li>
+<li><b>Hotter or fuller fills melt it through on skin that sheds little heat.</b> Kettle-hot, it melts through above <i>R</i><sub>t</sub> <span data-v="Z_w75_critRt">0.068</span>, just past poor circulation, after one to two hours. The skin then reaches <span data-v="MT_f95_r10_peak">44.9</span> °C at 0.1 and <span data-v="MT_f95_r20_peak">48.4</span> °C at 0.2, and <span data-v="MT_f95_none_peak">55.1</span> °C if no heat is taken away. Filled to the top with kettle water, poor circulation is enough: <span data-v="MT_b95_poor_peak">46.3</span> °C.</li>
+<li><b>On pressed tissue with no blood flow it sits at the edge.</b> A kettle fill ends <span data-v="MT_f95_p40_melt">99</span>% melted on 40 mm of tissue (<span data-v="MT_f95_p40_peak">42.9</span> °C) and melts through on 60 mm (<span data-v="MT_f95_p60_peak">43.2</span> °C, <span data-v="MT_f95_p60_h43">4.8</span> h above 43). Boiling water or a full bottle takes it well past: <span data-v="MT_f100_p40_peak">44.7</span> and <span data-v="MT_b95_p40_peak">47.5</span> °C on 40 mm.</li>
+<li>Every cell is still far below the plain bottle on the same skin. Lying on a plain bottle in fleece filled from the kettle gives <span data-v="S_pressedKettle_orig_peak">58.8</span> °C, and poor circulation with a full kettle fill gives <span data-v="S_poorBrim_orig_peak">61.7</span> °C. Less bad is not safe, though.</li>
+</ul>
+<p><b>Sizing the wax.</b> More wax pushes the melt-through back. It costs weight and warmth, and it cannot help skin that sheds no heat at all:</p>
+<div class="scroll"><table id="wax-sizes">
+<tr><th>Wax a face</th><th class="r"><span data-v="Z_w75_mm">7.5</span> mm (as drawn)</th><th class="r"><span data-v="Z_w10_mm">10.0</span> mm</th><th class="r"><span data-v="Z_w125_mm">12.5</span> mm</th></tr>
+<tr><td>Wax in all</td><td class="r"><span data-v="Z_w75_g">761</span> g</td><td class="r"><span data-v="Z_w10_g">1015</span> g</td><td class="r"><span data-v="Z_w125_g">1269</span> g</td></tr>
+<tr><td>Filled weight</td><td class="r"><span data-v="Z_w75_kg">2.63</span> kg</td><td class="r"><span data-v="Z_w10_kg">2.89</span> kg</td><td class="r"><span data-v="Z_w125_kg">3.14</span> kg</td></tr>
+<tr><td>Kettle-hot, ⅔ full: melts through above <i>R</i><sub>t</sub></td><td class="r"><span data-v="Z_w75_critRt">0.068</span></td><td class="r"><span data-v="Z_w10_critRt">0.530</span></td><td class="r">never (to 5)</td></tr>
+<tr><td>As instructed (80 °C, ⅔ full): melts through</td><td class="r">never (to 5)</td><td class="r">never (to 5)</td><td class="r">never (to 5)</td></tr>
+<tr><td>Poor circulation, kettle-hot, full: peak</td><td class="r bad"><span data-v="Z_w75_poorBrim">46.3</span> °C</td><td class="r"><span data-v="Z_w10_poorBrim">42.3</span> °C</td><td class="r"><span data-v="Z_w125_poorBrim">41.9</span> °C</td></tr>
+<tr><td>Poor circulation, boiling: peak</td><td class="r bad"><span data-v="Z_w75_poorBoil">44.0</span> °C</td><td class="r"><span data-v="Z_w10_poorBoil">42.0</span> °C</td><td class="r"><span data-v="Z_w125_poorBoil">41.6</span> °C</td></tr>
+<tr><td>Lying on it, kettle-hot: peak</td><td class="r"><span data-v="Z_w75_pressedKettle">42.9</span> °C</td><td class="r"><span data-v="Z_w10_pressedKettle">42.5</span> °C</td><td class="r"><span data-v="Z_w125_pressedKettle">42.1</span> °C</td></tr>
+<tr><td>Lying on it, kettle-hot, full: peak</td><td class="r bad"><span data-v="Z_w75_pressBrim">47.5</span> °C</td><td class="r bad"><span data-v="Z_w10_pressBrim">44.1</span> °C</td><td class="r"><span data-v="Z_w125_pressBrim">42.6</span> °C</td></tr>
+<tr><td>No heat taken away, 80 °C: peak</td><td class="r bad"><span data-v="Z_w75_none80">43.8</span> °C</td><td class="r bad"><span data-v="Z_w10_none80">43.8</span> °C</td><td class="r bad"><span data-v="Z_w125_none80">43.8</span> °C</td></tr>
+<tr><td>Careful 60 °C: hours in band</td><td class="r"><span data-v="Z_w75_coolBand">5.3</span> h</td><td class="r"><span data-v="Z_w10_coolBand">4.4</span> h</td><td class="r"><span data-v="Z_w125_coolBand">3.5</span> h</td></tr>
+<tr><td>As instructed: hours in band</td><td class="r"><span data-v="Z_w75_asToldBand">8.9</span> h</td><td class="r"><span data-v="Z_w10_asToldBand">8.8</span> h</td><td class="r"><span data-v="Z_w125_asToldBand">8.8</span> h</td></tr>
+<tr><td>Bench night A: hours in band ahead of the thick-cover control</td><td class="r"><span data-v="Z_w75_benchMargin">1.6</span> h</td><td class="r"><span data-v="Z_w10_benchMargin">0.4</span> h</td><td class="r"><span data-v="Z_w125_benchMargin">-0.5</span> h</td></tr>
+</table></div>
+<p>At 10 mm a face (<span data-v="Z_w10_g">1015</span> g in all against <span data-v="Z_w75_g">761</span>), a two-thirds-full kettle fill needs <i>R</i><sub>t</sub> above <span data-v="Z_w10_critRt">0.530</span> to melt it through, and the 10 mm jacket spends time above 43 °C on <span data-v="Z_w10_over">0</span> of the <span data-v="N_nights">13</span> nights in the table above. A kettle fill to the top still melts it through on poor or pressed skin: the skin stays at <span data-v="Z_w10_poorBrim">42.3</span> °C with poor circulation, but reaches <span data-v="Z_w10_pressBrim">44.1</span> °C lying on it. It costs <span data-v="Z_w10_kg">2.89</span> kg filled, and the careful 60 °C night drops from <span data-v="Z_w75_coolBand">5.3</span> to <span data-v="Z_w10_coolBand">4.4</span> h in band. On the bench its lead over the thick-cover control shrinks from <span data-v="Z_w75_benchMargin">1.6</span> to <span data-v="Z_w10_benchMargin">0.4</span> h, too little for the first test to tell them apart reliably. Whatever the size, skin that sheds no heat sits at <span data-v="G_Tm">43.8</span> °C, because that is the melting point.</p>
+<p><b>What I conclude.</b> The jacket as drawn is sized for people who fill it as instructed. For them the wax never runs out in the model, and unless their skin sheds very little heat it stays under 43 °C. It is not a safe ceiling for someone who can't feel heat or move away from it, if they or whoever fills it use kettle-hot or boiling water or fill it to the top. For them I would build the 10 mm version and still say: 80 °C, two thirds full. For the few whose skin sheds almost no heat, only a lower melting point would do, and that costs everyone about 1 K of warmth (section 2). The first test (section 8) uses 7.5 mm, because that is the version it can judge, and it adds a night that checks the instructed fill on skin that sheds little heat.</p>
 
 <h3>How sure is the bad night? Sensitivity of the worst case</h3>
 <p>Poor circulation and kettle-hot water: peak skin temperature and the most skin-side wax melted, as I vary the inputs I trust least.</p>
 <div class="scroll"><table>
-<tr><th>Change</th><th class="r">peak °C</th><th class="r">wax melted</th></tr>
-<tr class="me"><td>Base case</td><td class="r" data-v="V_base_peak">42.3</td><td class="r"><span data-v="V_base_melt">94</span>%</td></tr>
-<tr><td>Latent heat 167 kJ/kg (low end of reports)</td><td class="r" data-v="V_L167_peak">42.3</td><td class="r"><span data-v="V_L167_melt">100</span>%</td></tr>
-<tr><td>Latent heat 183 kJ/kg (high end)</td><td class="r" data-v="V_L183_peak">42.3</td><td class="r"><span data-v="V_L183_melt">90</span>%</td></tr>
-<tr><td>Solid wax conductivity 0.16 instead of 0.37 W/m·K</td><td class="r" data-v="V_kS016_peak">42.2</td><td class="r"><span data-v="V_kS016_melt">97</span>%</td></tr>
-<tr><td>Liquid conductivity 0.147 (older tables) instead of 0.19</td><td class="r" data-v="V_kL015_peak">42.3</td><td class="r"><span data-v="V_kL015_melt">88</span>%</td></tr>
-<tr><td>Convection in the melted wax doubles its conductivity</td><td class="r" data-v="V_conv2_peak">43.6</td><td class="r"><span data-v="V_conv2_melt">100</span>%</td></tr>
-<tr><td>Ribbed bottle: four times the gap under the panels</td><td class="r" data-v="V_ribbed_peak">42.1</td><td class="r"><span data-v="V_ribbed_melt">77</span>%</td></tr>
-<tr><td>Sleeve left off</td><td class="r" data-v="V_noSleeve_peak">43.6</td><td class="r"><span data-v="V_noSleeve_melt">84</span>%</td></tr>
+<tr><th>Change</th><th class="r">peak °C</th><th class="r">h &gt; 43</th><th class="r">wax melted</th></tr>
+<tr class="me"><td>Base case</td><td class="r" data-v="V_base_peak">42.3</td><td class="r" data-v="V_base_h43">0.00</td><td class="r"><span data-v="V_base_melt">94</span>%</td></tr>
+<tr><td>Latent heat 167 kJ/kg (low end of reports)</td><td class="r" data-v="V_L167_peak">42.3</td><td class="r" data-v="V_L167_h43">0.00</td><td class="r"><span data-v="V_L167_melt">100</span>%</td></tr>
+<tr><td>Latent heat 183 kJ/kg (high end)</td><td class="r" data-v="V_L183_peak">42.3</td><td class="r" data-v="V_L183_h43">0.00</td><td class="r"><span data-v="V_L183_melt">90</span>%</td></tr>
+<tr><td>Solid wax conductivity 0.16 instead of 0.37 W/m·K</td><td class="r" data-v="V_kS016_peak">42.2</td><td class="r" data-v="V_kS016_h43">0.00</td><td class="r"><span data-v="V_kS016_melt">97</span>%</td></tr>
+<tr><td>Liquid conductivity 0.147 (older tables) instead of 0.19</td><td class="r" data-v="V_kL015_peak">42.3</td><td class="r" data-v="V_kL015_h43">0.00</td><td class="r"><span data-v="V_kL015_melt">88</span>%</td></tr>
+<tr><td>Convection in the melted wax doubles its conductivity</td><td class="r" data-v="V_conv2_peak">43.6</td><td class="r" data-v="V_conv2_h43">0.98</td><td class="r"><span data-v="V_conv2_melt">100</span>%</td></tr>
+<tr><td>Ribbed bottle: four times the gap under the panels</td><td class="r" data-v="V_ribbed_peak">42.1</td><td class="r" data-v="V_ribbed_h43">0.00</td><td class="r"><span data-v="V_ribbed_melt">77</span>%</td></tr>
+<tr><td>Felt spacer crushed to half its resistance</td><td class="r" data-v="V_feltHalf_peak">43.1</td><td class="r" data-v="V_feltHalf_h43">0.26</td><td class="r"><span data-v="V_feltHalf_melt">100</span>%</td></tr>
+<tr><td>Room at 22 °C instead of 18 °C</td><td class="r" data-v="V_room22_peak">42.6</td><td class="r" data-v="V_room22_h43">0.00</td><td class="r"><span data-v="V_room22_melt">100</span>%</td></tr>
+<tr><td>Sleeve left off</td><td class="r" data-v="V_noSleeve_peak">43.6</td><td class="r" data-v="V_noSleeve_h43">3.96</td><td class="r"><span data-v="V_noSleeve_melt">84</span>%</td></tr>
 </table></div>
-<p>Two of these push the worst case just over <span data-v="L_long">43</span> °C: convection, and the sleeve left off. Convection happens when someone lies on top of the bottle, which puts the melted wax above the water. Neither gets near the <span data-v="L_ten">48</span> °C line. The plain bottle on the same night peaks at <span data-v="S_poorKettle_orig_peak">61.0</span> °C.</p>
+<p>Three of these push the worst case just over <span data-v="L_long">43</span> °C: convection, the sleeve left off, and the felt crushed to half its resistance. Convection happens when someone lies on top of the bottle, which puts the melted wax above the water. A warm room keeps the peak under 43 °C but melts all the skin-side wax. None gets near the <span data-v="L_ten">48</span> °C line. On this night the jacket is at its limit, <span data-v="V_base_melt">94</span>% melted, and the two nights added to the table above take it past. The plain bottle on the same night peaks at <span data-v="S_poorKettle_orig_peak">61.0</span> °C.</p>
 
 <h2>5. Alternatives, and prior art</h2>
 <h3>What a sceptic would try first (all in the same model)</h3>
@@ -360,11 +416,12 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 
 <h3>Prior art: this is not a new idea</h3>
 <ul class="tight">
-<li><b>US 11,090,187 B2, "Hot water bottle containing phase change material"</b>. Inventor Benjamin Ohmer, assignee WFI Wärmflascheninnovation UG. The family includes DE 10 2014 000 941 B3, EP 3 096 723 and US 2016/0346116 A1. From the parts I could read in search excerpts: a latent-heat insert, with sodium acetate as the named example, goes <i>inside</i> the bottle, where the hot fill partly melts it. It is sized so it only ever partly melts, and it releases heat as the water cools. The description names the burn risk of filling too hot and claims a more even heat "between 38 °C and 48 °C". Google Patents lists it as expired for unpaid fees. <b>I could not read the claims in full, so I cannot say exactly what they cover.</b> I found no product on sale.</li>
+<li><b>US 11,090,187 B2, "Hot water bottle containing phase change material"</b>. Inventor Benjamin Ohmer, assignee WFI Wärmflascheninnovation UG. The family includes DE 10 2014 000 941 B3, EP 3 096 723 and US 2016/0346116 A1. I read the full text (the USPTO copy). <b>The claims do not cover a jacket.</b> Every independent claim (1, 7, 17 and 20) needs a phase-change material comprising sodium acetate trihydrate, in a film housing inside the water space, with the housing's entire outer surface in direct contact with the water, not removable, at 2:1 to 7:1 water to PCM by volume. Claim 1 has the PCM melt completely; claim 7 has it melt only partly. <b>The description is broader.</b> It says the store can sit inside the water space, on its wall, or form part of the wall, "particularly if in the receiving space or outside of the receiving space". It lists preferred melting points from above 36 °C, then above 40 and above 42 °C, up to 80 °C, and names paraffins. It names the burn risk of kettle fills and an "optimal heat range between 38 °C and 48 °C". Google Patents lists it as expired for unpaid fees. I found no product on sale.</li>
+<li><b>US 7,041,123 B2, "Warming pack with temperature uniformity and temperature stabilization"</b> (Stapf and Leland, Arizant Technologies, 2006). A chemical iron-oxidation warming pack with a paraffin PCM beside the reactant, "chosen to limit the maximum achievable temperature of the warming pack to 42 °C". It is aimed at "the compromised skin of patients who may be more susceptible to thermal injury", cites Henriques and Moritz, and warns that more heat than the PCM can store would "burn through" it. So a wax layer between a heat source and vulnerable skin, with its melting point set by burn thresholds, is prior art, and so is the melt-through problem.</li>
 <li><b>The Burnout mug</b> (ThermAvant International, 2018; a NASA spinoff story, "The Science of the Perfect Cup for Coffee"). A bio-based wax called HeatZorb, sealed between vacuum-insulated shells, pulls hot coffee down to drinking temperature and gives the heat back as it cools. Retail and sponsored sources give its melting point as about 140 °F (60 °C); I could not verify that from NASA or the maker. The <b>Temperfect</b> mug (around 2013) did the same.</li>
 <li><b>ThermaCare</b> heat wraps hold about 40 °C for about 8 hours by oxidising iron. They are evidence that ~40 °C for a whole night is a temperature people will pay for.</li>
 </ul>
-<p><b>What is different here, and what isn't.</b> Putting phase-change material in a hot water bottle is not new. The placement is the design. A mug's wax sits next to the drink, because the drink is what touches your mouth. A hot water bottle's outside is what touches you, so its wax belongs between the water and the skin. There it caps the surface directly, instead of capping the water and leaving the cover to protect the skin. Add the felt spacer that keeps a kettle from overwhelming it, wax on both faces, and a melting point chosen by poorly perfused skin. If the patent's claims cover a jacket, it has lapsed anyway.</p>
+<p><b>What is different here, and what isn't.</b> Putting phase-change material in a hot water bottle is not new, and neither is putting it on or outside the wall in general terms, nor choosing a melting point near 42 °C for vulnerable skin. What may be new is narrower: a removable lauric acid jacket on both faces of an ordinary rubber bottle, in offset cells, with a felt spacer that keeps a kettle fill from melting it through at the poor circulation I modelled, and the melt-through limits worked out (section 4). The placement matters: wax inside the water caps the water and leaves the cover to protect the skin, while wax between the water and the skin caps the surface directly. The Ohmer patent's claims would not cover this jacket, and it has lapsed anyway.</p>
 
 <h2>6. Making it: bill of materials, cost, method</h2>
 <div class="scroll"><table>
@@ -378,52 +435,55 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <tr class="me"><td>Total per unit at 10,000 a year</td><td></td><td class="r" data-v="BOM_low">4.75</td><td class="r" data-v="BOM_high">9.80</td><td class="small">At a guessed 3× consumer markup, retail would be about £<span data-v="BOM_retailLow">14</span>–<span data-v="BOM_retailHigh">29</span>.</td></tr>
 </table></div>
 <p><b>Method, and why.</b> The panels are made the way reusable ice packs are. Laminate film runs through a form-fill-seal line. The wax is dosed hot: above <span data-v="G_Tm">43.8</span> °C it is a thin liquid that pumps and meters like oil. Each tube is filled with liquid at about 50 °C and impulse-sealed with about <span data-v="G_liqExpPct">4</span>% headspace, enough for the liquid's own expansion up to 95 °C (from its two published liquid densities). As it freezes it shrinks by the <span data-v="G_swellPct">16</span>% it will regain on melting, and the film simply relaxes onto it. The two layers are tack-sealed to each other, offset. The process is cheap, mature, and already making millions of sealed liquid-filled pouches a year. Injection-moulded rigid cells would be tougher, but they would stiffen a bag that has to drape over a body. The sleeve is ordinary cut-and-sew with a felt lining and two pockets per face, and the bottle is bought in unchanged. That keeps the design a sleeve that also fits bottles people already own.</p>
-<p><b>Weight.</b> Water <span data-v="W_water">1.40</span> kg + bottle <span data-v="W_bottle">0.35</span> kg + wax <span data-v="W_wax">0.76</span> kg + sleeve and film <span data-v="W_sleeve">0.12</span> kg = <b><span data-v="W_new">2.63</span> kg</b>, against <span data-v="W_orig">1.83</span> kg for the plain bottle in fleece. Empty, it is <span data-v="W_emptyNew">1.23</span> kg against <span data-v="W_emptyOrig">0.43</span> kg, which matters while pouring (risk 10). The wax is the cost of the plateau. Using less wax brings back the kettle failures (try 4 mm in the calculator).</p>
+<p><b>Weight.</b> Water <span data-v="W_water">1.40</span> kg + bottle <span data-v="W_bottle">0.35</span> kg + wax <span data-v="W_wax">0.76</span> kg + sleeve and film <span data-v="W_sleeve">0.12</span> kg = <b><span data-v="W_new">2.63</span> kg</b>, against <span data-v="W_orig">1.83</span> kg for the plain bottle in fleece. Empty, it is <span data-v="W_emptyNew">1.23</span> kg against <span data-v="W_emptyOrig">0.43</span> kg, which matters while pouring (risk 9). The wax is the cost of the plateau. Using less wax brings back the kettle failures (try 4 mm in the calculator), and the 10 mm version for people who can't feel heat (section 4) weighs <span data-v="Z_w10_kg">2.89</span> kg.</p>
 
 <h2>7. Pre-mortem: it is 2028 and this failed. Why?</h2>
-<p>Each number is my <b>separate</b> estimate of the chance that this failure alone sinks the product. They are not shares of 100%, and they are not meant to add up. If they were independent, the chance that none of them happens would be <span data-v="P_survive">12</span>%.</p>
+<p>Each number is my <b>separate</b> estimate of the chance that this failure alone sinks the product. They are not shares of 100%, and they are not meant to add up. If they were independent, the chance that none of them happens would be <span data-v="P_survive">11</span>%.</p>
 <ol class="risks">
 <li><span class="prob"><span data-v="K_tepid">40</span>%</span> People who love hot water bottles love them hot. A steady 40–41 °C reads as lukewarm next to the 46 °C a plain bottle gives in its first hour, and they go back to it.</li>
 <li><span class="prob"><span data-v="K_weight">25</span>%</span> The jacket adds 0.8 kg, 44% more than a filled plain bottle. On a belly or a sore back that is too much.</li>
 <li><span class="prob"><span data-v="K_price">25</span>%</span> At three times the bill of materials it retails for £14–29, against £5–17 for a plain bottle, and stays a niche gift.</li>
 <li><span class="prob"><span data-v="K_tissue">20</span>%</span> Heated skin opens its blood vessels, so real tissue resistance sits nearer the well-perfused end. The plateau is then 38–39 °C, and the warm part of the night is about four hours, not nine.</li>
-<li><span class="prob"><span data-v="K_seal">20</span>%</span> A tube seam opens within two winters, and greasy lauric acid ends up in a bed or a washing machine. Lauric acid can seriously damage eyes (hazard statement H318).</li>
+<li><span class="prob"><span data-v="K_meltThrough">20</span>%</span> Real use melts the wax through while hot water is still behind it, on someone who can't feel it. In the model, poor circulation with a kettle fill to the top (<span data-v="S_poorBrim_plateau_peak">46.3</span> °C), or with boiling water (<span data-v="S_poorBoil_plateau_peak">44.0</span> °C), already does it. A bottle sold as unable to burn invites exactly those fills, and one burn under it would end it.</li>
+<li><span class="prob"><span data-v="K_seal">20</span>%</span> A tube seam opens within two winters, and greasy lauric acid ends up in a bed, a washing machine, or against skin that can't feel it. Lauric acid can seriously damage eyes (hazard statement H318), and some suppliers' data sheets also class it as a skin irritant (H315). The hottest skin-side wax on any night modelled is <span data-v="S_poorBrim_plateau_waxMax">55.2</span> °C (<span data-v="S_asTold_plateau_waxMax">46.5</span> °C as instructed), so a leak is mainly an irritant held against the skin, not a scald.</li>
 <li><span class="prob"><span data-v="K_sealLines">15</span>%</span> The seal lines run hotter than sideways conduction should allow. The fix is a form-stable wax sheet with no cells, and it costs more than the design can carry.</li>
-<li><span class="prob"><span data-v="K_meltThrough">10</span>%</span> Real use finds a way to melt all the wax while hot water is still behind it. Kettle-hot water and two hours in an empty bed already do it in the model, briefly.</li>
-<li><span class="prob"><span data-v="K_cycling">10</span>%</span> Technical-grade lauric acid loses latent heat, or drifts in melting point, over a few hundred nights.</li>
-<li><span class="prob"><span data-v="K_safetyStory">10</span>%</span> Half the burns come from bursts and a third from spills. Judged as a safety product, the jacket fixes the smallest share, and buyers notice.</li>
-<li><span class="prob"><span data-v="K_filling">10</span>%</span> Empty, the jacketed bottle weighs <span data-v="W_emptyNew">1.23</span> kg against <span data-v="W_emptyOrig">0.43</span> kg, about <span data-v="W_emptyRatio">2.9</span>× as much. That makes it harder to hold steady while pouring, and spills while filling, already a third of burns, become more common. The fix would be a stand or a filling funnel, at more cost.</li>
+<li><span class="prob"><span data-v="K_cycling">10</span>%</span> Technical-grade lauric acid loses latent heat, or drifts in melting point, over a few hundred nights. Or the fatty acid attacks the PE inner film at 50 °C: it migrates in, softens it, or starts stress cracks.</li>
+<li><span class="prob"><span data-v="K_filling">10</span>%</span> Empty, the jacketed bottle weighs <span data-v="W_emptyNew">1.23</span> kg against <span data-v="W_emptyOrig">0.43</span> kg, about <span data-v="W_emptyRatio">2.9</span>× as much. That makes it harder to hold steady while pouring, and spills while filling, a third of burns in one series, become more common. The fix would be a stand or a filling funnel, at more cost.</li>
+<li><span class="prob"><span data-v="K_safetyStory">5</span>%</span> Bursts and spills are half to four fifths of the burns, depending on the series. The jacket does nothing for spills and only softens late bursts, and buyers judge a safety product on those.</li>
 </ol>
 
 <h2>8. The cheapest test that could kill it</h2>
-<p><b>A skin phantom on the kitchen table, two nights, about £<span data-v="KIT_total">200</span></b>, or £<span data-v="KIT_withoutOwned">120</span> if you already own a sous-vide stick and a thermocouple logger. These are estimates, except the lauric acid, which is a UK lab supplier's list price. The phantom is a 12 L box of water held at 37 °C by a sous-vide circulator, with an acrylic plate floating flush on top. The plate stands in for skin and tissue: 5 mm of acrylic plus the bath's film is <span class="n"><span data-v="BA_R">0.0283</span> m²K/W</span>, close to the model's 0.03. A 10 mm plate (<span class="n"><span data-v="BB_R">0.0546</span></span>) stands in for poor circulation.</p>
+<p><b>A skin phantom on the kitchen table, three nights, about £<span data-v="KIT_total">215</span></b>, or £<span data-v="KIT_withoutOwned">135</span> if you already own a sous-vide stick and a thermocouple logger. These are estimates, except the lauric acid, which is a UK lab supplier's list price. The phantom is a 12 L box of water held at 37 °C by a sous-vide circulator, with an acrylic plate floating flush on top. The plate stands in for skin and tissue: 5 mm of acrylic plus the bath's film is <span class="n"><span data-v="BA_R">0.0283</span> m²K/W</span>, close to the model's 0.03. A 10 mm plate (<span class="n"><span data-v="BB_R">0.0546</span></span>) stands in for poor circulation, and a 20 mm plate (<span class="n"><span data-v="BC_R">0.1073</span></span>, about the steady resistance of 40 mm of tissue with no blood flow) for skin that sheds little heat. A plate has less heat capacity than tissue, so it is the harsher of the two.</p>
 <p>Make one jacket by hand: lauric acid melted in a pan, poured into layflat tube, and impulse-sealed into tubes. Lay the bottle on the plate with the jacket face down and a folded duvet on top. Tape two thermocouples between sleeve and plate, one over the middle of a tube and one over a seal line. Put a third in the water through the neck. Log for nine hours.</p>
 <ul class="tight">
 <li><b>Night A, the intended night:</b> 80 °C, 1.4 L, 5 mm plate.</li>
 <li><b>Night B, the bad night:</b> 95 °C, 1.4 L, 10 mm plate.</li>
-<li>On the same two nights, run the plain bottle in its fleece cover and in three fleece covers (about <span data-v="T_thick">0.15</span> m²K/W) as controls. They also check the rig: the model expects them to read <span data-v="BA_orig_peak">48.0</span> and <span data-v="BA_thick_peak">42.5</span> °C at peak on night A. And they test my case against the original. I found no published measurement of a hot water bottle's contact temperature, so section 1 is modelled, not measured. If the plain bottle peaks below 45 °C on night A, the original is less bad than I say.</li>
+<li><b>Night C, the instructed fill on skin that sheds little heat:</b> 80 °C, 1.4 L, 20 mm plate. The model says the wax gets <span data-v="BC_plateau_melt">64</span>% melted and the skin side peaks at <span data-v="BC_plateau_peak">42.6</span> °C.</li>
+<li>On nights A and B, run the plain bottle in its fleece cover and in three fleece covers (about <span data-v="T_thick">0.15</span> m²K/W) as controls. They also check the rig: the model expects them to read <span data-v="BA_orig_peak">48.0</span> and <span data-v="BA_thick_peak">42.5</span> °C at peak on night A. And they test my case against the original. I found no published measurement of a hot water bottle's temperature against skin, so section 1 is modelled, not measured. The nearest are Japanese nursing studies of a bottle's surface in a bed: Onishi and colleagues (2010) measured up to 44.5 °C, and 110 min above 43 °C, for a 60 °C fill. A probe on a bottle has no skin drawing heat from it, so that is closer to my "no heat carried away" case than to contact with skin, but it hints that a plain bottle at 60 °C may be worse than my <span data-v="S_cool_orig_peak">42.9</span> °C. If the plain bottle peaks below 45 °C on night A, the original is less bad than I say.</li>
+<li>Then, as a measurement rather than a verdict, run night C once more from the kettle (95 °C). The model says the skin-side wax melts through after <span data-v="BC95_plateau_tMeltH">1.8</span> h and the skin side reaches <span data-v="BC95_plateau_peak">45.0</span> °C. If it melts through much earlier, the wax budget is worse than modelled and the map in section 4 is optimistic.</li>
 </ul>
 <div class="card">
-<p style="margin-top:0"><b>Pass</b>, if both hold: on both nights, neither probe goes above <b><span data-v="TEST_passPeak">43.0</span> °C</b>; and on night A the tube probe spends at least as long between 38 and 43 °C as the thick-cover control on the same rig, within <span data-v="TEST_margin">0.5</span> h.</p>
-<p><b>Kill</b>, if either happens: on either night, either probe goes above <b><span data-v="TEST_killPeak">43.8</span> °C</b>. That is the melting point, which a working jacket cannot exceed while it has solid wax, so crossing it means the wax melted through or a seal line is a hot line. Or night A gives fewer hours between 38 and 43 °C than the plain bottle in fleece on the same rig: warm and safe for less of the night than what it replaces, for 0.8 kg more.</p>
+<p style="margin-top:0"><b>Pass</b>, if both hold: on nights A and B, neither probe goes above <b><span data-v="TEST_passPeak">43.0</span> °C</b>; and on night A the tube probe spends at least as long between 38 and 43 °C as the thick-cover control on the same rig, within <span data-v="TEST_margin">0.5</span> h.</p>
+<p><b>Kill</b>, if either happens: on any of the three nights, either probe goes above <b><span data-v="TEST_killPeak">43.8</span> °C</b>. That is the melting point, which a working jacket cannot exceed while it has solid wax, so crossing it means the wax melted through or a seal line is a hot line. Or night A gives fewer hours between 38 and 43 °C than the plain bottle in fleece on the same rig: warm and safe for less of the night than what it replaces, for 0.8 kg more.</p>
 <p style="margin-bottom:0">Anything in between is inconclusive: fix the build (gaps, sleeve, seals) and run it once more. A second inconclusive result counts as a kill.</p>
 </div>
 <p class="small">Why judge warmth against controls? Late in the night the jacket holds the skin only just above 38 °C, so its absolute hours in band are fragile. A phantom whose acrylic conducts 10% better than assumed cuts the model-perfect jacket from <span data-v="BA_plateau_band">8.9</span> to <span data-v="TEST_bandKplus">6.8</span> h. The thick-cover control on that rig moves too, to <span data-v="TEST_thickBandKplus">7.0</span> h, so the comparison holds where an absolute line would not.</p>
 <p>The model's predictions for the bench, and what the test does to designs that should fail:</p>
 <div class="scroll"><table>
-<tr><th>Design on the bench</th><th class="r">night A: peak; h in band</th><th class="r">night B: peak; h in band</th><th>verdict</th></tr>
-<tr><td colspan="4" class="small">Controls on night A: thick cover <span data-v="BA_thick_band">7.3</span> h in band, plain bottle <span data-v="BA_orig_band">4.2</span> h.</td></tr>
-<tr class="me"><td>Plateau bottle, exactly as modelled</td><td class="r"><b><span data-v="BA_plateau_peak">40.5</span>°</b><span class="sub"><span data-v="BA_plateau_band">8.9</span> h</span></td><td class="r"><b><span data-v="BB_plateau_peak">42.2</span>°</b><span class="sub"><span data-v="BB_plateau_band">8.9</span> h</span></td><td class="good">pass</td></tr>
-<tr><td>Plain bottle, fleece</td><td class="r"><b><span data-v="BA_orig_peak">48.0</span>°</b><span class="sub"><span data-v="BA_orig_band">4.2</span> h</span></td><td class="r"><b><span data-v="BB_orig_peak">59.8</span>°</b><span class="sub"><span data-v="BB_orig_band">4.1</span> h</span></td><td class="bad">kill</td></tr>
-<tr><td>Plain bottle, thick cover</td><td class="r"><b><span data-v="BA_thick_peak">42.5</span>°</b><span class="sub"><span data-v="BA_thick_band">7.3</span> h</span></td><td class="r"><b><span data-v="BB_thick_peak">49.7</span>°</b><span class="sub"><span data-v="BB_thick_band">4.9</span> h</span></td><td class="bad">kill</td></tr>
-<tr><td>Jacket with a filler that doesn't melt</td><td class="r"><b><span data-v="BA_dummy_peak">42.6</span>°</b><span class="sub"><span data-v="BA_dummy_band">6.9</span> h</span></td><td class="r"><b><span data-v="BB_dummy_peak">49.5</span>°</b><span class="sub"><span data-v="BB_dummy_band">4.8</span> h</span></td><td class="bad">kill</td></tr>
-<tr><td>Seal line as bad as the 1-D bound (one layer)</td><td class="r"><b><span data-v="BA_half_peak">41.2</span>°</b><span class="sub"><span data-v="BA_half_band">6.5</span> h</span></td><td class="r"><b><span data-v="BB_half_peak">48.2</span>°</b><span class="sub"><span data-v="BB_half_band">5.6</span> h</span></td><td class="bad">kill</td></tr>
-<tr><td>Jacket without the felt spacer</td><td class="r"><b><span data-v="BA_noSpacer_peak">40.7</span>°</b><span class="sub"><span data-v="BA_noSpacer_band">8.9</span> h</span></td><td class="r"><b><span data-v="BB_noSpacer_peak">43.5</span>°</b><span class="sub"><span data-v="BB_noSpacer_band">8.3</span> h</span></td><td>inconclusive</td></tr>
+<tr><th>Design on the bench</th><th class="r">night A: peak; h in band</th><th class="r">night B: peak; h in band</th><th class="r">night C: peak</th><th>verdict</th></tr>
+<tr><td colspan="5" class="small">Controls on night A: thick cover <span data-v="BA_thick_band">7.3</span> h in band, plain bottle <span data-v="BA_orig_band">4.2</span> h.</td></tr>
+<tr class="me"><td>Plateau bottle, exactly as modelled</td><td class="r"><b><span data-v="BA_plateau_peak">40.5</span>°</b><span class="sub"><span data-v="BA_plateau_band">8.9</span> h</span></td><td class="r"><b><span data-v="BB_plateau_peak">42.2</span>°</b><span class="sub"><span data-v="BB_plateau_band">8.9</span> h</span></td><td class="r"><b><span data-v="BC_plateau_peak">42.6</span>°</b></td><td class="good">pass</td></tr>
+<tr><td>Plain bottle, fleece</td><td class="r"><b><span data-v="BA_orig_peak">48.0</span>°</b><span class="sub"><span data-v="BA_orig_band">4.2</span> h</span></td><td class="r"><b><span data-v="BB_orig_peak">59.8</span>°</b><span class="sub"><span data-v="BB_orig_band">4.1</span> h</span></td><td class="r"><b><span data-v="BC_orig_peak">60.2</span>°</b></td><td class="bad">kill</td></tr>
+<tr><td>Plain bottle, thick cover</td><td class="r"><b><span data-v="BA_thick_peak">42.5</span>°</b><span class="sub"><span data-v="BA_thick_band">7.3</span> h</span></td><td class="r"><b><span data-v="BB_thick_peak">49.7</span>°</b><span class="sub"><span data-v="BB_thick_band">4.9</span> h</span></td><td class="r"><b><span data-v="BC_thick_peak">51.9</span>°</b></td><td class="bad">kill</td></tr>
+<tr><td>Jacket with a filler that doesn't melt</td><td class="r"><b><span data-v="BA_dummy_peak">42.6</span>°</b><span class="sub"><span data-v="BA_dummy_band">6.9</span> h</span></td><td class="r"><b><span data-v="BB_dummy_peak">49.5</span>°</b><span class="sub"><span data-v="BB_dummy_band">4.8</span> h</span></td><td class="r"><b><span data-v="BC_dummy_peak">49.9</span>°</b></td><td class="bad">kill</td></tr>
+<tr><td>Seal line as bad as the 1-D bound (one layer)</td><td class="r"><b><span data-v="BA_half_peak">41.2</span>°</b><span class="sub"><span data-v="BA_half_band">6.5</span> h</span></td><td class="r"><b><span data-v="BB_half_peak">48.2</span>°</b><span class="sub"><span data-v="BB_half_band">5.6</span> h</span></td><td class="r"><b><span data-v="BC_half_peak">46.4</span>°</b></td><td class="bad">kill</td></tr>
+<tr><td>Jacket without the felt spacer</td><td class="r"><b><span data-v="BA_noSpacer_peak">40.7</span>°</b><span class="sub"><span data-v="BA_noSpacer_band">8.9</span> h</span></td><td class="r"><b><span data-v="BB_noSpacer_peak">43.5</span>°</b><span class="sub"><span data-v="BB_noSpacer_band">8.3</span> h</span></td><td class="r"><b><span data-v="BC_noSpacer_peak">42.7</span>°</b></td><td>inconclusive</td></tr>
 </table></div>
 <p class="small">check.mjs asserts every verdict in this table. It also asserts that the model-perfect design still passes when the phantom is off by ±10% in acrylic conductivity, by ±50% in the bath film, or by ±3 °C in room temperature, or has 60–100% of the face in contact. One limit: the bench puts the wax under the water, where melted wax cannot convect, so it does not test the convection case in section 4.</p>
+<p><b>A shelf test for the materials.</b> Seal a few tubes and cycle them 200 times between 20 and 60 °C in the same bath, with the sous-vide stick on a timer. Then weigh them, peel-test the seals, look at the film for crazing, and log one melting plateau against a fresh tube. That checks risks 6 and 8 for a few pounds of film.</p>
 
 <h3>The part that can only be felt</h3>
-<p>If the bench passes, the next question has no model. Five people who use a hot water bottle each get two sleeved bottles that look alike, one plain and one plateau, both filled at 80 °C on a cold evening. Ask them two things: after 20 minutes, which would you take to bed? And after a week of using each at home, which one did you keep reaching for? <b>Kill it if fewer than two of the five pick the plateau bottle after the week.</b> That would mean risk 1 has come true: a bottle that never burns is a bottle that never feels hot, and people want to feel the heat.</p>
+<p>If the bench passes, the next question has no model. Five people who use a hot water bottle each get two sleeved bottles that look alike, one plain and one plateau, both filled at 80 °C on a cold evening. Ask them two things: after 20 minutes, which would you take to bed? And after a week of using each at home, which one did you keep reaching for? <b>Kill it if fewer than two of the five pick the plateau bottle after the week.</b> That would mean risk 1 has come true: a bottle too cool to burn when filled as instructed is a bottle that never feels hot, and people want to feel the heat.</p>
 
 <h2>9. Assumptions register</h2>
 <div class="scroll"><table>
@@ -432,7 +492,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <tr><td>Latent heat</td><td><span data-v="G_LkJ">175</span> kJ/kg</td><td>Medium. Reports run from 167 to 183 kJ/kg. The worst case is insensitive across that range (section 4).</td></tr>
 <tr><td>Wax conductivity</td><td>solid 0.37, liquid 0.19 W/m·K</td><td>Medium. One study (Bayram, Aksöz &amp; Maraşlı 2014); older tables give 0.147 liquid. Tested both ways.</td></tr>
 <tr><td>Densities</td><td>solid 1007, liquid 868 kg/m³</td><td>Medium (Wikipedia, citing handbook values at 24 °C and 50 °C). They give the <span data-v="G_swellPct">16</span>% swell.</td></tr>
-<tr><td>Tissue resistance</td><td>0.03 m²K/W (0.015–0.06 tried)</td><td><b>Low. The decisive unknown.</b> It sets where the plateau lands for each person.</td></tr>
+<tr><td>Tissue resistance</td><td>0.03 m²K/W (0.015–0.06 in the nights; up to 5 in the melt-through map)</td><td><b>Low. The decisive unknown.</b> It sets where the plateau lands for each person, and whether the wax can melt through.</td></tr>
+<tr><td>Tissue pressed under body weight</td><td>40 mm with no blood flow, then a 37 °C core (60 mm tried)</td><td>Low. Depth, flow and how long the pressure lasts vary by site and person. A slab with blood flow tuned to 0.03 reproduces the base night.</td></tr>
+<tr><td>Thermal dose</td><td>CEM43 (Sapareto and Dewey); about 720 min for the epidermis to die through</td><td>Medium. The 720 is 6 h at 44 °C from Moritz and Henriques's skin experiments; damaged or compressed skin may need less.</td></tr>
 <tr><td>Fleece cover</td><td><span data-v="G_fleece">0.050</span> m²K/W</td><td>Low-medium. A compressed 2–3 mm fleece. Covers vary from knitted to faux fur.</td></tr>
 <tr><td>Gap and felt under the panels</td><td>0.01 + <span data-v="G_spacer">0.025</span> m²K/W</td><td>Low-medium. Assumed; four times the gap was tried.</td></tr>
 <tr><td>Water-side film, rubber properties</td><td>200 W/m²K; 0.13 W/m·K</td><td>Medium. Assumed, typical values; neither dominates.</td></tr>
@@ -453,16 +515,26 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <li><b>Prices.</b> The wax price came from a South African retail listing. It now uses a bulk benchmark. The BOM fell to £<span data-v="BOM_low">4.75</span>–<span data-v="BOM_high">9.80</span>.</li>
 <li><b>The test.</b> There was none. Now there is one, and its verdicts are asserted in code.</li>
 </ul>
+<p><b>After an independent review.</b> A reviewer rebuilt the model in separate code, reproduced every headline number, and found these problems. I checked each one myself with my own runs and sources, and all of them held, with one qualification. The reviewer put tissue with no blood flow at about 0.18 m²K/W; that is its resistance after four hours. Modelled with its heat capacity, pressed tissue draws more heat early on, and a kettle fill leaves the jacket at the edge of melting through (<span data-v="S_pressedKettle_plateau_melt">99</span>%) rather than well past it.</p>
+<ul class="tight">
+<li><b>"43.8 °C is the hard ceiling, even if the tissue carried no heat away" was wrong.</b> It holds only while solid wax is left. Skin that sheds little heat lets hot water melt the wax through, and then the skin heads for the water temperature: <span data-v="MT_f95_none_peak">55.1</span> °C kettle-hot with no heat taken away. Even when the wax holds, skin that sheds almost no heat sits at <span data-v="G_Tm">43.8</span> °C for hours, a burn-range dose. Section 4 now maps where it fails, models pressed tissue with no blood flow, and sizes the wax. The bench test gained a night C, and the tagline no longer says you can hug it all night.</li>
+<li><b>The nine nights stopped just short of the failures.</b> Two misuses together on poor circulation defeat the jacket. Four nights were added. The tally of nights above 43 °C went from 8 / 6 / 0 of 9 to <span data-v="N_over_orig">12</span> / <span data-v="N_over_thick">10</span> / <span data-v="N_over_plateau">2</span> of <span data-v="N_nights">13</span>, and the worst night for the jacket from <span data-v="S_poorKettle_plateau_peak">42.3</span> to <span data-v="S_poorBrim_plateau_peak">46.3</span> °C. The sensitivity table gained crushed felt (over 43 °C) and a warm room.</li>
+<li><b>The burns evidence was one-sided.</b> I quoted one unit's 18.8% contact share and called contact "the smallest share", while a paper I cited found contact the largest, at 51.3%. Section 1 now gives both, a range of <span data-v="EV_contactPerYear">112</span>–<span data-v="EV_contactPerYear2">305</span> contact burns a year, and the fact that the deepest burns come from contact in people with sensory deficits. An unsourced line about which nights put people in burns units is gone.</li>
+<li><b>The prior art was misdescribed.</b> I had not read the Ohmer patent's claims; they need sodium acetate trihydrate inside the water, so they do not cover a jacket. Its description and a 2006 warming-pack patent (a 42 °C paraffin limiting a pack for vulnerable skin) already disclose much of what I called new.</li>
+<li><b>The probabilities.</b> The 75% for people who can't feel heat was phrased as "better". It is now <span data-v="PR_vulnVsPlain">70</span>% for "less harmful than a plain bottle", with <span data-v="PR_vulnVsThick">60</span>% against a thick cover, and there is a probability against the thick cover for most people too (<span data-v="PR_mostVsThick">20</span>%). Melt-through in real use rose from 10% to <span data-v="K_meltThrough">20</span>% in the pre-mortem, and "fixes the smallest share" fell from 10% to <span data-v="K_safetyStory">5</span>%.</li>
+<li><b>Smaller fixes.</b> A leak's skin hazard (H315, and how hot the wax gets), a cycling test for the film, and a Japanese measurement of bottle surface temperature that suggests the plain bottle at 60 °C may be worse than modelled.</li>
+</ul>
 
 <h2>Sources</h2>
 <ol class="small">
 <li>"Has the energy poverty crisis fuelled a rise in hot water bottle burn injuries within the United Kingdom?" <i>Burns</i> (2024); PubMed 39343630.</li>
 <li>"Burn Injuries Resulting from Hot Water Bottle Use: A Retrospective Review of Cases Presenting to a Regional Burns Unit in the United Kingdom" (2013); PMC3885202.</li>
-<li>"In hot water: The impact of burn injuries from hot water bottles — Experience of a UK burns unit and review of the literature", <i>Burns</i> (2019); S0305417918305746.</li>
+<li>Begum et al., "In hot water: The impact of burn injuries from hot water bottles — Experience of a UK burns unit and review of the literature", <i>Burns</i> 45 (2019) 974–982; PubMed 30765161 (80 patients, 41 contact, 38 scalds, 30 full thickness).</li>
+<li>"Burn Injuries Caused by Hot Water Bottles: Audit and Loop Closure", <i>Eplasty</i> (2010), Royal Adelaide Hospital; PMC2808054.</li>
 <li>ISO 13732-1:2006 burn thresholds, as reproduced in CENELEC Guide 29, "Temperatures of hot surfaces likely to be touched".</li>
 <li>Fashy hot water bottle safety information sheet (version 19.09.2024); retailer listings giving 60–80 °C or a maximum of 80 °C fill.</li>
 <li>Erythema ab igne reviews and case reports (Journal of Special Operations Medicine; Anais Brasileiros de Dermatologia case report).</li>
-<li>US 11,090,187 B2 and family (DE 10 2014 000 941 B3, EP 3 096 723, US 2016/0346116 A1), Google Patents and Justia.</li>
+<li>US 11,090,187 B2 and family (DE 10 2014 000 941 B3, EP 3 096 723, US 2016/0346116 A1): full text from the USPTO, legal status from Google Patents. US 7,041,123 B2 (Stapf and Leland, Arizant Technologies, 2006): full text from the USPTO.</li>
 <li>NASA Spinoff, "The Science of the Perfect Cup for Coffee" (Burnout mug); Tools and Toys, GearJunkie (HeatZorb, 140 °F).</li>
 <li>Bayram, Aksöz &amp; Maraşlı, "Temperature dependency of thermal conductivity of solid phases for fatty acids", <i>J. Therm. Anal. Calorim.</i> 118 (2014) 311–321.</li>
 <li>Lauric acid properties: Wikipedia (densities), NIST (melting point), WebQC (enthalpy of fusion); <i>Sci. Rep.</i> (2021) lauric acid/SiO₂ paper (166.7 J/g).</li>
@@ -470,6 +542,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 <li>Uswitch survey via UK press (61% of households own a hot water bottle); British Red Cross shop and Ecco-Verde listings (retail prices).</li>
 <li>Sodium acetate trihydrate: Wikipedia (58 °C, 264–289 kJ/kg). CPSC scald chart after Moritz &amp; Henriques (1947), reproduced in a water-heater maker's technical bulletin.</li>
 <li>ThermaCare: Wikipedia and pharmacy listings (about 40 °C for 8 h).</li>
+<li>Onishi et al., <i>Japanese Journal of Nursing Art and Science</i> 9(2) (2010) 14–20: surface temperature of a hot water bottle in a bed (abstract only).</li>
+<li>Thermal dose: Sapareto and Dewey (1984), CEM43; Moritz and Henriques (1947), time to transepidermal necrosis at 44 °C and above.</li>
+<li>Lauric acid hazard classes: supplier safety data sheets (H318 in all I saw; H315 in some, e.g. Selleck).</li>
 </ol>
 <p class="small">Files: <code>model.js</code> (the model, inlined verbatim above), <code>build.mjs</code> (fills the numbers), <code>check.mjs</code> (recomputes and verifies everything). No network is used at runtime.</p>
 </main>
@@ -491,6 +566,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
  * boundary. The water is one well-mixed node shared by all three stacks, plus a
  * small edge/neck loss. Wax slices use the enthalpy method, so the melt front is
  * resolved to one slice and the surface temperature is exact between fronts.
+ * The skin is a resistance to a 37 C core, or (for skin pressed under body weight)
+ * a slab of tissue with heat capacity and optional blood flow (Pennes bioheat).
  *
  * Units: SI throughout (m, kg, s, J, W, K). Temperatures in degrees C; only
  * differences enter the heat equations.
@@ -528,6 +605,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     kSkin: 0.37, // W/(m K), skin average (epidermis 0.235, dermis 0.445)
     rhoSkin: 1100, // kg/m3
     cSkin: 3500, // J/(kg K)
+    rhoCBlood: 4.0e6, // J/(m3 K): blood, 1060 kg/m3 x 3770 J/(kg K), for the perfusion term of a tissue slab
     tog: 0.1, // m2 K/W per tog
   };
 
@@ -545,7 +623,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     rubberT: 0.002, // m, wall thickness
     bottleMass: 0.35, // kg, empty 2 L bottle (assumed)
     contactFrac: 0.5, // fraction of the top face touching skin
-    rTissue: 0.03, // m2 K/W, skin surface to deep tissue (the big unknown; 0.015-0.06 tried)
+    rTissue: 0.03, // m2 K/W, skin surface to deep tissue (the big unknown; 0.015-0.06 in the nights, up to 5 in the melt-through map)
+    tissueDepth: 0, // m: if > 0, the tissue is a conducting slab of this depth (with heat capacity) instead of rTissue
+    perfusion: 0, // 1/s: blood flow per volume of that slab (Pennes); 0 = no blood flow, e.g. tissue pressed by body weight
     rAirGap: 0.15, // m2 K/W, loose contact between the top face and the duvet
     duvetTog: 10.5, // a UK winter duvet
     rContact: 0.01, // m2 K/W, wax pouch against the rubber (thin air gaps; assumed)
@@ -590,6 +670,11 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
   const BATH_FILM = 0.002; // m2 K/W, stirred water under the plate (h about 500 W/m2K)
   const BENCH_A = { layout: 'bench', contactFrac: 0.8, plateMM: 5, rTissue: 0.005 / ACRYLIC_K + BATH_FILM, tCore: 37, tRoom: 18, tFill: 80 };
   const BENCH_B = Object.assign({}, BENCH_A, { plateMM: 10, rTissue: 0.01 / ACRYLIC_K + BATH_FILM, tFill: 95 });
+  // night C: the instructed 80 C fill on a body that drains little heat (a 20 mm plate, about the steady
+  // resistance of 40 mm of tissue with no blood flow). It asks whether the wax melts through as filled.
+  const BENCH_C = Object.assign({}, BENCH_A, { plateMM: 20, rTissue: 0.02 / ACRYLIC_K + BATH_FILM, tFill: 80 });
+  // lying on the bottle: body weight stops the blood flow in the tissue under it; 37 C is 40 mm down
+  const PRESSED = { tissueDepth: 0.04, perfusion: 0 };
 
   // ---------------------------------------------------------------- thresholds
   const LIMITS = {
@@ -597,6 +682,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     tenMinutes: 48, // C: ISO 13732-1, contact of 10 min
     sensitive: 42, // C: Fashy's own limit for children and sensitive skin
     warm: 38, // C: about 5 K above resting skin; clearly felt as warm
+    isoDose: 480, // min at 43 C: the ISO 8 h line expressed as a thermal dose (CEM43)
+    mhDose: 720, // min at 43 C: about 6 h at 44 C, where Moritz & Henriques saw the epidermis die through
   };
 
   // ---------------------------------------------------------------- helpers
@@ -676,8 +763,14 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       s.tSink = p.tRoom;
     } else if (s.contact) {
       s.rSurf = halfR(last) + p.rCover;
-      s.rOut = s.rSurf + p.rTissue;
-      s.tSink = p.tCore;
+      if (s.tissue) {
+        // a tissue slab: the sink is its first node, half a node below the skin surface
+        s.rOut = s.rSurf + s.tissue.dx / 2 / s.tissue.k;
+        s.tSink = s.tissue.T[0];
+      } else {
+        s.rOut = s.rSurf + p.rTissue;
+        s.tSink = p.tCore;
+      }
     } else {
       // duvet side, or the skin path before contact begins
       s.rSurf = halfR(last) + p.rCover;
@@ -726,6 +819,50 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     return k ? f / k : 0;
   }
 
+  // ---------------------------------------------------------------- tissue as a slab (optional)
+  // Pennes bioheat: conduction through tissue of depth d, heat capacity, and blood at 37 C carrying heat away
+  // at perfusion w (1/s). The bottom node meets a 37 C core. It starts at the steady profile with the skin
+  // surface at tSkinFree. Used for skin that is pressed and drains little heat; rTissue covers the rest.
+  function makeTissue(p) {
+    const N = Math.max(4, Math.round(p.tissueDepth / 0.002));
+    const dx = p.tissueDepth / N;
+    const k = PHYS.kSkin;
+    const wrc = p.perfusion * PHYS.rhoCBlood; // W/(m3 K)
+    const L = wrc > 0 ? Math.sqrt(k / wrc) : 0;
+    const T = [];
+    for (let i = 0; i < N; i++) {
+      const x = (i + 0.5) * dx;
+      const shape = wrc > 0 ? Math.sinh((p.tissueDepth - x) / L) / Math.sinh(p.tissueDepth / L) : (p.tissueDepth - x) / p.tissueDepth;
+      T.push(p.tCore + (p.tSkinFree - p.tCore) * shape);
+    }
+    return { N, dx, k, cap: PHYS.rhoSkin * PHYS.cSkin * dx, wrc, T, tCore: p.tCore };
+  }
+  function stepTissue(t, qIn, dt) {
+    const q = new Array(t.N + 1);
+    q[0] = qIn;
+    for (let i = 1; i < t.N; i++) q[i] = (t.k / t.dx) * (t.T[i - 1] - t.T[i]);
+    q[t.N] = (t.T[t.N - 1] - t.tCore) / (t.dx / 2 / t.k);
+    for (let i = 0; i < t.N; i++) t.T[i] += ((q[i] - q[i + 1] - t.wrc * t.dx * (t.T[i] - t.tCore)) * dt) / t.cap;
+  }
+  /* Steady resistance of the slab, surface to core: (L/k) tanh(d/L), or d/k with no blood flow. */
+  function tissueR(depth, perfusion) {
+    const wrc = perfusion * PHYS.rhoCBlood;
+    if (!(wrc > 0)) return depth / PHYS.kSkin;
+    const L = Math.sqrt(PHYS.kSkin / wrc);
+    return (L / PHYS.kSkin) * Math.tanh(depth / L);
+  }
+  /* The perfusion that gives a slab of this depth a given steady resistance (bisection). */
+  function perfusionFor(rTarget, depth) {
+    let lo = 1e-7;
+    let hi = 1;
+    for (let i = 0; i < 80; i++) {
+      const mid = Math.sqrt(lo * hi);
+      if (tissueR(depth, mid) > rTarget) lo = mid;
+      else hi = mid;
+    }
+    return hi;
+  }
+
   // water (+ optional insert) enthalpy <-> temperature
   function waterSide(p) {
     const Cw = (waterMass(p) - insertVolumeL(p) * 1e-3 * PHYS.rhoWater) * PHYS.cWater;
@@ -772,6 +909,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       ];
     }
     const skin = stacks[0].s;
+    if (p.tissueDepth > 0) skin.tissue = makeTissue(p);
     const W = waterSide(p);
     let H = W.H0;
     let tW = W.temp(H);
@@ -809,6 +947,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       tFullMelt: null,
       tWaterAtContact: null,
       meltAtContact: 0,
+      cem43: 0, // min: thermal dose at the skin surface, Sapareto-Dewey (R = 0.5 at or above 43 C, 0.25 below)
+      waxMaxT: -Infinity, // C: hottest skin-side wax anywhere, any time (what a leak would put on skin)
     };
     for (let k = 0; k <= steps; k++) {
       const t = k * dt;
@@ -822,6 +962,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       if (melt > m.meltMax) m.meltMax = melt;
       if (meltD > m.meltDuvetMax) m.meltDuvetMax = meltD;
       if (m.tFullMelt === null && melt >= 0.999) m.tFullMelt = t;
+      for (const n of skin.nodes) if (n.type === 'wax') m.waxMaxT = Math.max(m.waxMaxT, waxTemp(n));
       if (tc >= 0) {
         const ts = surfaceTemp(skin);
         if (tc === 0) {
@@ -833,6 +974,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
           m.tPeak = tc;
         }
         if (k < steps) {
+          m.cem43 += (dt / 60) * Math.pow(ts >= 43 ? 2 : 4, ts - 43);
           if (ts > LIMITS.tenMinutes) m.sAbove48 += dt;
           if (ts > LIMITS.longContact) m.sAbove43 += dt;
           if (ts > LIMITS.sensitive) m.sAbove42 += dt;
@@ -855,8 +997,10 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       let qFromWater = 0;
       let qSkinOut = 0;
       let qOtherOut = 0;
+      if (skin.tissue && skin.contact) skin.tSink = skin.tissue.T[0];
       for (let i = 0; i < stacks.length; i++) {
         const r = stepStack(stacks[i].s, tW, dt);
+        if (i === 0 && skin.tissue && skin.contact) stepTissue(skin.tissue, r.qOut, dt);
         qFromWater += r.qIn * stacks[i].A;
         if (i === 0 && skin.contact) qSkinOut += r.qOut * stacks[i].A;
         else qOtherOut += r.qOut * stacks[i].A;
@@ -934,25 +1078,28 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
   // 10% error in the phantom, while the controls move in step with it.
   const TEST = {
     passPeak: 43.0, // C: never above the 8 h burn line, either night, either probe
-    killPeak: 43.8, // C: the melting point, which a working jacket cannot exceed while wax is solid
+    killPeak: 43.8, // C: the melting point, which a working jacket cannot exceed while wax is solid (any night, A, B or C)
     bandMarginH: 0.5, // h: night A in-band time must be within this of the thick-cover control to pass
   };
-  /* Run a design through both bench nights. rig(night) returns overrides for an imperfect phantom. */
+  /* Run a design through the three bench nights. rig(night) returns overrides for an imperfect phantom.
+     Nights A and B must stay under the pass line; night C only has to stay under the melting point. */
   function benchTest(design, rig) {
     const R = rig || (() => ({}));
     const run = (d, n) => simulate(Object.assign({}, d, n, R(n)));
     const a = run(design, BENCH_A);
     const b = run(design, BENCH_B);
+    const c = run(design, BENCH_C);
     const thickA = run(thickCover(), BENCH_A);
     const plainA = run(ORIGINAL, BENCH_A);
     const peak = Math.max(a.metrics.peakTs, b.metrics.peakTs);
+    const peakC = c.metrics.peakTs;
     const band = a.metrics.sBand / 3600;
     const thickBand = thickA.metrics.sBand / 3600;
     const plainBand = plainA.metrics.sBand / 3600;
     let verdict = 'inconclusive';
-    if (peak > TEST.killPeak || band < plainBand) verdict = 'kill';
+    if (peak > TEST.killPeak || peakC > TEST.killPeak || band < plainBand) verdict = 'kill';
     else if (peak <= TEST.passPeak && band >= thickBand - TEST.bandMarginH) verdict = 'pass';
-    return { verdict, peak, band, thickBand, plainBand, a, b };
+    return { verdict, peak, peakC, band, thickBand, plainBand, a, b, c };
   }
 
   // ---------------------------------------------------------------- bill of materials (GBP per unit at 10,000 a year)
@@ -971,7 +1118,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     { id: 'sealer', item: 'Impulse heat sealer, 200 mm (estimate)', gbp: 25, owned: false },
     { id: 'film', item: 'Nylon/PE layflat tube or vacuum bags (estimate)', gbp: 8, owned: false },
     { id: 'felt', item: '1 mm polyester felt, a few A4 sheets (estimate)', gbp: 4, owned: false },
-    { id: 'acrylic', item: 'Acrylic sheet, 5 mm and 10 mm, 300 x 200 mm (estimate)', gbp: 15, owned: false },
+    { id: 'acrylic', item: 'Acrylic sheet, 5, 10 and 20 mm, 300 x 200 mm (estimate)', gbp: 30, owned: false },
     { id: 'box', item: '12 L plastic box for the bath (estimate)', gbp: 6, owned: false },
     { id: 'bottles', item: 'Two plain 2 L bottles and a fleece cover (estimate)', gbp: 12, owned: false },
     { id: 'sousvide', item: 'Sous-vide circulator (estimate; many kitchens have one)', gbp: 40, owned: true },
@@ -1002,12 +1149,12 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     { id: 'tissue', p: 0.2, what: 'Heated skin opens its blood vessels, so real tissue resistance sits nearer the well-perfused end. Then the plateau is 38-39 C and the warm part of the night is about four hours, not nine.' },
     { id: 'weight', p: 0.25, what: 'The jacket adds 0.8 kg, 44% more than a filled plain bottle. On a belly or a sore back that is too much.' },
     { id: 'price', p: 0.25, what: 'At three times the bill of materials it retails for 14-29 GBP against 5-17 GBP for a plain bottle, and stays a niche gift.' },
-    { id: 'seal', p: 0.2, what: 'A tube seam opens within two winters and greasy lauric acid, which can seriously damage eyes (H318), ends up in a bed or a washing machine.' },
+    { id: 'seal', p: 0.2, what: 'A tube seam opens within two winters and greasy lauric acid ends up in a bed, a washing machine, or against skin that cannot feel it. It can seriously damage eyes (H318), and some suppliers also class it as a skin irritant (H315).' },
     { id: 'sealLines', p: 0.15, what: 'The seal lines between cells run hotter than sideways conduction should allow, and the fix (a form-stable wax sheet with no cells) costs more than the design can carry.' },
-    { id: 'meltThrough', p: 0.1, what: 'Real use finds a way to melt all the wax while hot water is still behind it. Kettle-hot water and two hours in an empty bed already do it in the model, briefly.' },
-    { id: 'cycling', p: 0.1, what: 'Technical-grade lauric acid loses latent heat or drifts in melting point over a few hundred nights.' },
-    { id: 'safetyStory', p: 0.1, what: 'Half the burns come from bursts and a third from spills. Judged as a safety product, the jacket fixes the smallest share, and buyers notice.' },
-    { id: 'filling', p: 0.1, what: 'The empty jacketed bottle weighs about three times as much as a bare one, so it is harder to hold steady while pouring, and spills while filling become more common. They are a third of all burns.' },
+    { id: 'meltThrough', p: 0.2, what: 'Real use melts the wax through while hot water is still behind it, on someone who cannot feel it. In the model, poor circulation with a kettle fill to the brim, or with boiling water, already does it, and a bottle sold as unable to burn invites exactly those fills.' },
+    { id: 'cycling', p: 0.1, what: 'Technical-grade lauric acid loses latent heat or drifts in melting point over a few hundred nights, or the fatty acid attacks the PE film at 50 C.' },
+    { id: 'safetyStory', p: 0.05, what: 'Bursts and spills are half to four fifths of the burns, depending on the series. The jacket does nothing for spills and only softens late bursts, and buyers judge it on those.' },
+    { id: 'filling', p: 0.1, what: 'The empty jacketed bottle weighs about three times as much as a bare one, so it is harder to hold steady while pouring, and spills while filling become more common. They are a third of the burns in one series.' },
   ];
   function riskSummary() {
     let survive = 1;
@@ -1021,10 +1168,20 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     ibidYears: 10,
     winter2021: 295,
     winter2022: 423,
-    seriesN: 85, // one regional burns unit, 39 children + 46 adults (2013)
+    seriesN: 85, // one regional burns unit, 39 children + 46 adults, Jan 2004 - Mar 2013 (PMC3885202)
     shareRupture: 48.2, // % of that series
     shareSpill: 33.0,
     shareContact: 18.8,
+    fullThickContact: 3, // its only pure full-thickness burns: all prolonged contact, all with sensory deficits
+    series2N: 80, // Chelsea and Westminster burns unit, Jan 2017 - Mar 2018 (Begum et al., Burns 2019)
+    series2Contact: 41, // contact burns: 51.3% as the abstract rounds it
+    series2Scald: 38, // scalds (burst, leak or spill): 47.5%
+    series2Steam: 1,
+    series2ContactPct: 51.3, // as published
+    series2ScaldPct: 47.5,
+    series2FullThick: 30, // patients with full-thickness burns
+    adelaideN: 23, // Royal Adelaide Hospital audit (Eplasty 2010): 7 contact, 14 burst or split, 2 not recorded
+    adelaideContact: 7,
     ownersPct: 61, // UK households owning one (Uswitch survey, as reported)
     retailLow: 4.99, // GBP, plain 2 L bottles seen on UK retail listings
     retailHigh: 17.35,
@@ -1043,7 +1200,20 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     { id: 'warmSkin', label: 'Well-perfused skin (tissue resistance halved)', o: { rTissue: 0.015 } },
     { id: 'bare', label: 'Cover or sleeve left off', o: { rCover: 0 } },
     { id: 'early', label: 'Kettle-hot, left in the empty bed for an hour first', o: { tFill: 95, preWarmMin: 60 } },
+    // added after the independent review: two misuses at once, and skin pressed under body weight
+    { id: 'poorBrim', label: 'Poor circulation, kettle-hot, filled to the top', o: { rTissue: 0.06, tFill: 95, waterL: 2 } },
+    { id: 'poorBoil', label: 'Poor circulation and boiling water (100 C)', o: { rTissue: 0.06, tFill: 100 } },
+    { id: 'pressed', label: 'Lying on it: no blood flow in 40 mm of tissue, 80 C', o: PRESSED },
+    { id: 'pressedKettle', label: 'Lying on it, kettle-hot', o: Object.assign({ tFill: 95 }, PRESSED) },
   ];
+
+  // my headline probabilities, stated on the page and in the README (judgements, not model outputs)
+  const VERDICT = {
+    mostVsPlain: 0.3, // better than the plain bottle in fleece, for most people
+    mostVsThick: 0.2, // better than a plain bottle in a cover 3x thicker, for most people
+    vulnVsPlain: 0.7, // less harmful than the plain bottle, for people who cannot feel or move away from heat
+    vulnVsThick: 0.6, // less harmful than the thick cover, for the same people
+  };
 
   /* The thinnest plain cover that keeps the as-instructed night under the 8 h burn line (bisection). */
   let thinCoverMemo = null;
@@ -1101,6 +1271,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       put(`${k}_peak`, m.peakTs, 1);
       put(`${k}_h43`, m.sAbove43 / 3600, 1);
       put(`${k}_band`, m.sBand / 3600, 1);
+      if (r.params.waxFaces) put(`${k}_melt`, m.meltMax * 100, 0);
     };
 
     // the two base nights
@@ -1174,6 +1345,11 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     put('C_plateauLo', steadySurface(PHYS.TmWax, REDESIGN.rCover + REDESIGN.waxT / PHYS.kWaxS, BASE.rTissue, BASE.tCore), 1);
     put('C_plateauPoor', steadySurface(PHYS.TmWax, REDESIGN.rCover, 0.06, BASE.tCore), 1);
     put('C_plateauBare', steadySurface(PHYS.TmWax, 0, BASE.rTissue, BASE.tCore), 1);
+    // a wax melting at 42 C instead (a paraffin, as in US 7,041,123): the same plateau formula
+    put('C_plateau42Hi', steadySurface(42, REDESIGN.rCover, BASE.rTissue, BASE.tCore), 1);
+    put('C_plateau42Lo', steadySurface(42, REDESIGN.rCover + REDESIGN.waxT / PHYS.kWaxS, BASE.rTissue, BASE.tCore), 1);
+    // the tissue resistance above which skin under a pinned front passes 43 C (front at the sleeve)
+    put('C_overRt', (REDESIGN.rCover * (LIMITS.longContact - BASE.tCore)) / (PHYS.TmWax - LIMITS.longContact), 3);
     put('CV_asTold', coverForLimit(80, 0.03, 37, LIMITS.longContact), 3);
     put('CV_kettle', coverForLimit(95, 0.03, 37, LIMITS.longContact), 3);
     put('CV_poor', coverForLimit(80, 0.06, 37, LIMITS.longContact), 3);
@@ -1206,7 +1382,81 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
         const r = simulate(A(d, sc.o));
         sum(`S_${sc.id}_${dk}`, r);
         if (r.metrics.sAbove43 > 0) over[dk] = (over[dk] || 0) + 1;
+        if (sc.id === 'cool' && dk === 'orig') put('S_cool_orig_margin', LIMITS.longContact - r.metrics.peakTs, 2);
+        if (dk === 'plateau') put(`S_${sc.id}_plateau_waxMax`, r.metrics.waxMaxT, 1);
       }
+    }
+
+    // where the ceiling fails: the jacket as drawn, by fill and by how much heat the skin can take away.
+    // Constant tissue resistances (no heat capacity in the tissue, so pessimistic early on), and the
+    // slab with no blood flow at 40 and 60 mm. Rt = 5 is the page's 'no heat carried away at all'.
+    const MT_FILLS = { f80: { tFill: 80 }, f90: { tFill: 90 }, f95: { tFill: 95 }, f100: { tFill: 100 }, b80: { tFill: 80, waterL: 2 }, b95: { tFill: 95, waterL: 2 } };
+    const MT_TISSUES = { poor: { rTissue: 0.06 }, r10: { rTissue: 0.1 }, r20: { rTissue: 0.2 }, p40: PRESSED, p60: { tissueDepth: 0.06, perfusion: 0 }, none: { rTissue: 5 } };
+    for (const [fk, fo] of Object.entries(MT_FILLS)) {
+      for (const [tk, to] of Object.entries(MT_TISSUES)) {
+        const r = simulate(A(REDESIGN, fo, to));
+        put(`MT_${fk}_${tk}_peak`, r.metrics.peakTs, 1);
+        put(`MT_${fk}_${tk}_h43`, r.metrics.sAbove43 / 3600, 1);
+        put(`MT_${fk}_${tk}_melt`, r.metrics.meltMax * 100, 0);
+        if (tk === 'none') put(`MT_${fk}_none_cem`, r.metrics.cem43, 0);
+        if (r.metrics.tFullMelt !== null) put(`MT_${fk}_${tk}_tMeltH`, r.metrics.tFullMelt / 3600, 1);
+      }
+    }
+    // the full model's version of C_overRt: the smallest tissue resistance that puts an 80 C night over 43 C
+    {
+      const over = (rT) => simulate(A(REDESIGN, { rTissue: rT })).metrics.sAbove43 > 0;
+      let lo = 0.06;
+      let hi = 0.3;
+      for (let i = 0; i < 10; i++) {
+        const mid = Math.sqrt(lo * hi);
+        if (over(mid)) hi = mid;
+        else lo = mid;
+      }
+      put('MT_over80Rt', hi, 2);
+    }
+    // a slab with blood flow tuned to the base case's 0.03 reproduces the base night
+    const wBase = perfusionFor(BASE.rTissue, PRESSED.tissueDepth);
+    put('TS_baseFlow', wBase * 6000, 1); // ml of blood per 100 ml of tissue per minute
+    put('TS_base_peak', simulate(A(REDESIGN, { tissueDepth: PRESSED.tissueDepth, perfusion: wBase })).metrics.peakTs, 1);
+    put('TS_pressR', tissueR(PRESSED.tissueDepth, 0), 3);
+    put('TS_press60R', tissueR(0.06, 0), 3);
+    // no blood flow and no depth limit: the resistance a step in surface temperature sees after 4 h, and
+    // the constant resistance that would have drawn the same heat over those 4 h (half of it)
+    const alphaT = PHYS.kSkin / (PHYS.rhoSkin * PHYS.cSkin);
+    put('TS_semiR4h', Math.sqrt(Math.PI * alphaT * 4 * 3600) / PHYS.kSkin, 2);
+    put('TS_semiReq4h', Math.sqrt(Math.PI * alphaT * 4 * 3600) / PHYS.kSkin / 2, 2);
+
+    // sizing the wax: what more wax buys and costs
+    function meltThroughRt(design, o) {
+      const melts = (rT) => simulate(A(design, o, { rTissue: rT })).metrics.meltMax >= 0.999;
+      let lo = 0.015;
+      let hi = 5;
+      if (!melts(hi)) return Infinity;
+      if (melts(lo)) return lo;
+      for (let i = 0; i < 12; i++) {
+        const mid = Math.sqrt(lo * hi);
+        if (melts(mid)) hi = mid;
+        else lo = mid;
+      }
+      return hi;
+    }
+    const SIZES = { w75: REDESIGN, w10: A(REDESIGN, { waxT: 0.01 }), w125: A(REDESIGN, { waxT: 0.0125 }) };
+    const sc = (id) => SCENARIOS.find((x) => x.id === id).o;
+    for (const [zk, d] of Object.entries(SIZES)) {
+      put(`Z_${zk}_mm`, d.waxT * 1000, 1);
+      put(`Z_${zk}_g`, waxMassTotal(d) * 1000, 0);
+      put(`Z_${zk}_kg`, weights(d).total, 2);
+      const crit = meltThroughRt(d, { tFill: 95 });
+      if (Number.isFinite(crit)) put(`Z_${zk}_critRt`, crit, 3);
+      put(`Z_${zk}_crit80`, Number.isFinite(meltThroughRt(d, {})) ? 1 : 0, 0); // 1 if an 80 C fill can melt it through at any Rt up to 5
+      for (const id of ['poorBrim', 'poorBoil', 'pressedKettle']) put(`Z_${zk}_${id}`, simulate(A(d, sc(id))).metrics.peakTs, 1);
+      put(`Z_${zk}_pressBrim`, simulate(A(d, PRESSED, { tFill: 95, waterL: 2 })).metrics.peakTs, 1);
+      put(`Z_${zk}_none80`, simulate(A(d, { rTissue: 5 })).metrics.peakTs, 1);
+      put(`Z_${zk}_coolBand`, simulate(A(d, { tFill: 60 })).metrics.sBand / 3600, 1);
+      put(`Z_${zk}_asToldBand`, simulate(d).metrics.sBand / 3600, 1);
+      const bt = benchTest(d);
+      put(`Z_${zk}_benchMargin`, bt.band - bt.thickBand, 1);
+      if (zk === 'w10') put('Z_w10_over', SCENARIOS.filter((s) => simulate(A(d, s.o)).metrics.sAbove43 > 0).length, 0);
     }
 
     // alternatives on the as-instructed night and on the bad night
@@ -1237,11 +1487,14 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
       conv2: { convLiq: 2 },
       ribbed: { rContact: 0.04 },
       noSleeve: { rCover: 0 },
+      feltHalf: { rSpacer: REDESIGN.rSpacer / 2 },
+      room22: { tRoom: 22 },
     };
     for (const [sk, o] of Object.entries(sens)) {
       const r = simulate(A(REDESIGN, bad, o));
       put(`V_${sk}_peak`, r.metrics.peakTs, 1);
       put(`V_${sk}_melt`, r.metrics.meltMax * 100, 0);
+      put(`V_${sk}_h43`, r.metrics.sAbove43 / 3600, 2);
     }
 
     put('R_meltDuvetKettlePct', simulate(A(REDESIGN, { tFill: 95 })).metrics.meltDuvetMax * 100, 0);
@@ -1261,7 +1514,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
 
     // the first test, both nights, every design it must tell apart
     const benchDesigns = { plateau: REDESIGN, orig: ORIGINAL, thick, dummy: ALT.dummy, half, noSpacer: ALT.noSpacer };
-    for (const [nk, night] of [['BA', BENCH_A], ['BB', BENCH_B]]) {
+    for (const [nk, night] of [['BA', BENCH_A], ['BB', BENCH_B], ['BC', BENCH_C]]) {
       for (const [dk, d] of Object.entries(benchDesigns)) {
         const r = simulate(A(d, night));
         put(`${nk}_${dk}_peak`, r.metrics.peakTs, 1);
@@ -1270,6 +1523,11 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     }
     put('BA_R', BENCH_A.rTissue, 4);
     put('BB_R', BENCH_B.rTissue, 4);
+    put('BC_R', BENCH_C.rTissue, 4);
+    put('BC_plateau_melt', simulate(A(REDESIGN, BENCH_C)).metrics.meltMax * 100, 0);
+    const bc95 = simulate(A(REDESIGN, BENCH_C, { tFill: 95 }));
+    put('BC95_plateau_peak', bc95.metrics.peakTs, 1);
+    put('BC95_plateau_tMeltH', bc95.metrics.tFullMelt / 3600, 1);
     put('TEST_passPeak', TEST.passPeak, 1);
     put('TEST_killPeak', TEST.killPeak, 1);
     put('TEST_margin', TEST.bandMarginH, 1);
@@ -1295,6 +1553,16 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     put('EV_perYear', EVIDENCE.ibidInjuries / EVIDENCE.ibidYears, 0);
     put('EV_risePct', (EVIDENCE.winter2022 / EVIDENCE.winter2021 - 1) * 100, 0);
     put('EV_contactPerYear', (EVIDENCE.ibidInjuries / EVIDENCE.ibidYears) * (EVIDENCE.shareContact / 100), 0);
+    put('EV_contact2', EVIDENCE.series2ContactPct, 1);
+    put('EV_scald2', EVIDENCE.series2ScaldPct, 1);
+    put('EV_contactPerYear2', (EVIDENCE.ibidInjuries / EVIDENCE.ibidYears) * (EVIDENCE.series2Contact / EVIDENCE.series2N), 0);
+    put('EV_n2', EVIDENCE.series2N, 0);
+    put('EV_c2', EVIDENCE.series2Contact, 0);
+    put('EV_s2', EVIDENCE.series2Scald, 0);
+    put('EV_ft2', EVIDENCE.series2FullThick, 0);
+    put('EV_ftContact', EVIDENCE.fullThickContact, 0);
+    put('EV_adN', EVIDENCE.adelaideN, 0);
+    put('EV_adC', EVIDENCE.adelaideContact, 0);
     for (const r of BOM) {
       put(`BOM_${r.id}_low`, r.low, 2);
       put(`BOM_${r.id}_high`, r.high, 2);
@@ -1340,6 +1608,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     put('P_fail', rs.fail * 100, 0);
     put('P_survive', rs.survive * 100, 0);
     for (const r of RISKS) put(`K_${r.id}`, r.p * 100, 0);
+    for (const [k, v] of Object.entries(VERDICT)) put(`PR_${k}`, v * 100, 0);
+    put('L_isoDose', LIMITS.isoDose, 0);
+    put('L_mhDose', LIMITS.mhDose, 0);
     return q;
   }
 
@@ -1350,6 +1621,9 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     REDESIGN,
     BENCH_A,
     BENCH_B,
+    BENCH_C,
+    PRESSED,
+    VERDICT,
     LIMITS,
     TEST,
     BOM,
@@ -1357,6 +1631,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     TEST_KIT,
     simulate,
     benchTest,
+    tissueR,
+    perfusionFor,
     area,
     waxMassPerFace,
     waxMassTotal,
@@ -1405,6 +1681,8 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
     asTold: { fill: 80, vol: 1.4, tis: 0.03, pre: 0 },
     kettle: { fill: 95, vol: 1.4, tis: 0.03, pre: 0 },
     poorKettle: { fill: 95, vol: 1.4, tis: 0.06, pre: 0 },
+    poorBrim: { fill: 95, vol: 2, tis: 0.06, pre: 0 },
+    high: { fill: 95, vol: 1.4, tis: 0.12, pre: 0 },
     warmSkin: { fill: 80, vol: 1.4, tis: 0.015, pre: 0 },
     early: { fill: 95, vol: 1.4, tis: 0.03, pre: 120 },
   };
@@ -1429,7 +1707,7 @@ code { font-size: 0.88em; background: var(--soft); padding: 1px 4px; border-radi
   function label(v) {
     $('vFill').textContent = v.fill + ' °C';
     $('vVol').textContent = v.vol.toFixed(1) + ' L';
-    $('vTis').textContent = v.tis.toFixed(3) + ' m²K/W' + (v.tis <= 0.02 ? ' (warm)' : v.tis >= 0.05 ? ' (poor)' : '');
+    $('vTis').textContent = v.tis.toFixed(3) + ' m²K/W' + (v.tis <= 0.02 ? ' (warm)' : v.tis >= 0.1 ? ' (sheds little)' : v.tis >= 0.05 ? ' (poor)' : '');
     $('vPre').textContent = v.pre + ' min';
     $('vWax').textContent = v.wax.toFixed(1) + ' mm';
     $('vRoom').textContent = v.room + ' °C';

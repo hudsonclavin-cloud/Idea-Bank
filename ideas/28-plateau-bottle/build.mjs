@@ -5,15 +5,19 @@
 // check.mjs imports render() and fails if the file on disk differs from a fresh render.
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 export const DIR = path.dirname(fileURLToPath(import.meta.url));
 const BEGIN = '/*MODEL:BEGIN*/';
 const END = '/*MODEL:END*/';
 
+// Evaluates the model through its CommonJS branch. (A vm context would isolate it too, but every Math
+// call inside one goes through the context's global interceptor and runs about ten times slower.)
 export function loadModel(code) {
-  return vm.runInNewContext(`${code}\n;PlateauModel;`, {});
+  const module = { exports: {} };
+  new Function('module', 'self', code)(module, undefined);
+  if (typeof module.exports.simulate !== 'function') throw new Error('model.js did not export PlateauModel');
+  return module.exports;
 }
 
 const TAG = /(<(span|tspan|td|b|strong|em|text)\b([^>]*?)\bdata-v="([^"]+)"([^>]*)>)([^<]*)(<\/\2>)/g;
