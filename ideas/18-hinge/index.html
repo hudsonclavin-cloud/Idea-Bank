@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hinge</title>
+  <meta name="description" content="A thinking tool for decisions under uncertainty: state what you believe as ranges and chances, and it finds which belief the decision turns on, what it would be worth to find out, and what would have to be true for you to be wrong.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f6f5f0'/%3E%3Cpath d='M9 6v20M23 6v20' stroke='%231c1b18' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='3.2' fill='%230e7c7b'/%3E%3Cpath d='M9 16h14' stroke='%230e7c7b' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Idea Bank &middot; No. 18 &middot; a side project by Gudgeon</p>
+    <h1>Hinge</h1>
+    <p class="lede">You are deciding something, and you believe a dozen things with varying confidence. Write them down as ranges and chances. Hinge works out which belief the decision actually turns on, what it would be worth to find out before choosing, and what would have to be true for you to be wrong.</p>
+  </header>
+
+  <nav class="casebar" aria-label="Cases">
+    <label class="pick">Case <select id="case-select" aria-label="Choose a saved case"></select></label>
+    <label class="pick">Examples <select id="example-select" aria-label="Load an example case"><option value="">load one…</option></select></label>
+    <details class="manage">
+      <summary>Manage</summary>
+      <div class="manage-row">
+        <button type="button" id="btn-new">New blank case</button>
+        <button type="button" id="btn-dup">Duplicate</button>
+        <button type="button" id="btn-export">Export JSON</button>
+        <button type="button" id="btn-import">Import JSON</button>
+        <input type="file" id="file-import" accept=".json,application/json" hidden>
+        <button type="button" id="btn-delete" class="danger">Delete this case</button>
+      </div>
+      <p class="case-msg" id="case-msg" aria-live="polite"></p>
+    </details>
+  </nav>
+
+  <main class="bench">
+    <section class="model" aria-labelledby="h-model">
+      <h2 id="h-model">What you believe</h2>
+      <p class="hint">Edit anything; the other side recomputes as you type. A range is the interval you would bet 90% on. Nothing leaves this browser.</p>
+
+      <label class="field wide"><span>The question</span><input id="title" maxlength="200" autocomplete="off"></label>
+      <div class="field-row">
+        <label class="field"><span>Outcome unit</span><input id="unit" maxlength="12" placeholder="$, weeks…" autocomplete="off"></label>
+        <label class="field"><span>Goal</span><select id="goal"><option value="max">bigger is better</option><option value="min">smaller is better</option></select></label>
+        <label class="field" id="target-field"><span>Target <small>(estimates only)</small></span><input id="target" placeholder="e.g. 12" autocomplete="off"></label>
+      </div>
+
+      <h3>Assumptions</h3>
+      <ol class="rows" id="rows"></ol>
+      <div class="adders" role="group" aria-label="Add an assumption">
+        <button type="button" class="add" data-kind="range">+ range</button>
+        <button type="button" class="add" data-kind="chance">+ chance</button>
+        <button type="button" class="add" data-kind="fixed">+ fixed</button>
+        <button type="button" class="add" data-kind="formula">+ formula</button>
+      </div>
+
+      <h3>Options <span class="sub">one option is an estimate; two to four is a decision</span></h3>
+      <ol class="options" id="options"></ol>
+      <div class="adders"><button type="button" id="btn-add-option">+ option</button></div>
+
+      <details class="cheatsheet">
+        <summary>Writing formulas</summary>
+        <p>Use the assumption names. Arithmetic: <code>+ − * / ^</code> and parentheses. Numbers may carry <code>k</code>, <code>M</code>, <code>B</code> or <code>%</code>: <code>160k</code>, <code>2.5M</code>, <code>25%</code>. Functions: <code>if(test, a, b)</code>, <code>min</code>, <code>max</code>, <code>abs</code>, <code>sqrt</code>, <code>ln</code>, <code>exp</code>, <code>round</code>, <code>floor</code>, <code>ceil</code>, <code>clamp(x, lo, hi)</code>. Tests: <code>&lt; &gt; &lt;= &gt;= = !=</code>, <code>and</code>, <code>or</code>, <code>not</code>.</p>
+        <p>A <strong>chance</strong> is 1 when it happens and 0 when it does not, so <code>if(exit, equity * exit_value, 0)</code> reads the way you would say it. A <strong>formula</strong> row is a named intermediate; it can use any other row. Assumptions are drawn independently: if two of yours move together, derive one from the other with a formula row.</p>
+      </details>
+    </section>
+
+    <section class="results" aria-labelledby="h-results" id="results">
+      <h2 id="h-results">What it says</h2>
+      <div id="errors" class="errors" hidden></div>
+      <div id="out">
+        <div id="summary" class="summary" aria-live="polite"></div>
+
+        <section class="block">
+          <h3>The outcomes</h3>
+          <div id="strips"></div>
+        </section>
+
+        <section class="block">
+          <h3 id="hinge-title">Where it hinges</h3>
+          <p class="blurb" id="hinge-blurb"></p>
+          <div id="hinges"></div>
+        </section>
+
+        <section class="block" id="curve-block">
+          <h3 id="curve-title"></h3>
+          <p class="blurb" id="curve-blurb"></p>
+          <div id="curve-legend" class="legend"></div>
+          <div id="curve" class="curve"></div>
+          <details class="numbers">
+            <summary>The numbers behind the chart</summary>
+            <div id="curve-table"></div>
+          </details>
+        </section>
+
+        <p class="meta" id="meta"></p>
+        <div class="meta-tools">
+          <button type="button" id="btn-reroll">Re-roll the samples</button>
+          <label><input type="checkbox" id="precise"> four times the samples</label>
+        </div>
+
+        <details class="method">
+          <summary>How these numbers are computed</summary>
+          <p>Every range becomes a probability distribution: lognormal when it is positive (you are unsure to within a <em>factor</em>), normal otherwise, with your low and high as the 5th and 95th percentiles; uniform means hard limits. A chance is a coin with the weight you gave. Assumptions are independent. The engine draws <span class="n-samples">—</span> joint samples (Latin hypercube, seed <span class="n-seed">—</span>) and evaluates every option on each.</p>
+          <p><strong>Best</strong> is the option with the highest expected value (lowest, when smaller is better). <strong>Best in</strong> is the share of samples where that option comes out ahead. <strong>Value of perfect information</strong> is the mean of the per-sample best outcome minus the best mean outcome: what you would gain, on average, by choosing with full knowledge.</p>
+          <p>For each uncertain assumption the engine then holds all the <em>other</em> samples fixed and re-evaluates the options with that one assumption pinned. <strong>Worth knowing</strong> is the value of learning which of <span class="n-slices">—</span> equal-probability slices the assumption falls in (its two states, for a chance): the average over slices of the best slice-mean, minus the best average. It is a slightly conservative version of the exact partial value of information. <strong>The answer changes if…</strong> finds the values of the assumption at which the expected best option switches, by scanning the pinned expectation at the slice medians and bisecting; <strong>chance</strong> is the probability your own distribution puts on those values. <strong>Share of uncertainty</strong> is the variance of the slice means divided by the total variance of the margin (or of the estimate), a first-order Sobol index. <strong>Swing</strong> is the pinned expectation at the 95th percentile minus the 5th.</p>
+          <p>All of this is Monte Carlo, so the numbers wobble a little: re-roll to see how much. Values below half a percent of the total are shown as ≈0. Full definitions, limits and tests are in the README.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Cases live in this browser's local storage only. Export to keep one. <a href="README.md">Read the write-up</a>.</p>
+  </footer>
+</div>
+<div id="tip" class="tip" hidden></div>
+<script src="js/hinge.js"></script>
+<script src="js/examples.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
