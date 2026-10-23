@@ -1,0 +1,233 @@
+[
+  {
+    "id": "russell1980",
+    "author": "Russell, J. A.",
+    "year": 1980,
+    "title": "A circumplex model of affect",
+    "venue": "Journal of Personality and Social Psychology, 39(6), 1161–1178",
+    "doi": "10.1037/h0077714",
+    "claim": "Eight affect concepts placed round a circle at 45° intervals (pleasure 0°, excitement 45°, arousal 90°, distress 135°, displeasure 180°, depression 225°, sleepiness 270°, relaxation 315°); 28 emotion adjectives shown to fall in that circular order by four methods: Ross's (1938) circular-ordering technique, multidimensional scaling of perceived similarity, unidimensional scaling on hypothesised pleasure–displeasure and arousal dimensions, and a principal-components analysis of 343 subjects' self-reports of current affect.",
+    "verified": "abstract text (angles, 28 adjectives, four methods, 343 Ss) and bibliographic details, via WebSearch result summaries; the 28-word list via a course figure caption (psu.pb.unizin.org, Chapter 5: Dimensional Models). The full text and the per-word angles of Figure 2 were not accessible from this sandbox, which is why the page positions the words with 2013 data instead.",
+    "found_via": "WebSearch: 'Russell 1980 \"A circumplex model of affect\" 28 affect words angles direct circular scaling table'; 'Russell 1980 circumplex abstract \"principal-components analysis\" \"343\"'"
+  },
+  {
+    "id": "warriner2013",
+    "author": "Warriner, A. B., Kuperman, V., & Brysbaert, M.",
+    "year": 2013,
+    "title": "Norms of valence, arousal, and dominance for 13,915 English lemmas",
+    "venue": "Behavior Research Methods, 45(4), 1191–1207",
+    "doi": "10.3758/s13428-012-0314-x",
+    "claim": "Source of every word rating on the page: 13,915 lemmas rated on nine-point scales for valence (unhappy→happy), arousal, and dominance (weak/submissive→strong/dominant), extending ANEW. Data file Ratings_Warriner_et_al.csv (CC BY-NC-ND 3.0), columns V/A/D.Mean.Sum, V/A/D.SD.Sum, V/A/D.Rat.Sum. All summary statistics on the page (median ratings per word, median SDs, correlations, valence-band means, overlapping pairs) are recomputed from that file by check.mjs.",
+    "verified": "title, authors, venue, DOI, 9-point scale and scale glosses via WebSearch summaries of the publisher record and the NoRaRe catalogue; data authenticity by matching the file's extremes to known values (vacation = highest valence, pedophile = lowest, insanity = highest arousal) and its SHA-256 recorded in data.js",
+    "found_via": "WebSearch: 'Warriner Kuperman Brysbaert 2013 \"Norms of valence, arousal, and dominance for 13,915 English lemmas\"'; data mirror https://raw.githubusercontent.com/JULIELab/XANEW/master/Ratings_Warriner_et_al.csv (original: http://crr.ugent.be/archives/1003)"
+  },
+  {
+    "id": "bradleylang1999",
+    "author": "Bradley, M. M., & Lang, P. J.",
+    "year": 1999,
+    "title": "Affective norms for English words (ANEW): Instruction manual and affective ratings",
+    "venue": "Technical Report C-1, Center for Research in Psychophysiology, University of Florida",
+    "doi": null,
+    "claim": "ANEW: 1,034 English words rated for valence, arousal and dominance; the norms Warriner et al. extended.",
+    "verified": "title, report number and 1,034-word count via WebSearch summaries (NoRaRe catalogue entry and citing papers); secondary only",
+    "found_via": "WebSearch: 'Bradley Lang 1999 \"Affective norms for English words (ANEW)\" technical report C-1 University of Florida 1034 words'"
+  },
+  {
+    "id": "wundt1896",
+    "author": "Wundt, W.",
+    "year": 1896,
+    "title": "Grundriss der Psychologie",
+    "venue": "Leipzig: Engelmann",
+    "doi": null,
+    "claim": "Three bipolar dimensions of feeling built from six elementary feelings: pleasure–displeasure, excitement–inhibition, tension–relaxation.",
+    "verified": "secondary: a philosophy-of-science reconstruction of Wundt's 1896 theory (PhilPapers record REIWTT) listing the six feeling forms and three dimensions, via WebSearch summary",
+    "found_via": "WebSearch: 'Wundt 1896 Grundriss der Psychologie three dimensions of feeling pleasure-displeasure excitement-calm strain-relaxation'"
+  },
+  {
+    "id": "schlosberg1954",
+    "author": "Schlosberg, H.",
+    "year": 1954,
+    "title": "Three dimensions of emotion",
+    "venue": "Psychological Review, 61(2), 81–88",
+    "doi": null,
+    "claim": "Three dimensions: pleasantness–unpleasantness and attention–rejection (from ratings of facial expressions) plus level of activation.",
+    "verified": "secondary: course chapter (psu.pb.unizin.org) and summaries citing Psychological Review 61(2); page range 81–88 from standard reference lists; DOI omitted because sources disagreed on it",
+    "found_via": "WebSearch: 'Schlosberg 1954 \"Three dimensions of emotion\" Psychological Review 61 pleasantness-unpleasantness attention-rejection level of activation'"
+  },
+  {
+    "id": "osgood1957",
+    "author": "Osgood, C. E., Suci, G. J., & Tannenbaum, P. H.",
+    "year": 1957,
+    "title": "The measurement of meaning",
+    "venue": "Urbana: University of Illinois Press",
+    "doi": null,
+    "claim": "Semantic-differential ratings repeatedly yield three factors: evaluation (good–bad), potency (strong–weak), activity (active–passive).",
+    "verified": "secondary: Wikipedia 'Semantic differential' and citing papers via WebSearch summaries",
+    "found_via": "WebSearch: 'Osgood Suci Tannenbaum 1957 \"The Measurement of Meaning\" evaluation potency activity'"
+  },
+  {
+    "id": "mehrabianrussell1974",
+    "author": "Mehrabian, A., & Russell, J. A.",
+    "year": 1974,
+    "title": "An approach to environmental psychology",
+    "venue": "Cambridge, MA: MIT Press",
+    "doi": null,
+    "claim": "Pleasure, arousal and dominance (PAD) proposed as the emotional responses corresponding to Osgood's evaluation, activity and potency.",
+    "verified": "secondary: citing papers (Bakker et al. 2014 'Pleasure, arousal, dominance: Mehrabian and Russell revisited'; Mehrabian & Russell 1974 quotation 'We have termed the corresponding emotional responses pleasure, arousal, and dominance') via WebSearch summaries",
+    "found_via": "WebSearch: 'Mehrabian Russell 1974 \"An Approach to Environmental Psychology\" MIT Press pleasure arousal dominance'"
+  },
+  {
+    "id": "russellmehrabian1977",
+    "author": "Russell, J. A., & Mehrabian, A.",
+    "year": 1977,
+    "title": "Evidence for a three-factor theory of emotions",
+    "venue": "Journal of Research in Personality, 11(3), 273–294",
+    "doi": null,
+    "claim": "Emotion terms rated on pleasure, arousal and dominance; the three dimensions accounted for most of the variance; dominance needed to separate terms that share pleasure and arousal (e.g. angry vs anxious). The page attributes the angry/anxious example to 'later authors citing' this paper because it was confirmed only through a 2019 Quarterly Journal of Experimental Psychology article that cites it for that point.",
+    "verified": "secondary: bibliographic details from reference lists in two citing papers; the separating-pairs claim from a 2019 QJEP article citing Russell & Mehrabian (1977), via WebSearch summaries",
+    "found_via": "WebSearch: 'Russell Mehrabian 1977 \"Evidence for a three-factor theory of emotions\" Journal of Research in Personality'; 'Russell Mehrabian 1977 dominance dimension necessary distinguish \"angry\" from \"anxious\"'"
+  },
+  {
+    "id": "watsontellegen1985",
+    "author": "Watson, D., & Tellegen, A.",
+    "year": 1985,
+    "title": "Toward a consensual structure of mood",
+    "venue": "Psychological Bulletin, 98(2), 219–235",
+    "doi": null,
+    "claim": "Two-factor structure of self-rated mood with axes (positive affect, negative affect) rotated 45° from Russell's pleasantness and engagement axes, drawn through the densest clusters of terms; each factor runs from high to low.",
+    "verified": "secondary: course chapter 'Watson and Tellegen's 1985 circumplex model' (psu.pb.unizin.org) and a 2024 Frontiers in Psychology discussion of the rotated model, via WebSearch summaries",
+    "found_via": "WebSearch: 'Watson Tellegen 1985 \"Toward a consensual structure of mood\" Psychological Bulletin positive affect negative affect 45 degree rotation'"
+  },
+  {
+    "id": "russellcarroll1999",
+    "author": "Russell, J. A., & Carroll, J. M.",
+    "year": 1999,
+    "title": "On the bipolarity of positive and negative affect",
+    "venue": "Psychological Bulletin, 125(1), 3–30",
+    "doi": null,
+    "claim": "Positive and negative affect are opposite ends of one bipolar dimension; the predicted PA–NA correlation varies with time frame, response format and item selection, and the observed one with measurement error; little evidence for independence.",
+    "verified": "abstract text and bibliographic details via WebSearch summaries (stafforini.com record; World Database of Happiness record)",
+    "found_via": "WebSearch: 'Russell Carroll 1999 \"On the bipolarity of positive and negative affect\" Psychological Bulletin 125'"
+  },
+  {
+    "id": "larsen2001",
+    "author": "Larsen, J. T., McGraw, A. P., & Cacioppo, J. T.",
+    "year": 2001,
+    "title": "Can people feel happy and sad at the same time?",
+    "venue": "Journal of Personality and Social Psychology, 81(4), 684–696",
+    "doi": "10.1037/0022-3514.81.4.684",
+    "claim": "In typical settings most people report one of happiness or sadness; people surveyed after the film Life Is Beautiful, after moving out of their dormitories, or at graduation reported both; conclusion that experience is typically bipolar but the underlying processes are bivariate.",
+    "verified": "abstract text, PubMed record (11642354), DOI and venue via WebSearch summaries",
+    "found_via": "WebSearch: 'Larsen McGraw Cacioppo 2001 \"Can people feel happy and sad at the same time?\" Life is Beautiful JPSP'"
+  },
+  {
+    "id": "russell2003",
+    "author": "Russell, J. A.",
+    "year": 2003,
+    "title": "Core affect and the psychological construction of emotion",
+    "venue": "Psychological Review, 110(1), 145–172",
+    "doi": null,
+    "claim": "Core affect: a consciously accessible neurophysiological state described by valence and arousal, the simplest raw feeling, which need not be about anything (free-floating as mood, or attributed to a cause as an emotional episode); discrete emotions are constructions on it.",
+    "verified": "abstract/definition text and bibliographic details via WebSearch summaries of citing papers and the paper record",
+    "found_via": "WebSearch: 'Russell 2003 \"Core affect and the psychological construction of emotion\" Psychological Review core affect two dimensions definition'"
+  },
+  {
+    "id": "fontaine2007",
+    "author": "Fontaine, J. R. J., Scherer, K. R., Roesch, E. B., & Ellsworth, P. C.",
+    "year": 2007,
+    "title": "The world of emotions is not two-dimensional",
+    "venue": "Psychological Science, 18(12), 1050–1057",
+    "doi": null,
+    "claim": "Across three languages, emotion terms rated on 144 features representing six emotion components (appraisals, psychophysiological changes, motor expressions, action tendencies, subjective experiences, regulation) require four dimensions, in order of importance: evaluation–pleasantness, potency–control, activation–arousal, unpredictability.",
+    "verified": "abstract text and bibliographic details via WebSearch summaries (University of Reading CentAUR eprint 30302; Psychological Science record). The specific languages and the number of terms were not confirmed and are not stated on the page.",
+    "found_via": "WebSearch: 'Fontaine Scherer Roesch Ellsworth 2007 \"The world of emotions is not two-dimensional\" Psychological Science four dimensions'"
+  },
+  {
+    "id": "yik2011",
+    "author": "Yik, M., Russell, J. A., & Steiger, J. H.",
+    "year": 2011,
+    "title": "A 12-point circumplex structure of core affect",
+    "venue": "Emotion, 11(4), 705–731",
+    "doi": null,
+    "claim": "A 12-point circumplex of core affect that integrates the major dimensional models of mood and emotion, cross-validated across response formats.",
+    "verified": "abstract text and bibliographic details via WebSearch summaries (author CV; PubMed 21707162)",
+    "found_via": "WebSearch: 'Yik Russell Steiger 2011 \"A 12-point circumplex structure of core affect\" Emotion'"
+  },
+  {
+    "id": "kuppens2013",
+    "author": "Kuppens, P., Tuerlinckx, F., Russell, J. A., & Barrett, L. F.",
+    "year": 2013,
+    "title": "The relation between valence and arousal in subjective experience",
+    "venue": "Psychological Bulletin, 139(4), 917–940",
+    "doi": "10.1037/a0030811",
+    "claim": "Six proposed valence–arousal relations tested across eight datasets of momentary self-report; on average a weak but consistent V-shaped relation of arousal as a function of valence, with large individual variation.",
+    "verified": "title, authors, DOI and abstract wording via WebSearch summaries of the KU Leuven copy; the volume and page numbers (139(4), 917–940) were not confirmed by any search result and come from the author's memory of the citation",
+    "found_via": "WebSearch: 'Kuppens Tuerlinckx Russell Barrett 2013 The relation between valence and arousal in subjective experience'"
+  },
+  {
+    "id": "cowenkeltner2017",
+    "author": "Cowen, A. S., & Keltner, D.",
+    "year": 2017,
+    "title": "Self-report captures 27 distinct categories of emotion bridged by continuous gradients",
+    "venue": "Proceedings of the National Academy of Sciences, 114(38), E7900–E7909",
+    "doi": "10.1073/pnas.1702247114",
+    "claim": "Self-reports to 2,185 short videos reliably yield 27 distinct varieties of experience; categorical labels capture reports better than valence and arousal; categories are bridged by continuous gradients.",
+    "verified": "abstract text, PubMed/PMC records (28874542; PMC5617253), DOI and venue via WebSearch summaries; the list of 27 labels (used for selecting words) came from press coverage and is not asserted on the page",
+    "found_via": "WebSearch: 'Cowen Keltner 2017 PNAS \"27 distinct categories of emotion\" self-report 2185 videos continuous gradients'"
+  },
+  {
+    "id": "barrett2018",
+    "author": "Barrett, L. F., Khan, Z., Dy, J., & Brooks, D.",
+    "year": 2018,
+    "title": "Nature of emotion categories: Comment on Cowen and Keltner",
+    "venue": "Trends in Cognitive Sciences, 22(2), 97–99",
+    "doi": "10.1016/j.tics.2017.12.004",
+    "claim": "Critique of Cowen & Keltner (2017): discusses features of the study's design and suggests future work ask more directly about physical and psychological variation within emotion categories and similarities between categories.",
+    "verified": "abstract text, DOI and venue via WebSearch summaries (PMC; read.qxmd record 29373283)",
+    "found_via": "WebSearch: 'Barrett Khan Dy Brooks 2018 \"Nature of emotion categories: comment on Cowen and Keltner\" Trends in Cognitive Sciences'"
+  },
+  {
+    "id": "cowenkeltner2018",
+    "author": "Cowen, A. S., & Keltner, D.",
+    "year": 2018,
+    "title": "Clarifying the conceptualization, dimensionality, and structure of emotion: Response to Barrett and colleagues",
+    "venue": "Trends in Cognitive Sciences, 22(4), 274–276",
+    "doi": null,
+    "claim": "Reply arguing that Barrett et al.'s comment framed the 2017 study as the latest installment in the discrete/categorical versus dimensional/constructionist debate, which conflates several questions and misrepresents the findings.",
+    "verified": "quoted reply text, venue, volume, issue and pages via WebSearch summary (PMC record of the exchange); exact title from the author's knowledge of the article and not independently confirmed",
+    "found_via": "WebSearch: 'Barrett Khan Dy Brooks 2018 \"Nature of emotion categories: comment on Cowen and Keltner\"' (reply described in the same results)"
+  },
+  {
+    "id": "ekman1992",
+    "author": "Ekman, P.",
+    "year": 1992,
+    "title": "An argument for basic emotions",
+    "venue": "Cognition and Emotion, 6(3–4), 169–200",
+    "doi": "10.1080/02699939208411068",
+    "claim": "Basic emotions are distinguished by characteristics that are unique to each (distinctive universal signals, physiology, antecedent events) and shared among them (quick onset, brief duration, automatic appraisal, unbidden occurrence), as products of evolution.",
+    "verified": "abstract framing, DOI and bibliographic details via WebSearch summaries (UCLA SANLab copy; library catalogue record)",
+    "found_via": "WebSearch: 'Ekman 1992 \"An argument for basic emotions\" Cognition & Emotion 6(3-4) 169-200'"
+  },
+  {
+    "id": "barrett2017",
+    "author": "Barrett, L. F.",
+    "year": 2017,
+    "title": "The theory of constructed emotion: An active inference account of interoception and categorization",
+    "venue": "Social Cognitive and Affective Neuroscience, 12(1), 1–23",
+    "doi": "10.1093/scan/nsw154",
+    "claim": "Emotions are constructed: interoceptive affect categorised with learned concepts, via an active-inference account; a brain-based alternative to folk-psychological emotion categories.",
+    "verified": "abstract, DOI, venue and pages via WebSearch summaries (PMC5390700; Wikipedia 'Theory of constructed emotion'); a 2017 corrigendum exists (doi:10.1093/scan/nsx060)",
+    "found_via": "WebSearch: 'Barrett 2017 \"The theory of constructed emotion: an active inference account of interoception and categorization\" Social Cognitive and Affective Neuroscience 12(1) 1-23'"
+  },
+  {
+    "id": "yik2023",
+    "author": "Yik, M., Mues, C., Sze, I. N. L., Kuppens, P., Tuerlinckx, F., De Roover, K., et al.",
+    "year": 2023,
+    "title": "On the relationship between valence and arousal in samples across the globe",
+    "venue": "Emotion, 23(2), 332–344 (published online 2022)",
+    "doi": "10.1037/emo0001095",
+    "claim": "Self-reported affect during a remembered moment, N = 8,590, 33 societies, 25 languages; independence and a symmetric V-shape both rejected; pooled, arousal increased with positive but not negative valence; valence explained 5% (Finland) to 43% (Beijing) of the variance in arousal.",
+    "verified": "abstract text, DOI, volume, issue and pages via WebSearch summaries of institutional repository records (Tilburg, Warwick WRAP 167103, Otago)",
+    "found_via": "WebSearch: 'Yik 2022 Emotion \"On the relationship between valence and arousal in samples across the globe\" 33 societies'"
+  }
+]

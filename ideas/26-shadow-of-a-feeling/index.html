@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Shadow of a Feeling</title>
+<meta name="description" content="Every emotion word gets two numbers. Put yourself on the map, then tilt it, and watch panic and anger come apart.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<header class="masthead">
+  <h1>The Shadow of a Feeling</h1>
+  <p class="tag">Every emotion word gets two numbers. Put yourself on the map, then tilt it, and watch panic and anger come apart.</p>
+  <p class="by">An explorable about the valence–arousal circumplex: what it captures, what it flattens, and what the field still argues about. Nothing you tap is recorded anywhere.</p>
+</header>
+
+<section id="two-numbers">
+  <h2><span class="num">1</span>Two numbers</h2>
+  <p>In 1980 James Russell argued that the <em>feeling</em> part of emotion could be drawn on a circle. Two axes: how pleasant, how activated. He placed eight concepts round the rim at 45° intervals — pleasure at 0°, excitement at 45°, arousal at 90°, distress at 135°, displeasure at 180°, depression at 225°, sleepiness at 270°, relaxation at 315° — and then showed that 28 ordinary emotion adjectives fell into that circular order under four different methods: a circular-ordering technique, multidimensional scaling of similarity judgements, unidimensional scaling on the two hypothesised axes, and a principal-components analysis of 343 people's reports of how they currently felt. <a class="cite" href="#src-russell1980" data-src="russell1980">Russell 1980</a></p>
+  <p>This page redraws that map with modern numbers. In 2013, Warriner, Kuperman and Brysbaert had crowd workers rate <span data-claim="n_words">13,915</span> English words on three nine-point scales: <strong>valence</strong> (unhappy → happy), <strong>arousal</strong> (calm → excited) and <strong>dominance</strong> (the power of the word: weak or submissive → strong or dominant). Each word got about <span data-claim="median_n_v">20</span> ratings per scale. <a class="cite" href="#src-warriner2013" data-src="warriner2013">Warriner et al. 2013</a> The study extended Bradley and Lang's ANEW norms, which had covered 1,034 words. <a class="cite" href="#src-bradleylang1999" data-src="bradleylang1999">Bradley &amp; Lang 1999</a> The <span data-claim="lex_count" id="stat-words">254</span> emotion words on this page carry their exact 2013 means, unchanged; the only editing is the choice of which words to show.</p>
+  <p class="aside">One caution before the pictures. Russell measured how people place <em>feelings</em>; the 2013 norms measured how a <em>word</em> makes a reader feel. Those are cousins, not twins, and the page keeps saying "word" when it means word.</p>
+</section>
+
+<section id="place">
+  <h2><span class="num">2</span>Place yourself</h2>
+  <p>Tap or drag anywhere on the map to say roughly where you are right now: left is unpleasant, right is pleasant, up is activated, down is calm. The list beside it names the five words that sit nearest to you in the two-number world. On a keyboard, focus the map and use the arrow keys.</p>
+  <figure class="fig" id="fig-plane">
+    <div class="canvas-wrap"><div class="tip" hidden></div></div>
+    <div class="controls">
+      <label><input type="checkbox" id="show-all"> show all <span data-claim="lex_count_b">254</span> words (faint)</label>
+      <button type="button" id="clear-you">clear my point</button>
+    </div>
+    <figcaption>Orange dots: <span data-claim="russell_present" id="stat-russell">26</span> of Russell's 28 adjectives ("alarmed" and "at ease" are not in the 2013 list), placed by their 2013 valence and arousal means. The circle and spokes are Russell's eight landmarks, at the angles given in his abstract. The dots are <em>not</em> his 1980 figure; they are the same words measured a different way, by different people, 33 years later. Hover or tap a dot to see its three numbers, the spread of the ratings (± one standard deviation) and how many people rated it.</figcaption>
+  </figure>
+  <div class="two-col">
+    <div class="list-card">
+      <h4>Nearest in two numbers</h4>
+      <p id="you-status" class="n" aria-live="polite"></p>
+      <ol id="nearest-2d" aria-live="polite"></ol>
+    </div>
+    <div class="list-card">
+      <h4>What to notice</h4>
+      <p class="aside">The words you land near share your pleasantness and your activation. Whether they share your <em>situation</em> — who caused it, whether you can do anything about it — is a different question, and section 5 is about it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="the-v">
+  <h2><span class="num">3</span>The circle is an idea; the cloud is a V</h2>
+  <p>Russell's circle says where <em>emotion</em> words sit: out near the rim. The whole vocabulary tells a different story. Most of the <span data-claim="n_words_b">13,915</span> words cluster near the middle of the valence scale, and the middle is calm. Mean arousal is <span data-claim="binA_mid">3.89</span> for words rated between 5.0 and 5.5 on valence, but <span data-claim="binA_lo">5.41</span> for words between 1.5 and 2.0, and <span data-claim="binA_hi">5.55</span> for words between 8.0 and 8.5. Plotted, the vocabulary is a V, and the unpleasant arm is the steeper one.</p>
+  <figure class="fig" id="fig-v">
+    <div class="canvas-wrap"></div>
+    <figcaption>Mean arousal rating for each half-point band of valence, across all 13,915 words in the 2013 norms (bands with fewer than five words are omitted). Bars show how many words fall in each band. Computed from the published file; the check script in this folder recomputes every number.</figcaption>
+  </figure>
+  <p>Is that true of feelings, or only of words? Kuppens, Tuerlinckx, Russell and Barrett looked at eight datasets of moment-to-moment self-reports and found, on average, "a weak but consistent V-shaped relation of arousal as a function of valence" — with such large differences between individuals that they declined to call it a law. <a class="cite" href="#src-kuppens2013" data-src="kuppens2013">Kuppens et al. 2013</a> A later study of 8,590 people in 33 societies and 25 languages rejected both the symmetric V and the idea that the two axes are independent: pooled across samples, arousal rose with pleasant valence but not with unpleasant valence, and valence explained anywhere from 5% (Finland) to 43% (Beijing) of the variance in arousal. <a class="cite" href="#src-yik2023" data-src="yik2023">Yik et al. 2023</a> So the two numbers are not independent, and the shape of their dependence changes with who you ask, what you ask about, and where.</p>
+</section>
+
+<section id="rotate">
+  <h2><span class="num">4</span>Where the lines go is a choice</h2>
+  <p>Five years after Russell, Watson and Tellegen looked at the same kind of circle and drew the axes 45° from his, through the densest clusters of words. One axis ran from high <em>positive affect</em> (activated and pleasant) to low; the other from high <em>negative affect</em> (activated and unpleasant) to low. Their case was that these two are the factors that keep turning up in self-rated mood, and that they track different things: negative affect a general factor of distress, positive affect pleasurable engagement with the world. <a class="cite" href="#src-watsontellegen1985" data-src="watsontellegen1985">Watson &amp; Tellegen 1985</a> Drag the slider and watch the axes turn. Not one word moves.</p>
+  <figure class="fig" id="fig-rotate">
+    <div class="canvas-wrap"></div>
+    <div class="controls">
+      <label>rotate the axes <input type="range" id="rotate-slider" min="0" max="45" step="1" value="0"> <span id="rotate-readout">0°</span></label>
+    </div>
+    <figcaption>All <span data-claim="lex_count_c">254</span> emotion words in this page's lexicon, by 2013 valence and arousal. At 0° the axes are Russell's (pleasant–unpleasant, activated–calm). At 45° they are Watson and Tellegen's (positive affect, negative affect).</figcaption>
+  </figure>
+  <p>That sounds like a difference in bookkeeping, and the two camps have spent decades insisting it is not. Watson and Tellegen's axes, and the PANAS scales built on them, treat positive and negative affect as largely separate, each running from "high" to "low" rather than between opposites. Russell and Carroll replied that pleasant and unpleasant are opposite ends of one bipolar axis, and that the apparent independence comes from how the questions are worded and from measurement error. <a class="cite" href="#src-russellcarroll1999" data-src="russellcarroll1999">Russell &amp; Carroll 1999</a> Yik, Russell and Steiger later fitted the major models into a single 12-point circumplex, so that both sets of axes are readings of the same circle. <a class="cite" href="#src-yik2011" data-src="yik2011">Yik et al. 2011</a> The words on this page cannot settle the argument; they only show that both sets of lines fit the same cloud.</p>
+</section>
+
+<section id="pairs">
+  <h2><span class="num">5</span>Same spot, different word</h2>
+  <p>Here is what two numbers cannot do. <strong>Panic</strong> and <strong>anger</strong> sit almost on top of each other in the plane: valence <span data-claim="panic_v">2.56</span> against <span data-claim="anger_v">2.50</span>, arousal <span data-claim="panic_a">6.40</span> against <span data-claim="anger_a">5.93</span>. On the third scale they are <span data-claim="panic_anger_dd">2.49</span> points apart: panic <span data-claim="panic_d">2.65</span>, anger <span data-claim="anger_d">5.14</span>. Nobody who has felt both would confuse them, and the map does. The third number is the one that says whether you are the thing being acted on or the one about to act.</p>
+  <p>Searching this page's lexicon for pairs within 0.6 of each other in the plane but at least 2.0 apart on dominance turns up <span id="pair-count">64</span> pairs. Six that make sense (V, A, D are the 2013 valence, arousal and dominance means; the upper number is the first word's):</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>pair</th><th><abbr title="valence">V</abbr></th><th><abbr title="arousal">A</abbr></th><th><abbr title="dominance">D</abbr></th><th>gap in plane</th><th>gap in D</th></tr></thead>
+    <tbody id="pairs-body"></tbody>
+  </table>
+  </div>
+  <p>And two that do not, which matter just as much:</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>pair</th><th><abbr title="valence">V</abbr></th><th><abbr title="arousal">A</abbr></th><th><abbr title="dominance">D</abbr></th><th>gap in plane</th><th>gap in D</th></tr></thead>
+    <tbody id="noise-body"></tbody>
+  </table>
+  </div>
+  <p><em>Shame</em> and <em>embarrassment</em> are near-synonyms, and about <span data-claim="shame_emb_dd">2.29</span> points apart on dominance (<span data-claim="shame_d">5.21</span> against <span data-claim="emb_d">2.92</span>). That gap says more about twenty strangers rating a word on a nine-point scale than about shame. Across all 13,915 words the median standard deviation of the ratings is <span data-claim="median_sd_v">1.67</span> for valence, but <span data-claim="median_sd_a">2.30</span> for arousal and <span data-claim="median_sd_d">2.17</span> for dominance: the two "extra" numbers are exactly the two that people agree about least. Dominance also leans on valence — across the whole vocabulary the two correlate at <em>r</em> = <span data-claim="r_vd">0.72</span>, so about half of its variance is pleasantness in another coat (valence and arousal correlate at only <span data-claim="r_va">−0.18</span>). The other half is where panic and anger live.</p>
+  <details>
+    <summary>All <span data-claim="pair_count">64</span> pairs, computed live from the embedded data</summary>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>pair</th><th><abbr title="valence">V</abbr></th><th><abbr title="arousal">A</abbr></th><th><abbr title="dominance">D</abbr></th><th>gap in plane</th><th>gap in D</th></tr></thead>
+      <tbody id="all-pairs-body"></tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section id="tilt">
+  <h2><span class="num">6</span>Tilt</h2>
+  <p>The plane is a shadow. Below, every word in the lexicon is a point in three dimensions, and you are looking straight down the dominance axis, so each point sits exactly on its own shadow. Drag sideways to turn the cloud (or use the slider, or the arrow keys with the figure focused). The six featured pairs are joined by a line and tethered to the floor by a dotted stem. In the flat view the lines have no length. Tilt, and they open.</p>
+  <figure class="fig" id="fig-tilt">
+    <div class="canvas-wrap"><div class="tip" hidden></div></div>
+    <div class="controls">
+      <label>tilt <input type="range" class="tilt-slider" min="-90" max="90" step="1" value="0"></label>
+      <button type="button" data-view="0,0">flat (the shadow)</button>
+      <button type="button" data-view="55,18">oblique</button>
+      <button type="button" data-view="90,0">side on</button>
+    </div>
+    <p class="readout tilt-readout" aria-live="polite"></p>
+    <figcaption>Three-dimensional view of the same 254 words: valence left–right, arousal up–down, dominance toward and away from you. The grey square is the valence–arousal plane at dominance 5. Dotted stems join each featured word to its shadow on that plane. Nearer points are drawn larger.</figcaption>
+  </figure>
+  <h3>Add your own third number</h3>
+  <p>If you placed yourself in section 2, give yourself a dominance rating here — from feeling weak or acted upon (1) to feeling strong or in charge (9) — and compare the words nearest to you in two numbers with the words nearest to you in three.</p>
+  <div class="controls">
+    <label>your dominance <input type="range" id="you-d" min="1" max="9" step="0.5" value="5"> <span id="you-d-readout">—</span></label>
+  </div>
+  <div class="two-col">
+    <div class="list-card">
+      <h4>Nearest in two numbers</h4>
+      <ol id="nearest-2d-again"></ol>
+    </div>
+    <div class="list-card">
+      <h4>Nearest in three</h4>
+      <ol id="nearest-3d" aria-live="polite"></ol>
+    </div>
+  </div>
+</section>
+
+<section id="mixed">
+  <h2><span class="num">7</span>What one point cannot hold</h2>
+  <p>There is a second thing the plane flattens, and adding dimensions does not fix it. A point on a pleasant–unpleasant axis is one value. Larsen, McGraw and Cacioppo asked whether people can feel happy and sad at the same time, and found that in ordinary settings most people report one or the other — but that people leaving the cinema after <em>Life Is Beautiful</em>, moving out of their dormitories, or graduating from college reported both at once. They concluded that experience is usually bipolar but the underlying processes are better described as bivariate: two quantities, not one. <a class="cite" href="#src-larsen2001" data-src="larsen2001">Larsen et al. 2001</a></p>
+  <figure class="fig mix">
+    <div class="sliders">
+      <label>happy: <b id="mix-h">4</b> <input type="range" id="mix-happy" min="0" max="8" step="1" value="4"></label>
+      <label>sad: <b id="mix-s">4</b> <input type="range" id="mix-sad" min="0" max="8" step="1" value="4"></label>
+    </div>
+    <div class="axis"><div class="bar"></div><span class="end l">unpleasant</span><span class="end r">pleasant</span><div class="marker" id="mix-marker"></div></div>
+    <p class="readout" id="mix-readout"></p>
+    <figcaption>A toy, not a measurement: two separate quantities collapsed onto one bipolar axis by subtraction. Any two settings with the same difference land on the same point, so the point cannot tell "nothing much" from "both, strongly".</figcaption>
+  </figure>
+</section>
+
+<section id="debate">
+  <h2><span class="num">8</span>A shadow of what?</h2>
+  <p>Everyone agrees that the two-number plane leaves things out. The live disagreement is about what kind of thing is missing, and whether it belongs in a map of feeling at all.</p>
+  <div class="debate">
+    <div class="side">
+      <h3>"The plane is the whole of affect"</h3>
+      <p>In Russell's later account, valence and arousal together are <em>core affect</em>: the simplest, raw, always-present feeling, which need not be about anything. <a class="cite" href="#src-russell2003" data-src="russell2003">Russell 2003</a> An emotion like fear or anger is core affect plus everything the mind does with it — attributing it to a cause, judging the situation, reaching for a concept. Barrett's theory of constructed emotion makes the same move with a neural story: interoceptive feeling plus concepts, with the categories learned rather than built in. <a class="cite" href="#src-barrett2017" data-src="barrett2017">Barrett 2017</a> On this reading the third number is not a missing dimension of feeling. "Dominance" is a judgement about your standing in the situation, which is exactly the sort of thing that turns core affect into panic rather than anger. The data on this page are consistent with that: dominance is the least agreed-on scale, half of it is valence in disguise, and Russell's own circumplex kept two axes after his earlier work with Mehrabian had used three.</p>
+    </div>
+    <div class="side">
+      <h3>"The plane is a shadow of something bigger"</h3>
+      <p>Osgood, Suci and Tannenbaum found that judgements of almost anything fall on three factors — evaluation, potency, activity — long before anyone drew an emotion circle. <a class="cite" href="#src-osgood1957" data-src="osgood1957">Osgood et al. 1957</a> Mehrabian and Russell turned those into pleasure, arousal and dominance, <a class="cite" href="#src-mehrabianrussell1974" data-src="mehrabianrussell1974">Mehrabian &amp; Russell 1974</a> and, as the paper is usually cited, argued that the third was needed to tell apart terms with the same pleasure and arousal. <a class="cite" href="#src-russellmehrabian1977" data-src="russellmehrabian1977">Russell &amp; Mehrabian 1977</a> Fontaine, Scherer, Roesch and Ellsworth went further: rating emotion terms in three languages on 144 features drawn from six components of emotion (appraisals, bodily changes, expressions, action tendencies, feelings, regulation), they found four dimensions — evaluation, potency–control, activation, unpredictability — with potency <em>second</em> in importance, ahead of arousal. <a class="cite" href="#src-fontaine2007" data-src="fontaine2007">Fontaine et al. 2007</a> On this reading, the circumplex looks two-dimensional because it only ever asked about the feeling. Ask about the whole episode and the shadow stands up. The data on this page are consistent with this too: the half of dominance that valence does not predict is not noise. Twelve fear words in the lexicon (afraid, scared, terrified, frightened, fearful, fear, terror, panic, petrified, dread, fright, horror) and thirteen anger words (angry, furious, irate, enraged, hostile, outraged, indignant, livid, anger, rage, fury, wrath, hostility) have the same average valence (<span data-claim="fam_fear_v">2.8</span> against <span data-claim="fam_anger_v">2.8</span>) and the same average arousal (<span data-claim="fam_fear_a">5.7</span> against <span data-claim="fam_anger_a">5.7</span>), and sit <span data-claim="fam_dd">1.1</span> points apart on dominance (<span data-claim="fam_fear_d">3.3</span> against <span data-claim="fam_anger_d">4.5</span>). Whatever the third number is, it knows the difference.</p>
+    </div>
+  </div>
+  <p>There is a third position, which is that points are the wrong idea. Cowen and Keltner collected self-reports to 2,185 short videos and argued that 27 distinct categories of experience — amusement, awe, nostalgia and the rest — explained the reports better than any small set of dimensions, while still being bridged by smooth gradients. <a class="cite" href="#src-cowenkeltner2017" data-src="cowenkeltner2017">Cowen &amp; Keltner 2017</a> Barrett and colleagues answered with a critique of the design and asked for studies that look directly at variation <em>within</em> each category and at the similarities between categories; <a class="cite" href="#src-barrett2018" data-src="barrett2018">Barrett et al. 2018</a> Cowen and Keltner replied that this framed their work as one more round of the discrete-versus-dimensional debate when it was not meant as either. <a class="cite" href="#src-cowenkeltner2018" data-src="cowenkeltner2018">Cowen &amp; Keltner 2018</a></p>
+  <p>Note what the map does and does not decide. Basic-emotion theory holds that a handful of emotions each come with their own signal, physiology and triggers, built by evolution. <a class="cite" href="#src-ekman1992" data-src="ekman1992">Ekman 1992</a> Constructionism holds that the biological givens are the two axes and the categories are learned. Both camps can read the figures above without flinching. They disagree about what the words are the names <em>of</em>, and a scatter plot of words cannot adjudicate that.</p>
+</section>
+
+<section id="history">
+  <h2><span class="num">9</span>How many numbers?</h2>
+  <p>The count has not been converging. It depends on what was asked.</p>
+  <div class="table-wrap">
+  <table class="timeline">
+    <thead><tr><th>year</th><th>who</th><th>count</th><th>what the numbers were</th></tr></thead>
+    <tbody>
+      <tr><td>1896</td><td>Wundt <a class="cite" href="#src-wundt1896" data-src="wundt1896">Wundt 1896</a></td><td class="count">3</td><td>pleasure–displeasure, excitement–inhibition, tension–relaxation; six elementary feelings in three opposed pairs</td></tr>
+      <tr><td>1954</td><td>Schlosberg <a class="cite" href="#src-schlosberg1954" data-src="schlosberg1954">Schlosberg 1954</a></td><td class="count">3</td><td>pleasantness–unpleasantness and attention–rejection from ratings of facial expressions, plus level of activation</td></tr>
+      <tr><td>1957</td><td>Osgood, Suci &amp; Tannenbaum</td><td class="count">3</td><td>evaluation, potency, activity, from semantic-differential ratings of words of every kind</td></tr>
+      <tr><td>1974</td><td>Mehrabian &amp; Russell</td><td class="count">3</td><td>pleasure, arousal, dominance (PAD), Osgood's three recast as emotional responses</td></tr>
+      <tr><td>1977</td><td>Russell &amp; Mehrabian</td><td class="count">3</td><td>emotion terms rated on pleasure, arousal and dominance: "evidence for a three-factor theory"</td></tr>
+      <tr><td>1980</td><td>Russell</td><td class="count">2</td><td>the circumplex: pleasure and arousal, with 28 adjectives in circular order</td></tr>
+      <tr><td>1985</td><td>Watson &amp; Tellegen</td><td class="count">2</td><td>the same circle, axes rotated 45°: positive affect and negative affect</td></tr>
+      <tr><td>1999</td><td>Bradley &amp; Lang</td><td class="count">3</td><td>ANEW: 1,034 words rated for valence, arousal and dominance</td></tr>
+      <tr><td>2003</td><td>Russell</td><td class="count">2</td><td>core affect: valence and arousal as the primitive; everything else is construction</td></tr>
+      <tr><td>2007</td><td>Fontaine, Scherer, Roesch &amp; Ellsworth</td><td class="count">4</td><td>evaluation, potency–control, activation, unpredictability, from 144 features across six components</td></tr>
+      <tr><td>2013</td><td>Warriner, Kuperman &amp; Brysbaert</td><td class="count">3</td><td>13,915 words rated for valence, arousal and dominance: the numbers on this page</td></tr>
+      <tr><td>2017</td><td>Cowen &amp; Keltner</td><td class="count">27</td><td>categories, not axes, bridged by gradients, from reports to 2,185 videos</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="not">
+  <h2><span class="num">10</span>What this page is not</h2>
+  <p>It is not a mood tracker: nothing you tap is stored, sent or kept after you close the tab. It is not advice, and it does not tell you what any feeling means or what to do about it. It is a map of how English words have been rated, with the arguments about the map attached. Where you put your dot is your business.</p>
+</section>
+
+<section id="sources">
+  <h2><span class="num">11</span>Sources</h2>
+  <p class="aside">Every citation above links here. The companion <code>sources.json</code> lists, for each entry, the claim it supports and how it was found. Bibliographic details marked <span class="label-badge">abstract</span> were confirmed against the paper's abstract or publisher record; those marked <span class="label-badge">secondary</span> rest on secondary sources, which is stated in the README.</p>
+  <ol class="sources">
+    <li id="src-russell1980"><span class="label-badge">abstract</span> Russell, J. A. (1980). A circumplex model of affect. <em>Journal of Personality and Social Psychology, 39</em>(6), 1161–1178. doi:10.1037/h0077714 <span class="claims">Eight concepts at 45° intervals; 28 adjectives scaled four ways, including a principal-components analysis of 343 people's self-reports.</span></li>
+    <li id="src-warriner2013"><span class="label-badge">abstract</span> Warriner, A. B., Kuperman, V., &amp; Brysbaert, M. (2013). Norms of valence, arousal, and dominance for 13,915 English lemmas. <em>Behavior Research Methods, 45</em>(4), 1191–1207. doi:10.3758/s13428-012-0314-x <span class="claims">Source of every number on this page; nine-point scales; extension of ANEW. Data file redistributed under CC BY-NC-ND 3.0; rows reproduced verbatim.</span></li>
+    <li id="src-bradleylang1999"><span class="label-badge">secondary</span> Bradley, M. M., &amp; Lang, P. J. (1999). <em>Affective norms for English words (ANEW): Instruction manual and affective ratings</em> (Technical Report C-1). Center for Research in Psychophysiology, University of Florida. <span class="claims">1,034 words rated for valence, arousal and dominance.</span></li>
+    <li id="src-wundt1896"><span class="label-badge">secondary</span> Wundt, W. (1896). <em>Grundriss der Psychologie</em>. Leipzig: Engelmann. <span class="claims">Three dimensions of feeling: pleasure–displeasure, excitement–inhibition, tension–relaxation.</span></li>
+    <li id="src-schlosberg1954"><span class="label-badge">secondary</span> Schlosberg, H. (1954). Three dimensions of emotion. <em>Psychological Review, 61</em>(2), 81–88. <span class="claims">Pleasantness–unpleasantness, attention–rejection, level of activation.</span></li>
+    <li id="src-osgood1957"><span class="label-badge">secondary</span> Osgood, C. E., Suci, G. J., &amp; Tannenbaum, P. H. (1957). <em>The measurement of meaning</em>. Urbana: University of Illinois Press. <span class="claims">Evaluation, potency and activity as recurring factors of the semantic differential.</span></li>
+    <li id="src-mehrabianrussell1974"><span class="label-badge">secondary</span> Mehrabian, A., &amp; Russell, J. A. (1974). <em>An approach to environmental psychology</em>. Cambridge, MA: MIT Press. <span class="claims">Pleasure, arousal and dominance as the emotional counterparts of Osgood's three factors.</span></li>
+    <li id="src-russellmehrabian1977"><span class="label-badge">secondary</span> Russell, J. A., &amp; Mehrabian, A. (1977). Evidence for a three-factor theory of emotions. <em>Journal of Research in Personality, 11</em>(3), 273–294. <span class="claims">Emotion terms rated on pleasure, arousal and dominance; dominance needed to separate terms that share the other two (as later authors cite it).</span></li>
+    <li id="src-watsontellegen1985"><span class="label-badge">secondary</span> Watson, D., &amp; Tellegen, A. (1985). Toward a consensual structure of mood. <em>Psychological Bulletin, 98</em>(2), 219–235. <span class="claims">Positive and negative affect as axes rotated 45° from Russell's.</span></li>
+    <li id="src-russellcarroll1999"><span class="label-badge">abstract</span> Russell, J. A., &amp; Carroll, J. M. (1999). On the bipolarity of positive and negative affect. <em>Psychological Bulletin, 125</em>(1), 3–30. <span class="claims">Pleasant–unpleasant as one bipolar axis; apparent independence traced to item wording, time frame, response format and measurement error.</span></li>
+    <li id="src-larsen2001"><span class="label-badge">abstract</span> Larsen, J. T., McGraw, A. P., &amp; Cacioppo, J. T. (2001). Can people feel happy and sad at the same time? <em>Journal of Personality and Social Psychology, 81</em>(4), 684–696. doi:10.1037/0022-3514.81.4.684 <span class="claims">Mixed happiness and sadness after <em>Life Is Beautiful</em>, moving out of a dormitory, and graduation; experience usually bipolar, processes bivariate.</span></li>
+    <li id="src-russell2003"><span class="label-badge">abstract</span> Russell, J. A. (2003). Core affect and the psychological construction of emotion. <em>Psychological Review, 110</em>(1), 145–172. <span class="claims">Core affect as a two-dimensional (valence, arousal) primitive that need not be about anything; emotions as constructions on it.</span></li>
+    <li id="src-fontaine2007"><span class="label-badge">abstract</span> Fontaine, J. R. J., Scherer, K. R., Roesch, E. B., &amp; Ellsworth, P. C. (2007). The world of emotions is not two-dimensional. <em>Psychological Science, 18</em>(12), 1050–1057. <span class="claims">Four dimensions in order of importance: evaluation–pleasantness, potency–control, activation–arousal, unpredictability; 144 features over six components; three languages.</span></li>
+    <li id="src-yik2011"><span class="label-badge">abstract</span> Yik, M., Russell, J. A., &amp; Steiger, J. H. (2011). A 12-point circumplex structure of core affect. <em>Emotion, 11</em>(4), 705–731. <span class="claims">A finer circumplex integrating the major dimensional models of mood and emotion.</span></li>
+    <li id="src-kuppens2013"><span class="label-badge">abstract</span> Kuppens, P., Tuerlinckx, F., Russell, J. A., &amp; Barrett, L. F. (2013). The relation between valence and arousal in subjective experience. <em>Psychological Bulletin, 139</em>(4), 917–940. doi:10.1037/a0030811 <span class="claims">Across eight datasets, a weak but consistent V-shaped relation on average, with large individual variation.</span></li>
+    <li id="src-cowenkeltner2017"><span class="label-badge">abstract</span> Cowen, A. S., &amp; Keltner, D. (2017). Self-report captures 27 distinct categories of emotion bridged by continuous gradients. <em>Proceedings of the National Academy of Sciences, 114</em>(38), E7900–E7909. doi:10.1073/pnas.1702247114 <span class="claims">2,185 videos; 27 categories; categorical labels fit reports better than valence and arousal; gradients between categories.</span></li>
+    <li id="src-barrett2018"><span class="label-badge">abstract</span> Barrett, L. F., Khan, Z., Dy, J., &amp; Brooks, D. (2018). Nature of emotion categories: Comment on Cowen and Keltner. <em>Trends in Cognitive Sciences, 22</em>(2), 97–99. doi:10.1016/j.tics.2017.12.004 <span class="claims">Critique of the 27-category study; calls for attention to variation within categories.</span></li>
+    <li id="src-cowenkeltner2018"><span class="label-badge">abstract</span> Cowen, A. S., &amp; Keltner, D. (2018). Clarifying the conceptualization, dimensionality, and structure of emotion: Response to Barrett and colleagues. <em>Trends in Cognitive Sciences, 22</em>(4), 274–276. <span class="claims">Reply: the comment framed the work as another round of the discrete-versus-dimensional debate, which it was not meant to be.</span></li>
+    <li id="src-ekman1992"><span class="label-badge">abstract</span> Ekman, P. (1992). An argument for basic emotions. <em>Cognition and Emotion, 6</em>(3–4), 169–200. doi:10.1080/02699939208411068 <span class="claims">Basic emotions distinguished by distinctive signals, physiology and antecedent events, as products of evolution.</span></li>
+    <li id="src-barrett2017"><span class="label-badge">abstract</span> Barrett, L. F. (2017). The theory of constructed emotion: An active inference account of interoception and categorization. <em>Social Cognitive and Affective Neuroscience, 12</em>(1), 1–23. doi:10.1093/scan/nsw154 <span class="claims">Emotions as constructed from interoceptive affect and learned concepts.</span></li>
+    <li id="src-yik2023"><span class="label-badge">abstract</span> Yik, M., Mues, C., Sze, I. N. L., Kuppens, P., Tuerlinckx, F., De Roover, K., et al. (2023). On the relationship between valence and arousal in samples across the globe. <em>Emotion, 23</em>(2), 332–344. doi:10.1037/emo0001095 <span class="claims">8,590 participants, 33 societies, 25 languages; independence and symmetric V both rejected; arousal rose with positive but not negative valence; valence explained 5% (Finland) to 43% (Beijing) of arousal variance.</span></li>
+  </ol>
+</section>
+
+<footer>
+  <p>Word ratings: Warriner, Kuperman &amp; Brysbaert (2013), reproduced verbatim from the published file under the authors' CC BY-NC-ND 3.0 licence, for non-commercial use. Selection of 254 words, the binned summary, and all prose and code: this page's author. No scripts load from the network; nothing is stored.</p>
+</footer>
+</main>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
