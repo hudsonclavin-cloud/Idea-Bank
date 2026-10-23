@@ -18,8 +18,16 @@
   const darkQ = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : { matches: false };
   const STORE = 'idea-bank.60-solera';
 
+  // ?evap=0 (a percentage, in steps of 0.5 up to 6) opens the solera with that evaporation.
+  const evapParam = (() => {
+    const v = params.get('evap');
+    if (v === null || !/^\d(\.\d)?$/.test(v)) return null;
+    const x = Math.round(parseFloat(v) * 2) / 2;
+    return x <= 6 ? x / 100 : null;
+  })();
+
   const state = {
-    p: { ...S.DEFAULTS },
+    p: { ...S.DEFAULTS, ...(evapParam === null ? {} : { evap: evapParam }) },
     year: clampYear(intParam('year') || NOW),
     your: null,
     note: '',
@@ -45,6 +53,9 @@
     return 100 % q === 0 ? 'one time in ' + numWord(100 / q) : q + ' times in a hundred';
   };
   const yearsWord = (k) => (k === 1 ? 'one year' : numWord(k) + ' years');
+  const pctText = (x) => +(x * 100).toFixed(1) + '%';
+  const evap = () => state.p.evap || 0;
+  const molecules = (c) => (c === '1' ? 'molecule' : 'molecules');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const lnN = () => Math.log(state.p.molecules);
   const share = (ln) => S.shareText(ln);
@@ -53,7 +64,9 @@
   const chanceText = (lnC) => {
     const pa = S.probAtLeastOne(lnC);
     if (pa >= 0.01) return Math.round(pa * 100) + '%';
-    return 'about ' + S.sci(Math.log(pa), 1);
+    if (pa >= 1e-4) return +(pa * 100).toPrecision(1) + '%';
+    const odds = 1 / pa;
+    return 'about 1 in ' + (odds < 1e6 ? S.withCommas(Math.round(odds / Math.pow(10, Math.floor(Math.log10(odds)) - 1)) * Math.pow(10, Math.floor(Math.log10(odds)) - 1)) : S.sci(Math.log(odds), 1));
   };
   const chancePhrase = (lnC) => {
     const t = chanceText(lnC);
@@ -137,7 +150,7 @@
     const n = state.p.rows;
     const labelW = W < 480 ? 86 : 112;
     const cols = W < 430 ? 3 : W < 600 ? 4 : 5;
-    const top = 24;
+    const top = 28;
     const floorH = 14;
     const pitch = 2.16;
     let r = Math.min(46, (W - labelW - 14) / (cols * 2.2));
@@ -221,9 +234,18 @@
     ctx.fillStyle = css['floor-edge'];
     ctx.fillRect(0, floorY, L.W, 1.5);
 
+    // The rows are drawn as they stand just after this year's scales; the glass was drawn
+    // before them, so it is a year older than the bottom row looks.
+    ctx.fillStyle = css.muted;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${L.W < 480 ? 12 : 13}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    ctx.fillText('Average ages just after this year\u2019s scales', 10, 12);
+
     const a = state.anim;
     const n = L.n;
-    const f = state.p.draw;
+    const g = S.rates(state.p);
+    const ev = evap();
     const cur = a ? a.next : snapshot(state.year);
     const prev = a ? a.prev : cur;
     const phases = n + 1;
@@ -235,7 +257,9 @@
       const give = phaseOf(n - d);
       const get = phaseOf(n - d + 1);
       const ease = (t) => t * t * (3 - 2 * t);
-      const level = a ? 1 - f * ease(give) + f * ease(get) : 1;
+      // Each cask has lost `ev` to the wood since last year; row d passes down g[d] - ev
+      // (the bottom row: the draw) and takes in g[d] from above.
+      const level = a ? 1 - ev * ease(phaseOf(0)) - (g[d] - ev) * ease(give) + g[d] * ease(get) : 1;
       const age = a ? prev.rows[d - 1] + (cur.rows[d - 1] - prev.rows[d - 1]) * ease(get) : cur.rows[d - 1];
       const colour = ramp(WINE, age);
       for (let c = 0; c < L.cols; c++) drawCask(ctx, L.cx(c), L.cy(d), L.r, colour, level, d === n ? String(state.p.founded) : '');
@@ -492,14 +516,14 @@
     add(NOW, `Now. This year&rsquo;s young wine goes in at the top.`, 'now');
     add(life.first, `${NOW}&rsquo;s young wine reaches the glass: ${share(life.firstLn)} of it.`);
     add(life.peaks[0], `${NOW} is at its most: ${share(life.peakLn)} of the glass` + (life.peaks.length > 1 ? `, and exactly as much again in ${life.peaks[1]}.` : '.'));
-    add(life.gone, `The last of ${NOW} leaves the glass: less than one molecule of it in a glass, on average. Every later year, up to ${yearsWord(p.rows)} ago, is still there.`);
+    add(life.gone, `From now on a glass holds less than one molecule of ${NOW}, on average. Every later year, up to ${yearsWord(p.rows)} ago, is still there.`);
     if (state.your && state.your !== NOW) {
       const L = S.vintageLife(p, state.your);
       const lab = esc(yourLabel());
       add(state.your, `The young wine of <span class="you">${lab}</span> goes in at the top.`, 'you');
       add(L.first, `<span class="you">${lab}</span> reaches the glass.`, 'you');
       add(L.peaks[0], `<span class="you">${lab}</span> is at its most: ${share(L.peakLn)} of the glass` + (L.peaks.length > 1 ? `, and as much again in ${L.peaks[1]}.` : '.'), 'you');
-      add(L.gone, `The last of <span class="you">${lab}</span> leaves the glass.`, 'you');
+      add(L.gone, `From now on a glass holds less than one molecule of <span class="you">${lab}</span>, on average.`, 'you');
     }
     out.sort((a, b) => a.year - b.year);
     return out;
@@ -518,17 +542,41 @@
       const half = g.medianYear === y0 ? `More than half of it is still the founding wine.` : `Half of it went in at the top in ${g.medianYear} or later.`;
       lines.push(`<b>Average age ${g.meanAge.toFixed(1).replace(/\.0$/, '')} years.</b> ${half} The youngest went in in ${g.youngest}: young wine takes ${yearsWord(p.rows)} to reach the glass.`);
       const fc = g.founding.lnCount;
+      let found;
       if (Math.exp(g.founding.ln) >= 1e-4) {
-        lines.push(`The wine every cask was filled with in ${y0} is still <span class="num">${share(g.founding.ln)}</span> of the glass.`);
+        found = `The wine every cask was filled with in ${y0} is still <span class="num">${share(g.founding.ln)}</span> of the glass.`;
       } else if (fc >= 0) {
-        lines.push(`Of ${y0}, the wine every cask was first filled with, there are about <span class="num">${count(g.founding.ln)}</span> molecules: <span class="num">${share(g.founding.ln)}</span>.`);
+        const c = count(g.founding.ln);
+        found = `Of ${y0}, the wine every cask was first filled with, there ${c === '1' ? 'is' : 'are'} about <span class="num">${c}</span> ${molecules(c)} in a glass: <span class="num">${share(g.founding.ln)}</span>.`;
       } else {
-        lines.push(`Of ${y0}, the wine every cask was first filled with, there is less than one molecule in a glass, on average. The chance that this glass holds even one: ${chanceText(fc)}.`);
+        const gone = S.foundingGone(p);
+        const since = gone === Y ? 'from this year on' : `since ${gone}`;
+        found = `Of ${y0}, the wine every cask was first filled with, a glass has held less than one molecule ${since}, on average. The chance that this glass holds even one: <span class="num">${chanceText(fc)}</span>. The bottom row is still chalked ${y0}.`;
       }
-      if (g.oldestCounted !== null) {
-        const scarce = g.scarcest;
-        const from = g.oldestCounted;
-        lines.push(`Every year from ${from} to ${g.youngest} is in it, at least a molecule&rsquo;s worth of each` + (scarce ? `; the scarcest is ${scarce.year}, with about <span class="num">${count(scarce.ln)}</span> ${count(scarce.ln) === '1' ? 'molecule' : 'molecules'}.` : '.') + (from > y0 ? ` Anything older has, on average, gone.` : ''));
+      // How much the evaporation changes this: the same solera with no losses.
+      if (evap() > 0) {
+        const p0 = { ...p, evap: 0 };
+        const g0 = S.glassStats(p0, Y).founding;
+        const gone0 = S.foundingGone(p0);
+        const c0 = count(g0.ln);
+        if (Math.exp(g0.ln) >= 1e-4) found += ` Without evaporation it would be <span class="num">${share(g0.ln)}</span>.`;
+        else if (g0.lnCount >= 0) found += ` Without evaporation there would be about <span class="num">${c0}</span> ${molecules(c0)} of it in this glass` + (gone0 ? `, and less than one only from ${gone0}.` : '.');
+        else if (gone0 !== null) found += ` Without evaporation that would not have happened until ${gone0}.`;
+      }
+      lines.push(found);
+      if (g.runFrom !== null) {
+        // The unbroken run back from the youngest year; the founding wine is reported above.
+        const scarce = g.unbroken && g.founding.ln < g.scarcest.ln ? g.composition[0] : g.scarcest;
+        const from = g.unbroken ? y0 : g.runFrom;
+        const sc = count(scarce.ln);
+        let tail = '';
+        if (g.unbroken) tail = '';
+        else if (g.runFrom > y0 + 1) {
+          const lostTo = g.runFrom - 1;
+          const lost = lostTo === y0 + 1 ? `${y0 + 1} has` : lostTo === y0 + 2 ? `${y0 + 1} and ${lostTo} have` : `The years ${y0 + 1} to ${lostTo} have`;
+          tail = g.founding.counted ? ` ${lost}, on average, gone, though the founding wine has not: it is everything that has not yet come all the way down, not one year&rsquo;s wine.` : ` Anything older has, on average, gone.`;
+        }
+        lines.push(`Every year from ${from} to ${g.youngest} is in it, at least one molecule of each on average; the scarcest is ${scarce.year}, with about <span class="num">${sc}</span> ${molecules(sc)}.` + tail);
       }
     }
     $('facts').innerHTML = lines.map((l) => `<p>${l}</p>`).join('');
@@ -565,7 +613,7 @@
     const both = L.peaks.length > 1 ? ', both years' : '';
     const arrive = past(L.first) ? `${lab} first reached the glass in ${L.first}` : `${lab} will first reach the glass in ${L.first}`;
     const peak = (past(L.peaks[0]) ? 'was at its most in ' : 'will be at its most in ') + peakYears + ` (${share(L.peakLn)} of a glass${both})`;
-    const gone = L.gone === null ? '' : past(L.gone) ? `and left it in ${L.gone}` : `and leaves it in ${L.gone}`;
+    const gone = L.gone === null ? '' : past(L.gone) ? `and since ${L.gone} a glass has held less than one molecule of it, on average` : `and from ${L.gone} a glass will hold less than one molecule of it, on average`;
     parts.push(`${arrive}, ${peak}${gone ? ', ' + gone : ''}.`);
     // In the glass being shown
     const Y = state.year;
@@ -573,8 +621,8 @@
     else if (Y === y) parts.push(`In ${Y} it goes in at the top, after that year&rsquo;s glass is drawn.`);
     else if (Y - y < p.rows) parts.push(`In ${Y} it is still on its way down the rows.`);
     else {
-      const ln = S.lnAgeShare(Y - y, p.rows, p.draw);
-      if (ln + lnN() >= 0) parts.push(`In the glass of ${Y} it is ${share(ln)}: about ${count(ln)} molecules.`);
+      const ln = S.lnAge(p, Y - y);
+      if (ln + lnN() >= 0) parts.push(`In the glass of ${Y} it is ${share(ln)}: about ${count(ln)} ${molecules(count(ln))}.`);
       else parts.push(`In the glass of ${Y} there is less than one molecule of it, on average.`);
     }
     if (y <= y0) parts.length = 0;
@@ -585,40 +633,76 @@
     const p = state.p;
     const n = p.rows;
     const f = p.draw;
+    const ev = evap();
+    const g = S.rates(p);
     document.querySelectorAll('.js-draw').forEach((el) => (el.textContent = drawWord()));
-    document.querySelectorAll('.js-f').forEach((el) => (el.textContent = fracText(f)));
-    document.querySelectorAll('.js-nth').forEach((el) => (el.textContent = ORD[n]));
-    document.querySelectorAll('.js-odds').forEach((el) => (el.textContent = oddsText()));
-    document.querySelectorAll('.js-heads').forEach((el) => (el.textContent = n === 1 ? 'one head' : numWord(n) + ' heads'));
     document.querySelectorAll('.js-now').forEach((el) => (el.textContent = String(NOW)));
     const F = fracText(f);
     const G = fracText(1 - f);
-    $('fAge').innerHTML = `C(<i>k</i>&minus;1, ${n - 1}) &middot; (${F})<sup>${n}</sup> &middot; (${G})<sup><i>k</i>&minus;${n}</sup>, for <i>k</i> &ge; ${n}`;
-    $('fFound').innerHTML = `the chance of fewer than ${n === 1 ? 'one head' : numWord(n) + ' heads'} in (year &minus; ${p.founded + 1}) tosses`;
     const mean = S.steadyMeanAge(p);
-    $('fMean').innerHTML = `rows &divide; draw = ${n} &divide; ${F} = ${+mean.toFixed(1)} years`;
+    const heads = n === 1 ? 'one head' : numWord(n) + ' heads';
+    if (ev === 0) {
+      $('proof1').innerHTML = `Take one molecule in this year&rsquo;s glass and follow it backwards, a year at a time. Every year, ${drawWord()} of the bottom row had just come down from the row above. The casks here are perfectly mixed, so our molecule was one of those newcomers with chance ${F}, whatever happened in any other year. Once it is in the row above, the same is true there, and so on up. It went in at the top on its ${ORD[n]} arrival, counting backwards.`;
+      $('proof2').innerHTML = `So its age is the number of tosses it takes a coin that lands heads ${oddsText()} to show ${heads}, and every share on this page is a count of coin tosses:`;
+      $('fAge').innerHTML = `C(<i>k</i>&minus;1, ${n - 1}) &middot; (${F})<sup>${n}</sup> &middot; (${G})<sup><i>k</i>&minus;${n}</sup>, for <i>k</i> &ge; ${n}`;
+      $('fFound').innerHTML = `the chance of fewer than ${heads} in (year &minus; ${p.founded + 1}) tosses`;
+      $('fMean').innerHTML = `rows &divide; draw = ${n} &divide; ${F} = ${+mean.toFixed(1)} years`;
+    } else {
+      // Bottom row first: that is the order in which the molecule is followed back.
+      const up = [];
+      for (let d = n; d >= 1; d--) up.push(pctText(g[d]));
+      const list = up.length === 1 ? up[0] : up.slice(0, -1).join(', ') + ' and ' + up[up.length - 1];
+      const rowsUp = n === 1 ? '' : n === 2 ? ` The top row passes that much down and loses its own ${pctText(ev)}, so ${up[1]} of it is new each year.` : ` The row above passes that much down and loses its own ${pctText(ev)}, so ${up[1]} of it is new each year; and so on up, to ${up[n - 1]} at the top.`;
+      $('proof1').innerHTML = `Take one molecule in this year&rsquo;s glass and follow it backwards, a year at a time. Every year the bottom row had just been topped up from the row above: ${drawWord()} to replace the draw and ${pctText(ev)} to replace what the wood breathed out, ${up[0]} in all. The casks here are perfectly mixed, and evaporation takes every molecule with the same chance, so our molecule was one of those newcomers with chance ${up[0]}, whatever happened in any other year.${rowsUp} It went in at the top on its ${ORD[n]} arrival, counting backwards.`;
+      $('proof2').innerHTML = n === 1
+        ? `So its age is the number of tosses it takes a coin that lands heads ${up[0]} of the time to show a head, and every share on this page is a count of coin tosses:`
+        : `So its age is the number of tosses it takes to get a head from each of ${numWord(n)} coins in turn, landing heads ${list} of the time, and every share on this page is a count of coin tosses:`;
+      $('fAge').innerHTML = `P<sub>${n}</sub>(<i>k</i>), where P<sub><i>d</i></sub>(<i>k</i>) = (1 &minus; <i>g<sub>d</sub></i>)&thinsp;P<sub><i>d</i></sub>(<i>k</i>&minus;1) + <i>g<sub>d</sub></i>&thinsp;P<sub><i>d</i>&minus;1</sub>(<i>k</i>&minus;1), starting from P<sub>0</sub>(0) = 1 and zero everywhere else, with <i>g</i> = ${up.slice().reverse().join(', ')} from the top row down`;
+      $('fFound').innerHTML = `the chance that the coins have not all shown their heads in (year &minus; ${p.founded + 1}) tosses`;
+      $('fMean').innerHTML = up.map((x) => `1 &divide; ${x}`).join(' + ') + ` = ${+mean.toFixed(1)} years`;
+    }
     const lede = document.querySelector('.lede');
-    if (n === 1) lede.textContent = `One row of casks. Once a year ${drawWord()} of it is drawn off and bottled, and the casks are topped up with young wine. Nobody has emptied a cask since ${p.founded}.`;
+    const loss = ev > 0 ? ` Each cask loses ${pctText(ev)} a year through the wood, and that is made up from above too.` : '';
+    if (n === 1) lede.textContent = `One row of casks. Once a year ${drawWord()} of it is drawn off and bottled, and the casks are topped up with young wine.${loss} Nobody has emptied a cask since ${p.founded}.`;
     else
-      lede.textContent = `${cap(numWord(n))} rows of casks. Once a year ${drawWord()} of the bottom row is drawn off and bottled. The bottom row is topped up from ${n === 2 ? 'the top row' : 'the row above it, that row from the one above'}, and the top row with young wine. Nobody has emptied a cask since ${p.founded}.`;
-    bodega.setAttribute('aria-label', `${cap(numWord(n))} row${n > 1 ? 's' : ''} of casks on a cellar floor. The bottom row, the solera, is chalked ${p.founded}. Each cask shows the colour of the wine inside, darker where it is older on average.`);
+      lede.textContent = `${cap(numWord(n))} rows of casks. Once a year ${drawWord()} of the bottom row is drawn off and bottled. The bottom row is topped up from ${n === 2 ? 'the top row' : 'the row above it, that row from the one above'}, and the top row with young wine.${loss} Nobody has emptied a cask since ${p.founded}.`;
+    bodega.setAttribute('aria-label', `${cap(numWord(n))} row${n > 1 ? 's' : ''} of casks on a cellar floor, as they stand just after this year's scales. The bottom row, the solera, is chalked ${p.founded}. Each cask shows the colour of the wine inside, darker where it is older on average.`);
+    // The 75 ml glass
+    const g75 = S.foundingGone({ ...p, molecules: p.molecules * 0.75 });
+    $('g75').textContent = g75 === null ? `after ${p.founded + 20000}` : `from ${g75}`;
     // knob summary
     const sd = S.steadyAgeSd(p);
     const gone = S.foundingGone(p);
-    const one = { ...p, rows: 1, draw: 1 / mean };
-    $('knobText').innerHTML =
-      `Once the founding wine has gone, a glass is on average ${+mean.toFixed(1)} years old, give or take ${sd.toFixed(1)} years (one standard deviation). ` +
-      (n > 1 && 1 / mean < 1 ? `A single cask drawn to give the same average age would give or take ${S.steadyAgeSd(one).toFixed(1)}: the rows are what keep one year&rsquo;s glass like the next. ` : '') +
-      (gone ? `The last of ${p.founded} leaves the glass in ${gone}.` : `The founding wine stays in the glass past ${p.founded + 20000}.`);
+    const one = S.singleCaskLike(p);
+    let txt = `Once the founding wine has gone, a glass is on average ${+mean.toFixed(1)} years old, give or take ${sd.toFixed(1)} years (one standard deviation). `;
+    if (n > 1 && one) {
+      // The spread of ages in one glass is not a measure of how alike one year's glass is to
+      // the next; the year-to-year change is (see yearToYearChange in solera.js).
+      const ratio = S.yearToYearChange(one) / S.yearToYearChange(p);
+      const lead = `Suppose each year&rsquo;s young wine differed from the others at random. Then the change from one year&rsquo;s glass to the next would be `;
+      if (ratio >= 1.05) txt += lead + `${ratio.toFixed(1)} times smaller than with a single cask worked to the same average age: with rows, no wine younger than ${yearsWord(n)} reaches the glass, and each year&rsquo;s wine arrives a little at a time. `;
+      else if (ratio <= 1 / 1.05) txt += lead + `${(1 / ratio).toFixed(1)} times larger than with a single cask worked to the same average age. `;
+      else txt += lead + `about the same as with a single cask worked to the same average age. `;
+    }
+    const tense = (y) => (y <= NOW ? `Since ${y} a glass has held` : `From ${y} a glass holds`);
+    txt += gone ? `${tense(gone)} less than one molecule of ${p.founded}, on average.` : `A glass holds at least one molecule of ${p.founded}, on average, past ${p.founded + 20000}.`;
+    // How the founding wine's year moves with evaporation, for these rows and draw.
+    const sweep = [0, 0.01, 0.02, 0.03, 0.04, 0.05].filter((e) => f + n * e < 1).map((e) => {
+      const y = S.foundingGone({ ...p, evap: e });
+      return `${y === null ? 'after ' + (p.founded + 20000) : y} ${e === 0 ? 'with none' : 'at ' + pctText(e)}`;
+    });
+    txt += ` With these rows and draw, that year depends on the evaporation: ${sweep.join(', ')}.`;
+    $('knobText').innerHTML = txt;
     $('rowsOut').textContent = String(n);
     $('drawOut').textContent = pct() + '%';
+    $('evapOut').textContent = pctText(ev);
   }
 
   function renderYear() {
     $('yearBig').textContent = String(state.year);
     $('yearOut').textContent = String(state.year);
     $('year').value = String(state.year);
-    $('yearSub').textContent = state.year === NOW ? 'this year’s glass' : state.year < NOW ? 'the glass drawn that year' : 'a glass still to come';
+    $('yearSub').textContent = state.year === NOW ? 'this year’s glass, drawn before the scales' : state.year < NOW ? 'the glass drawn that year, before the scales' : 'a glass still to come, drawn before the scales';
   }
 
   function renderReadout() {
@@ -633,7 +717,7 @@
     if (h === p.founded) {
       const ln = S.glass(p, Y)[0].ln;
       const c = ln + lnN();
-      out.innerHTML = `<b>${h}, the founding wine:</b> ${share(ln)} of the glass, ` + (c >= 0 ? `about ${count(ln)} molecules.` : `less than one molecule on average (${chancePhrase(c)} of even one).`);
+      out.innerHTML = `<b>${h}, the founding wine:</b> ${share(ln)} of the glass, ` + (c >= 0 ? `about ${count(ln)} ${molecules(count(ln))}.` : `less than one molecule on average (${chancePhrase(c)} of even one).`);
       return;
     }
     const age = Y - h;
@@ -641,9 +725,9 @@
       out.innerHTML = `<b>${h}</b> went in at the top ${age === 0 ? 'this year' : yearsWord(age) + ' ago'}; it reaches the glass in ${h + p.rows}.`;
       return;
     }
-    const ln = S.lnAgeShare(age, p.rows, p.draw);
+    const ln = S.lnAge(p, age);
     const c = ln + lnN();
-    out.innerHTML = `<b>${h}</b>, ${age} years old: ${share(ln)} of the glass, ` + (c >= 0 ? `about ${count(ln)} molecules.` : `less than one molecule on average (${chancePhrase(c)} of even one).`);
+    out.innerHTML = `<b>${h}</b>, ${age} years old: ${share(ln)} of the glass, ` + (c >= 0 ? `about ${count(ln)} ${molecules(count(ln))}.` : `less than one molecule on average (${chancePhrase(c)} of even one).`);
   }
 
   let cachedList = [];
@@ -789,7 +873,7 @@
   });
 
   function readKnobs() {
-    state.p = { ...S.DEFAULTS, rows: parseInt($('rows').value, 10), draw: parseInt($('draw').value, 10) / 100 };
+    state.p = { ...S.DEFAULTS, rows: parseInt($('rows').value, 10), draw: parseInt($('draw').value, 10) / 100, evap: parseInt($('evap').value, 10) / 1000 };
     state.anim = null;
     renderProse();
     renderText();
@@ -797,9 +881,11 @@
   }
   $('rows').addEventListener('input', readKnobs);
   $('draw').addEventListener('input', readKnobs);
+  $('evap').addEventListener('input', readKnobs);
   $('reset').addEventListener('click', () => {
     $('rows').value = String(S.DEFAULTS.rows);
     $('draw').value = String(Math.round(S.DEFAULTS.draw * 100));
+    $('evap').value = String(Math.round(S.DEFAULTS.evap * 1000));
     readKnobs();
   });
 
@@ -828,6 +914,7 @@
   if (urlYour) $('yourYear').value = String(urlYour);
   $('year').min = String(MIN_YEAR);
   $('year').max = String(MAX_YEAR);
+  $('evap').value = String(Math.round(state.p.evap * 1000));
   readColours();
   renderProse();
   state.your = null;
