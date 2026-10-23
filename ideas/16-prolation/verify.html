@@ -32,7 +32,7 @@ choose seeds. <a href="./">Back to the piece</a>.</p>
 <button id="run" type="button">Render &amp; measure</button>
 <span id="status"></span>
 <div class="wrap"><table id="out" hidden>
-  <thead><tr><th>seed</th><th>piece</th><th>length</th><th>peak</th><th>peak dB</th><th>RMS dB</th><th>music RMS dB</th><th>loudest 100 ms dB</th><th>DC</th><th>NaN</th><th>max jump</th><th>last 1 s dB</th><th></th></tr></thead>
+  <thead><tr><th>seed</th><th>piece</th><th>length</th><th>peak</th><th>peak dB</th><th>RMS dB</th><th>music RMS dB</th><th>loudest 100 ms dB</th><th>DC (worst ch)</th><th>NaN</th><th>max jump</th><th>last 1 s dB</th><th></th></tr></thead>
   <tbody></tbody>
 </table></div>
 <script src="compose.js"></script>
@@ -68,13 +68,13 @@ choose seeds. <a href="./">Back to the piece</a>.</p>
         ...stats,
       };
       results.push(row);
-      const good = stats.peak < 1 && stats.nanCount === 0 && Math.abs(stats.dcOffset) < 1e-3 && !(stats.lastSecondDb > -90);
+      const good = stats.peak < 1 && stats.nanCount === 0 && Math.abs(stats.dcWorstChannel) < 1e-3 && !(stats.lastSecondDb > -90);
       const tr = document.createElement('tr');
       tr.innerHTML =
         `<td class="${good ? 'ok' : 'bad'}">${seed}</td><td class="cfg">${row.voices} voices ${row.proportions}, ${row.mode}</td>` +
         `<td>${stats.seconds.toFixed(1)} s</td><td>${stats.peak.toFixed(3)}</td><td>${fmtDb(stats.peakDb)}</td>` +
         `<td>${fmtDb(stats.rmsDb)}</td><td>${fmtDb(stats.musicRmsDb)}</td><td>${fmtDb(stats.loudest100msDb)}</td>` +
-        `<td>${stats.dcOffset.toExponential(1)}</td><td>${stats.nanCount}</td><td>${stats.maxSampleJump.toFixed(3)}</td>` +
+        `<td>${stats.dcWorstChannel.toExponential(2)}</td><td>${stats.nanCount}</td><td>${stats.maxSampleJump.toFixed(3)}</td>` +
         `<td>${fmtDb(stats.lastSecondDb)}</td><td></td>`;
       const play = document.createElement('button');
       play.type = 'button';

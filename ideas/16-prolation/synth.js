@@ -390,9 +390,10 @@
     const chans = [];
     for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
     let peak = 0, sumSq = 0, sum = 0, nan = 0, maxJump = 0, loudest = 0, peakAt = 0;
+    const chanSums = [];
     const win = Math.floor(sr * 0.1);
     for (const d of chans) {
-      let wSq = 0;
+      let wSq = 0, chanSum = 0;
       for (let i = 0; i < d.length; i++) {
         const x = d[i];
         if (!Number.isFinite(x)) {
@@ -406,6 +407,7 @@
         }
         sumSq += x * x;
         sum += x;
+        chanSum += x;
         if (i) {
           const j = Math.abs(x - d[i - 1]);
           if (j > maxJump) maxJump = j;
@@ -414,6 +416,7 @@
         if (i >= win) wSq -= d[i - win] * d[i - win];
         if (i >= win && wSq / win > loudest) loudest = wSq / win;
       }
+      chanSums.push(chanSum);
     }
     const n = chans[0].length * chans.length;
     const rmsBetween = (from, to) => {
@@ -434,12 +437,16 @@
       musicRmsDb: db(rmsBetween(0, musicEnds)),
       loudest100msDb: db(Math.sqrt(loudest)),
       dcOffset: sum / n,
+      // the channel whose mean is furthest from zero (signed): the stereo mean can hide one channel
+      dcWorstChannel: chanSums.map((x) => x / chans[0].length).reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a), 0),
       nanCount: nan,
       maxSampleJump: maxJump,
       lastSecondDb: db(rmsBetween(total - 1, total)),
       tailAfterMusicDb: db(rmsBetween(musicEnds + 2.5, musicEnds + 3.5)),
     };
-    for (const k of Object.keys(r)) if (typeof r[k] === 'number' && Number.isFinite(r[k])) r[k] = Math.round(r[k] * 1e5) / 1e5;
+    // Five significant figures, not five decimal places: rounding to 1e-5 used to report a DC offset
+    // of -1.48e-5 as -1e-5, under a bound it actually exceeded.
+    for (const k of Object.keys(r)) if (typeof r[k] === 'number' && Number.isFinite(r[k]) && r[k] !== 0) r[k] = Number(r[k].toPrecision(5));
     return r;
   }
 

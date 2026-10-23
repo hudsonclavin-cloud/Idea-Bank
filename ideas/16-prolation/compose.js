@@ -8,8 +8,10 @@
 // are small whole-number proportions (4:3:2, 6:5:4, ...). The slowest voice starts first and
 // alone; every voice ends on the same instant. The melody is found by search so that every
 // simultaneity the proportions produce is a consonance (short stepwise notes that arrive late
-// excepted) and no pair of voices moves together into parallel fifths or octaves. README.md
-// states the exact rules; prolation.test.mjs checks them on the realised events with its own code.
+// excepted) and no pair of voices moves together (onsets within one fast pulse, both straight from
+// a previous note) into parallel fifths or octaves. Staggered parallels and parallels after a rest
+// are not checked; README.md says how often they occur. README.md states the exact rules;
+// prolation.test.mjs checks them on the realised events with its own code.
 //
 // From a shell: node compose.js <seed>   prints that performance's events as JSON.
 (function (root, factory) {
@@ -89,9 +91,9 @@
   // Diatonic transposition per voice (scale steps), slowest/lowest first. The bass is always seven
   // steps (an octave) below the written melody and every other voice is at least two steps above
   // it, so with the melody's range of [-1, 7] the bass is never above another voice.
-  // Sets that put two voices a fifth and an octave from the bass ([-7, 4, 7], [-7, 2, 4, 7], ...)
-  // were dropped: the same line a perfect interval apart moves in parallel fifths and octaves so
-  // often that the search found a legal melody for under a third of rhythms.
+  // Dropped: [-7, 4, 7] and every four-voice set with a voice a twelfth above the bass. With them the
+  // search finds a legal melody for under a third of rhythms (solve-rates.mjs: [-7, 4, 7] 29%, the
+  // four-voice ones 0-13%, against 48% for [-7, 2, 7, 9]). [-7, 4, 9], kept, is close behind at 36%.
   const SHIFT_SETS = {
     3: [[-7, 2, 7], [-7, 2, 4], [-7, 2, 9], [-7, 4, 9]],
     4: [[-7, 2, 7, 9]],
