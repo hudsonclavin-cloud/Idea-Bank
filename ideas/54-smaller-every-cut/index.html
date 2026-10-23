@@ -58,8 +58,8 @@
           </div>
           <div class="row auto">
             <span class="lbl">Let Hercules play:</span>
-            <button type="button" id="autoFast" data-which="fast">Fast way</button>
-            <button type="button" id="autoSlow" data-which="slow">Slow way</button>
+            <button type="button" id="autoFast" data-which="fast"><span class="face-go">Fast way</span><span class="face-pause">Pause</span></button>
+            <button type="button" id="autoSlow" data-which="slow"><span class="face-go">Slow way</span><span class="face-pause">Pause</span></button>
             <label class="speed">at
               <select id="speed" aria-label="Cuts per second">
                 <option value="1">1 cut a second</option>
@@ -70,7 +70,7 @@
               </select>
             </label>
           </div>
-          <p class="note">Above 2 cuts a second the picture is redrawn twice a second, no faster; nothing on this page flashes.</p>
+          <p class="note">Above 2 cuts a second you see a snapshot twice a second. Whatever you tap, press or hold, and however fast Hercules plays, the hydra picture changes at most twice a second: a cut asked for sooner waits its turn (a newer one takes its place), a held key cuts once, and a held Enter on a button acts once (on Undo it goes on, a step each half second). Each Undo click takes back one step, and an Undo cancels a cut that is still waiting. The ring that marks the head under the mouse or picked with the arrow keys moves at most 4 times a second, and showing or hiding it (it hides while Hercules plays) counts as a move.</p>
         </div>
 
         <div class="controls hidden" id="growControls">
@@ -138,7 +138,7 @@
     <ul class="sources">
       <li>L. Kirby and J. Paris, “Accessible independence results for Peano arithmetic”, <i>Bulletin of the London Mathematical Society</i> 14 (1982) 285–293. The hydra game, the theorem, and the unprovability of “every recursive strategy is a winning strategy”.</li>
       <li>G. Gentzen, “Die Widerspruchsfreiheit der reinen Zahlentheorie”, <i>Mathematische Annalen</i> 112 (1936) 493–565, and “Beweisbarkeit und Unbeweisbarkeit von Anfangsfällen der transfiniten Induktion in der reinen Zahlentheorie”, <i>Mathematische Annalen</i> 119 (1943) 140–161.</li>
-      <li>J. Matoušek and M. Loebl, “Hercules versus hidden Hydra helper”, <i>Commentationes Mathematicae Universitatis Carolinae</i> 32 (1991) 731–741. Hercules has a short strategy and a long one.</li>
+      <li>J. Matoušek and M. Loebl, “Hercules versus hidden Hydra helper”, <i>Commentationes Mathematicae Universitatis Carolinae</i> 32 (1991) 731–741. Recalls that Hercules has a short strategy and a long one, and shows that a hidden helper of the hydra who makes one move after each of his can’t stop him keeping the game short, while one who makes two or more can make it long.</li>
       <li>G. Cantor, “Beiträge zur Begründung der transfiniten Mengenlehre (Zweiter Artikel)”, <i>Mathematische Annalen</i> 49 (1897) 207–246. Ordinal numbers and their normal form.</li>
     </ul>
   </article>

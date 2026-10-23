@@ -577,7 +577,12 @@ test('the tall stick, the fast way: five cuts to omega^15, then a 13,597-digit c
 
 // Knuth arrows for tiny arguments, to check H_{w^3}(x) >= 2^^(x+1), H_{w^4}(x) >= 2^^^(x+1).
 test('the floor lemmas hold where they can be computed', () => {
-  // H_{w^2}(x) = 2^x (x+2) - 1 >= 2^x, and iterating gives the towers.
+  // H_{w^2}(x) = 2^x (x+2) - 1 >= 2^x, and iterating gives the towers, for x >= 1.
+  // At x = 0 the x-fold iterate in (2) is the identity, and the tower floors fail:
+  assert.equal(H.hardy(H.parse('w^3'), 0n), 1n); // < 2^^1 = 2
+  assert.equal(H.hardy(H.parse('w^4'), 0n), 1n); // < 2^^^1 = 2
+  assert.equal(H.hardy(H.parse('w^2'), 0n), 1n); // < 2^1, the base of the arrow lemma
+  assert.ok(H.hardy(H.parse('w^(w+1)'), 0n) < H.hardy(H.parse('w^(w)'), 1n)); // (2) fails at 0
   assert.ok(H.hardy(H.parse('w^3'), 1n) >= 2n ** 2n); // 15 >= 2^^2 = 4
   assert.ok(H.hardy(H.parse('w^3'), 2n) >= 2n ** 2n ** 2n); // 22539988369407 >= 2^^3 = 16
   assert.ok(H.hardy(H.parse('w^4'), 1n) >= 4n); // >= 2^^^2 = 4
@@ -684,30 +689,85 @@ test('a cut keeps the shortened neck in place and marks only the regrowth as new
 });
 
 /* ------------------------------------------------------------------ */
-/* 8. Safety: nothing flashes                                           */
+/* 8. Safety: one gate for every change to the picture                 */
 /* ------------------------------------------------------------------ */
 
-test('no element can change more than 3 times a second (static check of app.js and style.css)', () => {
+// The real checks are in ui.test.mjs, which measures the rendered canvas pixel by pixel under
+// held keys, fast taps, mashed buttons and Hercules. This one pins the structure that makes
+// them pass, so a change to app.js that bypasses the gate is caught without a browser.
+test('the picture is replaced at most twice a second, whatever the input (static check of app.js and style.css)', () => {
   const m = APP.match(/SAFE = Object\.freeze\(\{([^}]*)\}\)/);
   assert.ok(m, 'SAFE constants present');
   const get = (k) => Number(new RegExp(k + ':\\s*([\\d.]+)').exec(m[1])[1]);
-  // Fast play redraws the picture and the numbers together at SNAPSHOT_HZ.
-  assert.ok(get('SNAPSHOT_HZ') <= 2, 'snapshots at most twice a second');
-  // Slower play animates every cut; it may not run faster than MAX_TWEENED_RATE cuts a second,
-  // and each cut's change is a smooth TWEEN_MS motion and fade, not a jump.
-  assert.ok(get('MAX_TWEENED_RATE') <= 2);
-  assert.ok(get('TWEEN_MS') >= 300);
-  // The only interval timer is the tweened autoplay, at 1000 / speed ms with speed <= MAX_TWEENED_RATE.
-  const intervals = APP.match(/setInterval\(/g) || [];
-  assert.equal(intervals.length, 1);
-  assert.match(APP, /speed > 0 && speed <= SAFE\.MAX_TWEENED_RATE/);
-  assert.match(APP, /setInterval\(step, 1000 \/ speed\)/);
-  // Snapshots are gated by SNAPSHOT_HZ.
-  assert.match(APP, /now - a\.lastSnap >= 1000 \/ SAFE\.SNAPSHOT_HZ/);
+  // At most two replacements of the picture a second; animated auto-play no faster than that;
+  // a cut's cross-fade ends before the next replacement may start.
+  assert.ok(get('PICTURE_HZ') <= 2);
+  assert.ok(get('MAX_TWEENED_RATE') <= get('PICTURE_HZ'));
+  assert.ok(get('TWEEN_MS') >= 300 && get('TWEEN_MS') < 1000 / get('PICTURE_HZ'));
+  // No free-running timers: Hercules's cuts and snapshots both wait for the gate.
+  assert.doesNotMatch(APP, /setInterval\(/);
+  assert.equal((APP.match(/if \(!gateFree\(\)\)/g) || []).length, 1, 'animated auto-play waits for the gate');
+  assert.match(APP, /if \(gateFree\(\) && \(a\.done > a\.shownDone \|\| dead\)\)/);
+  // Every replacement is logged by relayout, except a resize (the ResizeObserver's one call).
+  assert.match(APP, /function relayout\(animate, resize\) \{\n\s*if \(!resize\) markChange\(\);/);
+  assert.equal((APP.match(/relayout\(false, true\)/g) || []).length, 1);
+  // Inputs: a held Enter or Space cuts once; taps, keys and picture-changing buttons go through
+  // request(); stopping Hercules changes nothing on screen.
+  assert.match(APP, /if \(ev\.repeat\) return; \/\/ holding the key down cuts once/);
+  assert.doesNotMatch(APP, /addEventListener\('click', (undo\)|\(\) => (loadPreset|startAuto))/);
+  for (const call of ['move(() => cutAt(it.path, it.copies))', 'move(() => sproutAt(it))', "request('undo', undo)", "request('load', () => loadPreset(b.dataset.preset))", "request('restart', () => {", "request('clear', () => {", "request('fight', () => {", "request('labels', () => {", "request('now', () => startAuto("]) {
+    assert.ok(APP.includes(call), call);
+  }
+  const kinds = [...APP.matchAll(/request\('(\w+)'/g)].map((x) => x[1]);
+  assert.deepEqual([...new Set(kinds)].sort(), ['clear', 'fight', 'labels', 'load', 'move', 'now', 'restart', 'undo']);
+  // Nothing piles up behind the gate: at most one request of each kind waits (a newer one takes
+  // its place, and Undo clicks add up their steps), and a new hydra drops what would act on the
+  // old one. (Every click used to queue, so a held Enter on Start over left 55 waiting.)
+  const request = APP.slice(APP.indexOf('  function request(kind, fn) {'), APP.indexOf('  function pump() {'));
+  assert.match(request, /gate\.queue = gate\.queue\.filter\(\(r\) => r\.kind !== kind && !drop\.includes\(r\.kind\)\);\n\s*gate\.queue\.push\(\{ kind, fn, steps: kind === 'undo' && old \? old\.steps \+ 1 : 1 \}\);/);
+  assert.match(APP, /const DROPS = \{ load: \['move', 'undo', 'now', 'restart', 'clear', 'fight'\], restart: \['move', 'undo', 'now'\] \};/);
+  assert.match(APP, /head\.fn\(head\.steps\);/);
+  // Undo: one clicked while a cut or sprout waits cancels it. No button acts on a held Enter's
+  // repeats, except that Undo goes on at the gate's pace (a repeat adds none while one waits).
+  assert.doesNotMatch(APP, /request\('move', undo\)/);
+  const undoClick = APP.slice(APP.indexOf('function undoClick()'), APP.indexOf("$('restart')"));
+  assert.match(undoClick, /if \(waiting\('move'\)\) \{\n\s*cancel\('move'\);/);
+  assert.match(undoClick, /if \(!ev\.repeat \|\| ev\.key !== 'Enter' \|\| !\(ev\.target instanceof Element\) \|\| !ev\.target\.closest\('button'\)\) return;\n\s*ev\.preventDefault\(\);\n\s*if \(ev\.target\.closest\('#undo, #growUndo'\) && !waiting\('undo'\)\) undoClick\(\);\n\s*\},\n\s*true\n/);
+  // The selection ring, the one thing drawn outside the gate, moves on its own at most RING_HZ
+  // times a second: draw() reads the ring as drawn, and the mouse and the arrow keys only ask
+  // it to move (ringUpdate), never redraw themselves.
+  assert.ok(get('RING_HZ') <= 4);
+  assert.match(APP, /const RING_MS = 1000 \/ SAFE\.RING_HZ;/);
+  assert.match(APP, /const wait = ring\.last \+ RING_MS - performance\.now\(\);/);
+  assert.match(APP, /if \(!resize\) ringSync\(\);/);
+  // Whether the ring shows (it hides while Hercules plays) is part of the ring, under the same
+  // limit: draw() used to read state.auto, so switching Hercules on and off blinked the ring.
+  assert.match(APP, /ring\.hidden = !!state\.auto;/);
+  assert.match(APP, /if \(ring\.hover === state\.hover && ring\.sel === state\.sel && ring\.hidden === !!state\.auto\) return;/);
+  const drawFn = APP.slice(APP.indexOf('  function draw(now) {'), APP.indexOf('  function neckPath('));
+  assert.doesNotMatch(drawFn, /state\.(hover|sel|auto)\b/);
+  assert.match(drawFn, /ring\.hover/);
+  assert.match(drawFn, /&& !ring\.hidden\) \{/);
+  // A ring is drawn at full size even round a growing head, so the ring itself never moves.
+  assert.match(drawFn, /ctx\.arc\(d\.x, d\.y, headR \+ 4, 0, 2 \* Math\.PI\);/);
+  assert.doesNotMatch(drawFn, /r \+ 4/);
+  for (const fn of ['function startAuto(', 'function stopAuto(']) {
+    const body = APP.slice(APP.indexOf(fn), APP.indexOf('\n  }\n', APP.indexOf(fn)));
+    assert.match(body, /ringUpdate\(\);/, fn);
+  }
+  // In Grow your own the selection counts the body and joints too, so the head loop rings a
+  // head only in play mode (it used to ring heads[sel] as well as the body or joint picked).
+  assert.match(drawFn, /const selKey = play && ring\.sel >= 0/);
+  assert.match(drawFn, /\(\(play && ring\.hover === it\.key\) \|\| selKey === it\.key\)/);
+  const inputs = APP.slice(APP.indexOf("canvas.addEventListener('pointermove'"), APP.indexOf('// Every button that changes the picture'));
+  assert.doesNotMatch(inputs, /draw\(\)/);
+  assert.equal((inputs.match(/ringUpdate\(\);/g) || []).length, 3);
+  const stop = APP.slice(APP.indexOf('function stopAuto()'), APP.indexOf('function updateAutoButtons()'));
+  assert.doesNotMatch(stop, /relayout\(|draw\(/);
   // No CSS animations or blinking.
   const CSS = fs.readFileSync(here('./style.css'), 'utf8');
   assert.doesNotMatch(CSS, /@keyframes|animation:(?!\s*none)|text-decoration:\s*blink/);
-  // The speed menu offers nothing tweened above the limit (values 1 and 2), the rest snapshot.
+  // The speed menu offers nothing animated above the limit (values 1 and 2); the rest snapshot.
   const opts = [...INDEX.matchAll(/<option value="(\d+)"/g)].map((x) => Number(x[1]));
   assert.deepEqual(opts, [1, 2, 30, 1000, 0]);
 });
@@ -727,4 +787,43 @@ test('README and page state the numbers the tests compute', () => {
   assert.match(INDEX, /<td>Fork<\/td><td class="math">ω<sup>2<\/sup><\/td><td>10<\/td><td>13<\/td>/);
   assert.match(INDEX, /<td>Sprout<\/td><td class="math">ω<\/td><td>3<\/td><td>3<\/td>/);
   assert.match(README, /20 to 37|20–37/);
+});
+
+test('README and page state the safety rule and the floor conditions as they now hold', () => {
+  // (The README's revision note quotes the old wording, so it is left out here.)
+  const BODY = README.slice(0, README.indexOf('## Revision note'));
+  // The rule as it holds: every input, at most twice a second; no claim that nothing flashes.
+  assert.match(INDEX, /the hydra picture changes at most twice a second/);
+  assert.match(BODY, /the hydra picture changes at most twice a second/);
+  for (const doc of [BODY, INDEX]) {
+    assert.doesNotMatch(doc, /nothing on this page flashes/i);
+    assert.doesNotMatch(doc, /each pixel moves once/);
+  }
+  assert.doesNotMatch(APP, /every pixel\s+\*?\s*moves in a straight line/);
+  // The selection ring: not the old bound (its outlines blinked over far more); it has a limit.
+  assert.doesNotMatch(BODY, /selection ring \(under 400 px²\)/);
+  for (const doc of [BODY, INDEX]) assert.match(doc, /moves at most 4 times a second/);
+  // ... and showing or hiding it counts as a move (it used to blink as Hercules went on and off).
+  assert.match(BODY, /appearing or disappearing counts as a move/);
+  assert.match(INDEX, /showing or hiding it \(it hides while Hercules plays\) counts as a move/);
+  // Nothing piles up at the gate, and no button acts on a held Enter's repeats.
+  assert.match(BODY, /at most one request of each kind waits/);
+  assert.match(BODY, /a held Enter on a button acts once/);
+  assert.match(INDEX, /a held Enter on a button acts once/);
+  // Undo: every click counts; one clicked while a cut waits cancels it.
+  assert.match(BODY, /three quick clicks undo three steps/);
+  assert.match(INDEX, /Undo cancels a cut that is still waiting/);
+  // The floor facts hold for x >= 1 (they fail at x = 0); every argument used is at least 2.
+  const floors = README.slice(README.indexOf('**Floors under the slow way.**'), README.indexOf('### The page'));
+  const fact = (k) => floors.split('\n').find((l) => l.startsWith(k + '. '));
+  assert.match(fact(2), /for \*x\* ≥ 1/);
+  assert.match(fact(4), /for \*x\* ≥ 1/);
+  assert.match(floors, /for every \*k\* ≥ 2 and \*x\* ≥ 1/);
+  // Kirby–Paris: what PA can't prove is about computable strategies.
+  assert.doesNotMatch(BODY, /whatever Hercules does/i);
+  assert.match(BODY, /every hydra dies, whatever computable strategy Hercules follows/);
+  // Matoušek and Loebl recall the short and long strategies; their result is the helper's.
+  assert.doesNotMatch(BODY, /Matoušek and Loebl \(1991\) show that Hercules has/);
+  assert.match(BODY, /As Matoušek and Loebl \(1991\) recall/);
+  assert.doesNotMatch(INDEX, /731–741\. Hercules has a short strategy/);
 });

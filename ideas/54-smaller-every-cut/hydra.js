@@ -405,13 +405,14 @@
 
   /*
    * A floor under the slow way when the exact count is out of reach. Uses only:
-   *  (1) H_a(x) > x for a > 0, so H_{g+d}(x) = H_g(H_d(x)) >= H_d(x) and H^k >= H;
-   *  (2) H_{w^(b+1)}(x) = H_{w^b}^x(x+1) >= H_{w^b}(x+1);
+   *  (1) H_a(x) > x for a > 0, so H_{g+d}(x) = H_g(H_d(x)) >= H_d(x) and H^k >= H for k >= 1;
+   *  (2) H_{w^(b+1)}(x) = H_{w^b}^x(x+1) >= H_{w^b}(x+1), for x >= 1;
    *  (3) H_{w^L}(x) = H_{w^(L[x])}(x+1) for limit L;
-   *  (4) H_{w^3}(x) >= 2^^(x+1) and H_{w^4}(x) >= 2^^^(x+1) (Knuth arrows), from
-   *      H_{w^2}(x) = 2^x (x+2) - 1 >= 2^x by iterating (2).
-   * Terms are evaluated exactly from the smallest up while that is possible; the first
-   * one that is not is bounded below by walking its exponent down to 3 or 4.
+   *  (4) H_{w^3}(x) >= 2^^(x+1) and H_{w^4}(x) >= 2^^^(x+1) (Knuth arrows), for x >= 1,
+   *      from H_{w^2}(x) = 2^x (x+2) - 1 >= 2^x by iterating (2).
+   * (2) and (4) fail at x = 0, where the x-fold iterate is the identity; the argument here
+   * starts at 2 and only grows. Terms are evaluated exactly from the smallest up while that
+   * is possible; the first one that is not is bounded below by walking its exponent down to 3 or 4.
    */
   function slowFloor(a, n0, opts) {
     const o = opts || {};

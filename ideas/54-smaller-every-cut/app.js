@@ -1,16 +1,134 @@
 /*
  * app.js: the page for Smaller Every Cut. All the mathematics is in hydra.js.
  *
- * Safety (WCAG 2.3.1): nothing flashes. A cut is a TWEEN_MS cross-fade on an opaque
- * canvas (see draw). When Hercules plays faster than MAX_TWEENED_RATE cuts a second,
- * the picture and the numbers are replaced together, at most SNAPSHOT_HZ times a second;
- * there is no other timer that changes the picture.
+ * Safety (WCAG 2.3.1): the hydra picture is replaced at most PICTURE_HZ times a second,
+ * whatever asks for it: a tap, a click, a key (held or not), a button, or Hercules playing.
+ * Every replacement goes through the gate below (request / pump / markChange). A cut is a
+ * TWEEN_MS cross-fade (see draw), or an instant swap under prefers-reduced-motion; either way
+ * the next one cannot start until 1000 / PICTURE_HZ ms after the last. Held Enter or Space
+ * cuts once (key repeats are ignored, on the hydra and on every button but Undo). When
+ * Hercules plays faster than MAX_TWEENED_RATE cuts a second, the picture and the numbers are
+ * replaced together through the same gate. The selection ring (where it is, and whether it
+ * shows) is drawn outside the gate and has a limit of its own, RING_HZ (ringUpdate).
  */
 (function () {
   'use strict';
   const H = window.Hydra;
-  const SAFE = Object.freeze({ TWEEN_MS: 420, MAX_TWEENED_RATE: 2, SNAPSHOT_HZ: 2 });
+  const SAFE = Object.freeze({ TWEEN_MS: 420, MAX_TWEENED_RATE: 2, PICTURE_HZ: 2, RING_HZ: 4 });
   window.__hydraSafety = SAFE;
+
+  /*
+   * The gate. Anything that would replace the picture is a request; a request runs at once
+   * if the picture last changed at least 1000 / PICTURE_HZ ms ago, and otherwise waits its
+   * turn. Requests run in order, and at most one of each kind waits: a newer one takes the
+   * place of the one waiting, at the back. So however fast anything is tapped, clicked or
+   * pressed, nothing piles up behind the gate: the page catches up within a few half-seconds
+   * of the input stopping (one for each kind still waiting, at most). Kinds:
+   *   'move'    a cut or a sprout, aimed at the hydra on screen (see move);
+   *   'undo'    steps back. An Undo clicked while one is waiting adds a step to it, so quick
+   *             clicks undo as many steps, in one change of the picture; an Undo clicked while
+   *             a cut or sprout is waiting cancels that instead (see undoClick);
+   *   'load'    a new hydra from the hydra buttons. It drops everything waiting except a change
+   *             of the labels, since all of it would act on the hydra it replaces;
+   *   'restart' Start over. It drops waiting cuts, undos and starts of Hercules, and adds
+   *             nothing while a 'load' or 'restart' is waiting (that one starts afresh anyway);
+   *   'clear', 'fight', 'labels'  the other controls that change the picture;
+   *   'now'     changes no picture itself (starting Hercules); runs once everything before it has.
+   * Hercules's own cuts and snapshots wait for the gate too, and give way to waiting requests.
+   */
+  const GAP_MS = 1000 / SAFE.PICTURE_HZ;
+  const gate = { last: -Infinity, queue: [], timer: 0, log: [] };
+  const DROPS = { load: ['move', 'undo', 'now', 'restart', 'clear', 'fight'], restart: ['move', 'undo', 'now'] };
+
+  function gateWait() {
+    return gate.last + GAP_MS - performance.now();
+  }
+
+  function gateFree() {
+    return !gate.queue.length && gateWait() <= 0;
+  }
+
+  function markChange() {
+    gate.last = performance.now();
+    gate.log.push(Math.round(gate.last * 10) / 10);
+    if (gate.log.length > 400) gate.log.shift();
+  }
+
+  function waiting(kind) {
+    return gate.queue.some((r) => r.kind === kind);
+  }
+
+  function cancel(kind) {
+    gate.queue = gate.queue.filter((r) => r.kind !== kind);
+  }
+
+  function request(kind, fn) {
+    if (kind === 'restart' && (waiting('load') || waiting('restart'))) return;
+    const old = gate.queue.find((r) => r.kind === kind);
+    const drop = DROPS[kind] || [];
+    gate.queue = gate.queue.filter((r) => r.kind !== kind && !drop.includes(r.kind));
+    gate.queue.push({ kind, fn, steps: kind === 'undo' && old ? old.steps + 1 : 1 });
+    pump();
+  }
+
+  function pump() {
+    clearTimeout(gate.timer);
+    gate.timer = 0;
+    while (gate.queue.length) {
+      const head = gate.queue[0];
+      if (head.kind !== 'now') {
+        const w = gateWait();
+        if (w > 0) {
+          gate.timer = setTimeout(pump, Math.ceil(w) + 1);
+          return;
+        }
+      }
+      gate.queue.shift();
+      head.fn(head.steps);
+    }
+  }
+
+  /*
+   * The selection ring: the outline on the head (in Grow your own, also the joint or body)
+   * that the mouse is over or the arrow keys have picked, hidden while Hercules plays. It is
+   * the one thing on the canvas that moves outside the gate, so it has a limit of its own: the
+   * ring as drawn (`ring`) catches up with the one asked for (state.hover, state.sel, and
+   * whether Hercules is playing, state.auto) at most once every RING_MS ms after it last moved,
+   * and a new hydra picture moves it too. Asked sooner, it follows when the time is up, to
+   * wherever it should be by then. draw() reads only `ring`, and a ring is drawn at its full
+   * size even round a head that is still growing, so it changes only when it moves. In any one
+   * second the ring moves on its own at most RING_HZ = 4 times and the picture changes at most
+   * twice, so a pixel of a ring changes at most 6 times (3 flashes), however fast the mouse
+   * sweeps across the heads or Hercules is switched on and off. (Without this, sweeping the
+   * mouse to and fro across a row of heads made every ring it crossed blink, about 4,300 px²
+   * at desktop size, and clicking Fast way on and off during a cross-fade blinked the ring at
+   * the click rate.)
+   */
+  const RING_MS = 1000 / SAFE.RING_HZ;
+  const ring = { hover: null, sel: -1, hidden: false, last: -Infinity, timer: 0 };
+
+  function ringSync() {
+    ring.hover = state.hover;
+    ring.sel = state.sel;
+    ring.hidden = !!state.auto;
+    ring.last = performance.now();
+  }
+
+  function ringUpdate() {
+    if (ring.hover === state.hover && ring.sel === state.sel && ring.hidden === !!state.auto) return;
+    const wait = ring.last + RING_MS - performance.now();
+    if (wait > 0) {
+      if (!ring.timer) {
+        ring.timer = setTimeout(() => {
+          ring.timer = 0;
+          ringUpdate();
+        }, Math.ceil(wait) + 1);
+      }
+      return;
+    }
+    ringSync();
+    if (!anim) draw();
+  }
 
   const $ = (id) => document.getElementById(id);
   const canvas = $('hydra');
@@ -30,6 +148,7 @@
     trail: [],
     trailSampled: false,
     last: null,
+    quietFresh: false, // the last cut was Hercules's: don't colour its regrowth
     labels: false,
     sel: -1,
     hover: null,
@@ -71,7 +190,7 @@
   /* ------------------------------------------------------------------ */
 
   function snapshot() {
-    return { body: state.body, n: state.n, cuts: state.cuts, trail: state.trail.slice(), trailSampled: state.trailSampled, last: state.last, stamp: state.stamp };
+    return { body: state.body, n: state.n, cuts: state.cuts, trail: state.trail.slice(), trailSampled: state.trailSampled, last: state.last, stamp: state.stamp, quietFresh: state.quietFresh };
   }
 
   function pushHistory() {
@@ -87,6 +206,7 @@
     state.trailSampled = s.trailSampled;
     state.last = s.last;
     state.stamp = s.stamp;
+    state.quietFresh = s.quietFresh;
   }
 
   function loadPreset(id) {
@@ -121,17 +241,21 @@
     state.trail = [H.ordinalOf(state.body)];
     state.trailSampled = false;
     state.last = null;
+    state.quietFresh = false;
     state.sel = -1;
     state.hover = null;
   }
 
-  function cutAt(path, copies) {
+  // Only ever called when the gate is free: from a 'move' request, or by Hercules after
+  // checking gateFree().
+  function cutAt(path, copies, byHercules) {
     if (state.mode !== 'play' || !state.body.g.length) return;
     const before = H.ordinalOf(state.body);
     pushHistory();
     state.stamp++;
     const r = H.cut(state.body, path, copies, state.n, state.stamp);
     state.body = r.body;
+    state.quietFresh = !!byHercules;
     const after = H.ordinalOf(state.body);
     state.last = { n: state.n, grew: r.grew, before, after, beta: r.parentAfter, depth: r.depth };
     state.n++;
@@ -178,9 +302,11 @@
     updateAll(true);
   }
 
-  function undo() {
+  // Takes back `steps` steps (quick Undo clicks add up; see request) in one change of the picture.
+  function undo(steps = 1) {
     stopAuto();
-    const s = state.history.pop();
+    let s = null;
+    for (let i = 0; i < steps && state.history.length; i++) s = state.history.pop();
     if (!s) return;
     restore(s);
     relayout(false);
@@ -203,12 +329,17 @@
     const a = { which, speed, stopped: false };
     state.auto = a;
     if (speed > 0 && speed <= SAFE.MAX_TWEENED_RATE) {
+      // One animated cut every 1000 / speed ms, and never sooner than the gate allows.
       const step = () => {
         if (a.stopped) return;
+        if (!gateFree()) {
+          a.timer = setTimeout(step, Math.max(20, Math.ceil(gateWait()) + 1));
+          return;
+        }
         const p = H.pick(state.body, which);
-        cutAt(p.path, p.copies);
+        cutAt(p.path, p.copies, true);
+        if (!a.stopped) a.timer = setTimeout(step, 1000 / speed);
       };
-      a.timer = setInterval(step, 1000 / speed);
       step();
     } else {
       pushHistory();
@@ -217,7 +348,7 @@
       a.cuts = BigInt(state.cuts);
       a.t0 = performance.now();
       a.done = 0;
-      a.lastSnap = -1e9;
+      a.snaps = 0;
       state.trailSampled = true;
       const frame = (now) => {
         if (a.stopped) return;
@@ -234,48 +365,49 @@
         a.done += k;
         a.cuts += BigInt(k);
         const dead = !a.alpha.length;
-        if (now - a.lastSnap >= 1000 / SAFE.SNAPSHOT_HZ || dead) {
-          a.lastSnap = now;
+        // A snapshot replaces the picture and the numbers together, through the gate.
+        if (gateFree() && (a.done > a.shownDone || dead)) {
+          a.shownDone = a.done;
+          a.snaps++;
           state.n = Number(a.n);
           state.cuts = Number(a.cuts);
           state.last = null;
           updateMeters(a.alpha);
           state.body = H.fromOrdinal(a.alpha);
-          if (k > 0) state.trail.push(a.alpha);
+          state.trail.push(a.alpha);
           if (state.trail.length > 400) state.trail.splice(1, state.trail.length - 400);
           relayout(false);
           updateClock();
           updateTrail();
-        }
-        if (dead) {
-          state.body = H.fromOrdinal(a.alpha);
-          stopAuto();
-          toast(deathMessage());
-          updateAll(false);
-          return;
+          if (dead) {
+            stopAuto();
+            toast(deathMessage());
+            updateAll(false);
+            return;
+          }
         }
         a.raf = requestAnimationFrame(frame);
       };
+      a.shownDone = 0;
       a.raf = requestAnimationFrame(frame);
       toast(which === 'slow' ? 'Hercules takes the slow way: always the smallest part.' : 'Hercules takes the fast way: always the biggest part.');
     }
     updateAutoButtons();
     $('undo').disabled = !state.history.length;
+    ringUpdate(); // the ring hides while Hercules plays, within its own limit
   }
 
+  // Stopping never changes the picture: the hydra stays as last shown, and so do the counts.
+  // (Cuts Hercules made after the last snapshot are dropped with it.)
   function stopAuto() {
     const a = state.auto;
     if (!a) return;
     a.stopped = true;
-    if (a.timer) clearInterval(a.timer);
+    clearTimeout(a.timer);
     if (a.raf) cancelAnimationFrame(a.raf);
-    if (a.alpha) {
-      state.body = H.fromOrdinal(a.alpha);
-      state.n = Number(a.n);
-      state.cuts = Number(a.cuts);
-      relayout(false);
-    }
+    if (a.alpha && !a.snaps) state.history.pop(); // nothing was shown, so nothing to undo
     state.auto = null;
+    ringUpdate();
     updateAutoButtons();
     updateAll(false);
   }
@@ -284,8 +416,8 @@
     for (const id of ['autoFast', 'autoSlow']) {
       const b = $(id);
       const on = !!(state.auto && state.auto.which === b.dataset.which);
+      // the class picks the face (see style.css): the label never changes the button's size
       b.classList.toggle('on', on);
-      b.textContent = on ? 'Pause' : b.dataset.which === 'fast' ? 'Fast way' : 'Slow way';
       b.disabled = state.mode !== 'play' || !state.body.g.length;
     }
   }
@@ -491,11 +623,15 @@
     canvas.height = Math.round(HT * dpr);
   }
 
-  function relayout(animate) {
+  // Replaces the picture. Every caller is a gate request or Hercules after gateFree(), except
+  // a resize of the stage, which redraws the same hydra at its new size (resize = true).
+  function relayout(animate, resize) {
+    if (!resize) markChange();
     const prev = currentLayout;
     currentLayout = H.layout(state.body, { width: W, height: HT, padX: W < 500 ? 14 : 24, padTop: W < 500 ? 88 : 68, padBottom: hudShown() ? 60 : 46, minSlot: W < 500 ? 17 : 22, maxLevel: 165 });
     currentLayout.byKey = new Map(currentLayout.items.map((it) => [it.key, it]));
     if (state.sel >= headsList().length) state.sel = -1;
+    if (!resize) ringSync(); // the ring moves with the picture, and that counts as its move
     if (animate && prev && !reduceMotion.matches) {
       // keep exactly what is on screen now, to fade from
       snap.width = canvas.width;
@@ -532,9 +668,11 @@
   /*
    * How a cut is shown. The new picture is drawn in full, with the regrown necks growing
    * out of the joint below them along their own curves, and the picture from just before
-   * the cut is laid over it, fading out over TWEEN_MS. The canvas is opaque, so every pixel
-   * moves in a straight line from its old colour to its new one: at most one change, in
-   * one direction, per cut. Nothing sweeps across the picture.
+   * the cut is laid over it, fading out over TWEEN_MS. Nothing sweeps across the picture,
+   * but it is not a pure pixel-by-pixel fade: the growing necks are redrawn every frame and
+   * the growing heads' eyes move outward, so a few edge pixels change direction several times
+   * within one cut. ui.test.mjs measures them (a few hundred px² at most, a few per cent of
+   * WCAG's area limit). The gate keeps cuts 1000 / PICTURE_HZ ms apart, longer than one fade.
    */
   function frameItems(now) {
     const L = currentLayout;
@@ -559,7 +697,7 @@
     const body = L.items[0];
     const bodyW = Math.min(150, Math.max(90, W * 0.28));
     const bodyH = 34;
-    const isFresh = (it) => it.fresh && it.fresh === state.stamp && !state.auto;
+    const isFresh = (it) => it.fresh && it.fresh === state.stamp && !state.quietFresh;
     const anchor = (px, py, cx) => (px === body.x && py === body.y ? [body.x + Math.max(-bodyW * 0.36, Math.min(bodyW * 0.36, (cx - body.x) * 0.5)), body.y - bodyH * 0.25] : [px, py]);
 
     // ground
@@ -602,17 +740,20 @@
     }
 
     // heads
+    // (In Grow your own the selection counts joints and the body too; that ring is drawn below.)
     const heads = headsList();
-    const selKey = state.sel >= 0 && heads[state.sel] ? heads[state.sel].key : null;
+    const play = state.mode === 'play';
+    const selKey = play && ring.sel >= 0 && heads[ring.sel] ? heads[ring.sel].key : null;
     for (const d of out) {
       const it = d.it;
       if (it.kind !== 'head') continue;
       const r = headR * d.grow;
-      if (r < 0.5) continue;
-      ctx.fillStyle = isFresh(it) ? C.fresh : C.head;
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, r, 0, 2 * Math.PI);
-      ctx.fill();
+      if (r >= 0.5) {
+        ctx.fillStyle = isFresh(it) ? C.fresh : C.head;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, r, 0, 2 * Math.PI);
+        ctx.fill();
+      }
       if (r >= 6) {
         ctx.fillStyle = C.eye;
         for (const sx of [-1, 1]) {
@@ -621,11 +762,12 @@
           ctx.fill();
         }
       }
-      if ((state.hover === it.key || selKey === it.key) && !state.auto) {
+      if (((play && ring.hover === it.key) || selKey === it.key) && !ring.hidden) {
+        // full size from the first frame even round a growing head, so the ring doesn't move
         ctx.strokeStyle = C.ring;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(d.x, d.y, r + 4, 0, 2 * Math.PI);
+        ctx.arc(d.x, d.y, headR + 4, 0, 2 * Math.PI);
         ctx.stroke();
       }
     }
@@ -634,7 +776,7 @@
     // grow mode: ring the joint or the body that a tap would grow from
     if (state.mode === 'grow') {
       const all = growTargets();
-      const k = state.hover || (state.sel >= 0 && all[state.sel] ? all[state.sel].key : null);
+      const k = ring.hover || (ring.sel >= 0 && all[ring.sel] ? all[ring.sel].key : null);
       const it = k && L.byKey.get(k);
       if (it) {
         ctx.strokeStyle = C.ring;
@@ -704,7 +846,8 @@
   }
 
   // A neck: a cubic from the joint below to the joint above. With f < 1, only the first
-  // fraction f of it (split by de Casteljau), so a growing neck only ever covers more.
+  // fraction f of it (split by de Casteljau), so a growing neck traces the same curve further
+  // each frame (its anti-aliased edges are redrawn each time, so they can shimmer slightly).
   function neckPath(px, py, cx, cy, w, col, f) {
     const dy = py - cy;
     let p1x = px;
@@ -814,24 +957,37 @@
     const k = it ? it.key : null;
     if (k !== state.hover) {
       state.hover = k;
-      if (!anim) draw();
+      ringUpdate();
     }
   });
   canvas.addEventListener('pointerleave', () => {
     if (state.hover) {
       state.hover = null;
-      if (!anim) draw();
+      ringUpdate();
     }
   });
+
+  // A cut or a sprout aimed at the hydra on screen now. It goes through the gate, so it may
+  // wait up to 1000 / PICTURE_HZ ms; it is dropped if the hydra has changed by then (an Undo
+  // or a new hydra asked for just before it went first).
+  function move(fn) {
+    const body = state.body;
+    const mode = state.mode;
+    request('move', () => {
+      if (state.body === body && state.mode === mode && !state.auto) fn();
+    });
+  }
 
   function act(p) {
     if (!currentLayout) return;
     if (state.mode === 'grow') {
       const it = nearest(p, ['body', 'joint', 'head'], 60) || currentLayout.items[0];
-      sproutAt(it);
+      move(() => sproutAt(it));
       return;
     }
-    if (state.auto) stopAuto();
+    // A tap takes over from Hercules, and from a start of Hercules still waiting at the gate.
+    stopAuto();
+    cancel('now');
     if (!state.body.g.length) {
       toast(deathMessage() + ' Start over, or pick another.');
       return;
@@ -841,74 +997,134 @@
       toast('Tap a head (the round ends of the necks).');
       return;
     }
-    cutAt(it.path, it.copies);
+    move(() => cutAt(it.path, it.copies));
   }
 
+  let lastArrow = -Infinity;
   canvas.addEventListener('keydown', (ev) => {
     if (!currentLayout) return;
     const list = state.mode === 'grow' ? growTargets() : headsList();
     if (!list.length) return;
     if (['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(ev.key)) {
       ev.preventDefault();
+      // A held arrow moves the selection at most 4 times a second, so the selection doesn't
+      // run ahead of the ring (which moves at most that often anyway; see ringUpdate).
+      const t = performance.now();
+      if (ev.repeat && t - lastArrow < 250) return;
+      lastArrow = t;
       const d = ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1 : -1;
       state.sel = state.sel < 0 ? (d > 0 ? 0 : list.length - 1) : (state.sel + d + list.length) % list.length;
       state.hover = null;
-      draw();
+      ringUpdate();
     } else if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
-      if (state.auto) {
-        stopAuto(); // the picture changes on stopping, so this key press only pauses
+      if (ev.repeat) return; // holding the key down cuts once
+      if (state.auto || waiting('now')) {
+        stopAuto(); // this key press only pauses
+        cancel('now');
         return;
       }
       if (state.sel < 0) state.sel = 0;
       const it = list[state.sel];
       if (!it) return;
-      if (state.mode === 'grow') sproutAt(it);
-      else cutAt(it.path, it.copies);
+      if (state.mode === 'grow') move(() => sproutAt(it));
+      else move(() => cutAt(it.path, it.copies));
     }
   });
 
-  for (const b of document.querySelectorAll('#presets button')) b.addEventListener('click', () => loadPreset(b.dataset.preset));
-  $('undo').addEventListener('click', undo);
-  $('growUndo').addEventListener('click', undo);
-  $('restart').addEventListener('click', () => {
-    if (state.preset === 'grow' && state.grownFrom) {
+  // Every button that changes the picture asks the gate. Stopping Hercules never changes it,
+  // so that happens at once.
+  for (const b of document.querySelectorAll('#presets button')) {
+    b.addEventListener('click', () => {
       stopAuto();
-      state.body = state.grownFrom;
-      resetGame();
-      relayout(false);
-      toast('Same hydra, from the start.');
-      updateAll(true);
-    } else loadPreset(state.preset);
+      request('load', () => loadPreset(b.dataset.preset));
+    });
+  }
+  // Undo takes back the newest thing asked for. A cut or sprout still waiting at the gate is
+  // cancelled, which changes nothing on screen; otherwise a step is undone when the gate
+  // allows, and quick clicks add up: three quick clicks undo three steps, the first at once
+  // and the other two together half a second later.
+  function undoClick() {
+    stopAuto();
+    if (waiting('move')) {
+      cancel('move');
+      toast(state.mode === 'grow' ? '' : 'Undone.');
+      pump();
+      return;
+    }
+    request('undo', undo);
+  }
+  for (const b of [$('undo'), $('growUndo')]) b.addEventListener('click', undoClick);
+  // A held Enter repeats a button's click at the keyboard's repeat rate, often 30 times a
+  // second. No button but Undo acts on a repeat, so a held Enter can't switch Hercules on and
+  // off, or load a hydra or clear one over and over; it acts once. Undo goes on while Enter is
+  // held, one step at the gate's pace (a repeat adds none while an undo is waiting), and stops
+  // when the key is let go.
+  document.addEventListener(
+    'keydown',
+    (ev) => {
+      if (!ev.repeat || ev.key !== 'Enter' || !(ev.target instanceof Element) || !ev.target.closest('button')) return;
+      ev.preventDefault();
+      if (ev.target.closest('#undo, #growUndo') && !waiting('undo')) undoClick();
+    },
+    true
+  );
+  $('restart').addEventListener('click', () => {
+    stopAuto();
+    request('restart', () => {
+      if (state.preset === 'grow' && state.grownFrom) {
+        stopAuto();
+        state.body = state.grownFrom;
+        resetGame();
+        relayout(false);
+        toast('Same hydra, from the start.');
+        updateAll(true);
+      } else loadPreset(state.preset);
+    });
   });
   $('growClear').addEventListener('click', () => {
-    pushHistory();
-    state.body = H.fromSpec([[]]);
-    state.trail = [H.ordinalOf(state.body)];
-    relayout(false);
-    updateAll(true);
+    request('clear', () => {
+      if (state.mode !== 'grow' || !state.body.g.length) return; // nothing to clear
+      pushHistory();
+      state.body = H.fromSpec([[]]);
+      state.trail = [H.ordinalOf(state.body)];
+      relayout(false);
+      updateAll(true);
+    });
   });
   $('growFight').addEventListener('click', () => {
-    state.mode = 'play';
-    state.grownFrom = state.body;
-    resetGame();
-    $('playControls').classList.remove('hidden');
-    $('growControls').classList.add('hidden');
-    toast('Now cut it down. Start over brings this one back; Grow your own makes another.');
-    relayout(false);
-    updateAll(true);
+    request('fight', () => {
+      if (state.mode !== 'grow') return;
+      state.mode = 'play';
+      state.grownFrom = state.body;
+      resetGame();
+      $('playControls').classList.remove('hidden');
+      $('growControls').classList.add('hidden');
+      toast('Now cut it down. Start over brings this one back; Grow your own makes another.');
+      relayout(false);
+      updateAll(true);
+    });
   });
-  $('labels').addEventListener('change', (ev) => {
-    state.labels = ev.target.checked;
-    draw();
+  $('labels').addEventListener('change', () => {
+    request('labels', () => {
+      const on = $('labels').checked;
+      if (on === state.labels) return;
+      state.labels = on;
+      markChange();
+      if (!anim) draw();
+    });
   });
-  $('autoFast').addEventListener('click', () => startAuto('fast'));
-  $('autoSlow').addEventListener('click', () => startAuto('slow'));
+  const autoClick = (which) => {
+    if (state.auto && state.auto.which === which) stopAuto();
+    else request('now', () => startAuto(which));
+  };
+  $('autoFast').addEventListener('click', () => autoClick('fast'));
+  $('autoSlow').addEventListener('click', () => autoClick('slow'));
   $('speed').addEventListener('change', () => {
     if (state.auto) {
       const w = state.auto.which;
       stopAuto();
-      startAuto(w);
+      request('now', () => startAuto(w));
     }
   });
   $('whyClock').addEventListener('click', () => {
@@ -917,7 +1133,7 @@
 
   const ro = new ResizeObserver(() => {
     sizeCanvas();
-    relayout(false);
+    relayout(false, true);
   });
   ro.observe(stage);
   if (darkMode && darkMode.addEventListener) darkMode.addEventListener('change', () => draw());
@@ -942,6 +1158,12 @@
     },
     state: () => ({ n: state.n, cuts: state.cuts, heads: String(H.heads(state.body)), clock: H.str(H.ordinalOf(state.body)), trail: state.trail.map(H.str), mode: state.mode, auto: !!state.auto }),
     animating: () => !!anim,
+    // when the picture was replaced (performance.now() ms); whether a new cut would show at once
+    changes: () => gate.log.slice(),
+    waiting: () => gate.queue.map((r) => r.kind),
+    // the ring as drawn, and the one the mouse or keys have asked for
+    ring: () => ({ shown: ring.hover, wanted: state.hover, sel: ring.sel, wantedSel: state.sel, hidden: ring.hidden }),
+    ready: () => gateFree() && !anim,
   };
 
   sizeCanvas();

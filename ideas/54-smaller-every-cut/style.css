@@ -162,6 +162,13 @@ button.linkish { border: 0; background: none; padding: 0 2px; min-height: 0; col
 .controls { display: flex; flex-direction: column; gap: 8px; }
 .controls .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .controls .auto .lbl { width: 100%; }
+/* Both faces of a Hercules button share one grid cell, so the button is as wide as its wider
+   face whichever is showing: switching to Pause and back never resizes it or reflows the row. */
+.controls .auto button { display: inline-grid; justify-items: center; align-items: center; }
+.controls .auto button > span { grid-area: 1 / 1; }
+.controls .auto button > .face-pause,
+.controls .auto button.on > .face-go { visibility: hidden; }
+.controls .auto button.on > .face-pause { visibility: visible; }
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: 0.92rem; cursor: pointer; }
 .clock-card .check { margin-top: 8px; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); }
