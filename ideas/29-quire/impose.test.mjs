@@ -43,6 +43,9 @@ test('folding every plan and reading it gives 1..N, for every option combination
           assert.ok(p.padded >= pages && p.padded < pages + 4);
           // the fold simulator reads the book in order
           assert.deepEqual(Q.readBook(p), range(1, p.padded), `fold ${JSON.stringify(v)} pages=${pages}`);
+          // and so does what the model printers make of the print strings, folded the same way
+          assert.deepEqual(Q.printAndRead(p, 'duplex'), range(1, p.padded));
+          assert.deepEqual(Q.printAndRead(p, 'simplex'), range(1, p.padded));
           // every padded page is printed exactly once
           assert.deepEqual([...p.order].sort((a, b) => a - b), range(1, p.padded));
           // the book maps each original page exactly once, blanks fill the rest
@@ -144,6 +147,116 @@ test('the warnings and the blank-page sentence say sensible things', () => {
   assert.equal(Q.plan({ pages: 32 }).warnings.length, 0);
   assert.match(Q.plan({ pages: 40 }).warnings[0], /10 nested sheets/);
   assert.match(Q.plan({ pages: 40, binding: 'signatures', sheetsPerSignature: 4 }).warnings[0], /only 2 sheets/);
+});
+
+// ------------------------------------------------------------------ what the page shows
+
+const HERE = path.dirname(new URL(import.meta.url).pathname);
+const readText = (f) => fs.readFileSync(path.join(HERE, f), 'utf8');
+const stripTags = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+test('the preview reads the book by printing the order and folding it, so a wrong order shows', () => {
+  for (let pages = 1; pages <= 60; pages++) {
+    for (const direction of ['ltr', 'rtl']) {
+      for (const v of [{ binding: 'booklet' }, { binding: 'signatures', sheetsPerSignature: 3 }]) {
+        const p = Q.plan(Object.assign({ pages, direction }, v));
+        for (const printer of ['duplex', 'simplex']) assert.deepEqual(Q.printAndRead(p, printer), range(1, p.padded));
+      }
+    }
+  }
+  // Break the plan the way a bug in sheetPages would (back halves swapped) and the preview's
+  // reading must show it: page 7 behind the cover of an 8-page booklet, not 2.
+  const p = Q.plan({ pages: 8 });
+  const broken = Object.assign({}, p, {
+    order: p.sheets.flatMap((s) => [s.front[0], s.front[1], s.back[1], s.back[0]]),
+    manual: Object.assign({}, p.manual, { backs: p.sheets.flatMap((s) => [s.back[1], s.back[0]]) }),
+  });
+  assert.equal(Q.format(broken.order), '8,1,7,2,6,3,5,4');
+  assert.deepEqual(Q.printAndRead(broken, 'duplex'), [1, 7, 3, 5, 4, 6, 2, 8]);
+  assert.deepEqual(Q.printAndRead(broken, 'simplex'), [1, 7, 3, 5, 4, 6, 2, 8]);
+  // and the page draws its spreads from that reading, not from 2k / 2k+1 arithmetic
+  const html = readText('index.html');
+  assert.match(html, /reading = Quire\.printAndRead\(p, o\.printer\)/);
+  assert.match(html, /pageLabel\(g, [^)]*reading\[pos - 1\]/);
+  assert.doesNotMatch(html, /return `the cover, page 1`/);
+});
+
+test('a wrong flip turns every back half a turn: the probe and the page describe it that way', () => {
+  // the probe: sheets 8|1, 2|7 and 6|3, 4|5
+  const probe = Q.plan({ pages: 8 });
+  assert.deepEqual(probe.sheets.map((s) => [s.front, s.back]), [[[8, 1], [2, 7]], [[6, 3], [4, 5]]]);
+  const wf = Q.wrongFlip(probe);
+  assert.deepEqual(wf.read, [1, -7, 3, -5, -4, 6, -2, 8]);
+  assert.deepEqual(wf.upsideDown, [2, 4, 5, 7]);
+  assert.equal(wf.behindCover, 7);
+  const behind = (read, k) => Math.abs(read[read.indexOf(k) + 1]);
+  // a face-up tray (stack reversed), and both errors at once, on the single-sided route
+  const rev = Q.readBook(Q.foldInto(probe, Q.printerModelManual(probe.manual.fronts, probe.manual.backs, true)));
+  assert.deepEqual(rev, [1, 4, 3, 2, 7, 6, 5, 8]);
+  const both = Q.readBook(Q.foldInto(probe, Q.backsTurned(Q.printerModelManual(probe.manual.fronts, probe.manual.backs, true))));
+  assert.deepEqual(both, [1, -5, 3, -7, -2, 6, -4, 8]);
+
+  const rows = [...readText('probe.html').matchAll(/<tr><td>(.*?)<\/td>/g)].map((m) => stripTags(m[1]));
+  assert.ok(!rows.some((r) => /2, 3, 6, 7/.test(r)), 'the old, impossible symptom is gone');
+  const flipRows = rows.filter((r) => /upside down/.test(r) && !/behind 1 you find 5/.test(r));
+  assert.equal(flipRows.length, 2, 'one wrong-flip row per table');
+  for (const r of flipRows) {
+    assert.ok(r.includes(`${wf.upsideDown.join(', ')} upside down`), r);
+    assert.ok(r.includes(`behind 1 you find ${behind(wf.read, 1)}`), r);
+    assert.ok(r.includes(`behind 3 you find ${behind(wf.read, 3)}`), r);
+  }
+  const revRow = rows.find((r) => /Everything upright/.test(r));
+  assert.ok(revRow.includes(`behind 1 you find ${behind(rev, 1)}, not 2 (and behind 3, ${behind(rev, 3)})`), revRow);
+  const bothRow = rows.find((r) => /behind 1 you find 5/.test(r));
+  assert.ok(bothRow.includes(`behind 1 you find ${behind(both, 1)} (behind 3, ${behind(both, 3)})`), bothRow);
+  assert.deepEqual(both.filter((x) => x < 0).map(Math.abs).sort((a, b) => a - b), [2, 4, 5, 7]);
+
+  // the page's troubleshooting note: right for every size, not only for a 4-page booklet
+  const html = stripTags(readText('index.html'));
+  assert.doesNotMatch(html, /Pages 2 and 3 come out upside down/);
+  assert.match(html, /Half the pages come out upside down, and the wrong page is behind the cover/);
+  const p24 = Q.plan({ pages: 22 }); // the page's default, padded to 24
+  const w24 = Q.wrongFlip(p24);
+  assert.equal(w24.behindCover, 23);
+  assert.deepEqual(w24.upsideDown, [2, 4, 6, 8, 10, 12, 13, 15, 17, 19, 21, 23]);
+  assert.ok(html.includes(`you would find page ${w24.behindCover} behind the cover, upside down`), 'static default text matches the default plan');
+  // half the pages, exactly the ones on backs, in every plan; page 3 upright beyond 4 pages
+  for (let pages = 1; pages <= 60; pages++) {
+    for (const direction of ['ltr', 'rtl']) {
+      const p = Q.plan({ pages, direction });
+      const w = Q.wrongFlip(p);
+      assert.deepEqual(w.upsideDown, p.sheets.flatMap((s) => s.back).sort((a, b) => a - b));
+      assert.equal(w.behindCover, p.padded - 1);
+      if (p.padded > 4) assert.ok(!w.upsideDown.includes(3));
+    }
+  }
+});
+
+test('the probe advice in the page matches the probe: one page per sheet, no blanket promise', () => {
+  const html = stripTags(readText('index.html'));
+  const probe = stripTags(readText('probe.html'));
+  assert.match(probe, /Pages per sheet 1/);
+  assert.match(html, /one page per sheet, not two/);
+  assert.doesNotMatch(html, /Print it once with the settings above/);
+  assert.doesNotMatch(html, /every booklet you print will be right/);
+});
+
+test('a reordered PDF must hold every page of the file: a smaller plan is refused', () => {
+  const p22 = Q.plan({ pages: 22 });
+  const seq = Q.pdfSequence(p22, 'all', 22);
+  assert.deepEqual([...seq].filter((x) => x > 0).sort((a, b) => a - b), range(1, 22));
+  assert.deepEqual(Q.pdfSequence(p22, 'fronts', 22), p22.manual.fronts.map((n) => p22.book[n - 1]));
+  assert.deepEqual(Q.pdfSequence(p22, 'backsrev', 22), p22.manual.backsReversed.map((n) => p22.book[n - 1]));
+  // the field said 16 while the file has 22: before the fix this silently dropped pages 17-22
+  assert.throws(() => Q.pdfSequence(Q.plan({ pages: 16 }), 'all', 22), /set to 16, but the PDF has 22 pages/);
+  assert.throws(() => Q.pdfSequence(Q.plan({ pages: 30 }), 'all', 22), RangeError);
+  // the page uses it, locks the count while a PDF is loaded, and refuses over-long files
+  const html = readText('index.html');
+  assert.match(html, /QuirePDF\.reorder\(pdf\.bytes, Quire\.pdfSequence\(p, which, pdf\.info\.pages\)\)/);
+  assert.match(html, /lockPages\(true\)/);
+  assert.match(html, /info\.pages > Quire\.MAX_PAGES/);
+  // and no longer claims an encrypted file opens without a password (it never checked)
+  assert.doesNotMatch(html, /opens without a password/);
 });
 
 // ------------------------------------------------------------------ PDF reordering
@@ -432,6 +545,31 @@ test('pages that already hang off the root and inherit nothing are not rewritten
   const res = P.reorder(src.bytes, [8, 1, 2, 7, 6, 3, 4, 5]);
   assert.equal(res.rewrittenPages, 0);
   assert.equal(res.written, 1); // just the new root
+});
+
+test('the update is small and grows as the README says: ~300 B for 24 flat pages, ~9 B a page', () => {
+  const grow = (opts) => {
+    const src = buildPdf(opts);
+    const p = Q.plan({ pages: opts.pages });
+    const res = P.reorder(src.bytes, p.order.map((n) => p.book[n - 1]));
+    return { bytes: res.bytes.length - src.bytes.length, rewritten: res.rewrittenPages };
+  };
+  const flat24 = grow({ pages: 24 });
+  assert.ok(flat24.bytes >= 200 && flat24.bytes <= 450, `flat 24 pages: ${flat24.bytes} B`);
+  const flat1000 = grow({ pages: 1000 });
+  const perPage = (flat1000.bytes - flat24.bytes) / (1000 - 24);
+  assert.ok(perPage >= 7 && perPage <= 11, `flat growth ${perPage.toFixed(1)} B/page`);
+  // not "half a kilobyte for any size": a 1,000-page book is several kilobytes
+  assert.ok(flat1000.bytes > 5000);
+  // flattening a nested tree costs a page dictionary per page
+  const nested = grow({ pages: 24, nested: true });
+  assert.equal(nested.rewritten, 24);
+  const perRewritten = (nested.bytes - flat24.bytes) / 24;
+  assert.ok(perRewritten >= 60 && perRewritten <= 300, `nested: ${perRewritten.toFixed(0)} B per rewritten page`);
+  // the README states these measured figures, not a fixed size
+  const readme = readText('README.md');
+  assert.doesNotMatch(readme, /any size turns out to need about half a kilobyte/);
+  assert.match(readme, /about 300 bytes; the update grows by about 9 bytes a page/);
 });
 
 test('bad input is refused with a plain message', async () => {

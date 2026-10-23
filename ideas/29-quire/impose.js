@@ -196,6 +196,59 @@
     return sheets;
   }
 
+  // Print a plan's own page string(s) on the model printer, fold the sheets that come out into
+  // the plan's signatures, and read the book. This is what the page's preview shows, so a wrong
+  // print string would show up there as wrong numbers rather than be drawn as 1, 2, 3 regardless.
+  // `printer` is 'duplex' (one two-sided job) or 'simplex' (fronts, stack turned, backs).
+  function printAndRead(p, printer) {
+    const printed = printer === 'simplex' ? printerModelManual(p.manual.fronts, p.manual.backs, false) : printerModel(p.order);
+    return readBook(foldInto(p, printed));
+  }
+
+  // Group printed sheets the way the fold steps say: consecutive runs, one per signature.
+  function foldInto(p, printed) {
+    const signatures = [];
+    let i = 0;
+    for (const g of p.signatures) {
+      signatures.push({ sheets: printed.slice(i, i + g.sheets.length) });
+      i += g.sheets.length;
+    }
+    return { signatures, direction: p.direction };
+  }
+
+  // What a sheet looks like when its back was imaged for the other flip: the duplex unit turned
+  // it on the long edge instead of the short one, or a single-sided stack went back in rotated.
+  // Either way the back image is half a turn out relative to the front, so, seen the right way
+  // round, the back's two halves have swapped places and each is upside down. A negative page
+  // number means that page upside down.
+  function backsTurned(sheets) {
+    return sheets.map((s) => ({ front: s.front.slice(), back: [-s.back[1], -s.back[0]] }));
+  }
+
+  // The symptom of a wrong flip for this plan: the book as read, and the page found behind the
+  // cover (upside down) where page 2 should be.
+  function wrongFlip(p) {
+    const read = readBook(foldInto(p, backsTurned(printerModel(p.order))));
+    return {
+      read,
+      upsideDown: read.filter((x) => x < 0).map((x) => -x).sort((a, b) => a - b),
+      behindCover: -read[1],
+    };
+  }
+
+  // The original-page sequence to write into a reordered copy of a PDF. Refuses when the plan
+  // was made for a different page count than the file has: a shorter plan would silently drop
+  // the file's last pages.
+  function pdfSequence(p, which, filePages) {
+    if (p.pages !== filePages) {
+      throw new RangeError(
+        `The page count is set to ${p.pages}, but the PDF has ${filePages} page${filePages === 1 ? '' : 's'}. The booklet has to hold every page, so set it back to ${filePages}.`
+      );
+    }
+    const seq = which === 'fronts' ? p.manual.fronts : which === 'backs' ? p.manual.backs : which === 'backsrev' ? p.manual.backsReversed : p.order;
+    return seq.map((n) => p.book[n - 1]);
+  }
+
   // Human description of where the blank pages go.
   function describeBlanks(p) {
     if (p.blankCount === 0) return 'No blank pages needed: the page count is already a multiple of four.';
@@ -222,6 +275,11 @@
     readBook,
     printerModel,
     printerModelManual,
+    printAndRead,
+    foldInto,
+    backsTurned,
+    wrongFlip,
+    pdfSequence,
     describeBlanks,
   };
 });

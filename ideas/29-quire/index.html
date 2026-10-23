@@ -82,6 +82,7 @@
     font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; max-width: 100%;
   }
   input[type=number] { width: 9em; }
+  input[type=number]:read-only { color: var(--muted); border-style: dashed; }
   .seg { display: flex; flex-wrap: wrap; gap: 6px; }
   .seg label {
     border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; user-select: none; background: var(--bg); font-size: 0.95rem;
@@ -153,7 +154,7 @@
 <header>
   <h1>Quire</h1>
   <p class="tagline">Fold any PDF into a booklet with the printer you already have.</p>
-  <p class="intro">A booklet is a stack of sheets folded in half, so the pages have to be printed two to a side in a strange order: the last beside the first, then the second beside the second-to-last, and so on inward. Quire works that order out, hands it to you as a page list for your print dialog or as a reordered copy of your PDF (made right here, nothing is uploaded), and folds a preview so you can see it come right before you spend any paper.</p>
+  <p class="intro">A booklet is a stack of sheets folded in half, so the pages have to be printed two to a side in a strange order: the last beside the first, then the second beside the second-to-last, and so on inward. Quire works that order out, hands it to you as a page list for your print dialog or as a reordered copy of your PDF (made right here, nothing is uploaded), and shows the result before you spend any paper: the preview prints that order on a model printer, folds the sheets and reads them back.</p>
 </header>
 
 <main>
@@ -253,13 +254,13 @@
 
 <section class="card">
   <h2>Before you spend paper</h2>
-  <p>Printer drivers disagree about what “flip on the short edge” means, and single-sided printers differ in how a re-fed stack comes out. <a href="probe.html">The probe</a> is a two-sheet, eight-page booklet already in print order. Print it once with the settings above, fold it, and it tells you exactly which setting (or which way to turn the stack) is right for your printer. It takes two sheets and a minute, and after that every booklet you print will be right.</p>
+  <p>Printer drivers disagree about what “flip on the short edge” means, and single-sided printers differ in how a re-fed stack comes out. <a href="probe.html">The probe</a> is a two-sheet, eight-page booklet already in print order. Print it two-sided on the short edge, but one page per sheet, not two (its four sides are already landscape; the probe page explains), fold it, and it tells you which setting (or which way to turn the stack) your printer needs. It takes two sheets and a minute. The probe is a simpler job than a two-up booklet, so before a long two-sided run, print the real job’s first sheet on its own too (the first four pages of the reordered PDF, or the first four numbers of the page list): folded, it should show 1 on the cover and 2 upright behind it.</p>
   <details>
     <summary>Things that go wrong, and why</summary>
     <ul>
-      <li><b>Pages 2 and 3 come out upside down.</b> The back was flipped around the long edge instead of the short one. Pick the other two-sided option in your driver; some call it “short-edge binding”, some “flip up”, some “tumble”.</li>
+      <li><b>Half the pages come out upside down, and the wrong page is behind the cover.</b> Every page printed on the back of a sheet has turned half a turn, which also swaps it with its neighbour on that side: <span id="wrongflip">in this book you would find page 23 behind the cover, upside down, where page 2 should be</span>. The back was flipped around the long edge instead of the short one. Pick the other two-sided option in your driver; some call it “short-edge binding”, some “flip up”, some “tumble”. (Printing one side at a time, the same picture means the stack went back in rotated: spin it half a turn.)</li>
       <li><b>The page count is not a multiple of four.</b> Every sheet carries four pages, so the document is padded with blanks. The reordered PDF adds them for you; the typed route needs you to add them to the document first, because a print dialog cannot print a page that is not there.</li>
-      <li><b>The app sorted my page list.</b> Browsers do. Use the reordered PDF, which prints correctly with “all pages”.</li>
+      <li><b>The app sorted my page list.</b> Browsers appear to. Use the reordered PDF, which prints correctly with “all pages”.</li>
       <li><b>The middle pages stick out.</b> That is creep: each nested sheet sits a paper thickness further round the fold. Trim the fore-edge after folding, or use signatures of fewer sheets.</li>
       <li><b>Half of each page is cut off.</b> The app scaled nothing and the pages were larger than half a sheet. Choose “fit to printable area” or “shrink to fit”, not “actual size”.</li>
       <li><b>The last signature is thin.</b> Normal: it holds whatever sheets are left over. Sew it like the others.</li>
@@ -269,7 +270,7 @@
 </main>
 
 <footer>
-  <p>Quire, by Bone Folder. The page order comes from a folding simulation that is tested against a model of the printer, and the PDF is reordered by appending an incremental update, so your original bytes are never touched. <a href="README.md">Read the notes</a>.</p>
+  <p>Quire, by Bone Folder. The page order is worked out by formula and checked by printing it on a model printer and folding the result (the preview runs that same check), and the PDF is reordered by appending an incremental update, so your original bytes are never touched. <a href="README.md">Read the notes</a>.</p>
 </footer>
 </div>
 
@@ -283,6 +284,7 @@
 
   // ---------- state ----------
   let plan = null;
+  let reading = null; // the book as read after printing plan's string on the model printer and folding
   let pdf = null; // { name, bytes, info }
 
   function options() {
@@ -311,15 +313,21 @@
     const o = options();
     plan = Quire.plan(o);
     const p = plan;
+    reading = Quire.printAndRead(p, o.printer);
     $('sigsub').hidden = o.binding !== 'signatures';
-    $('pagehint').textContent = p.pages === p.padded ? '' : `${p.pages} pages pad to ${p.padded}.`;
+    $('pagehint').textContent = (pdf ? 'Counted from the PDF. ' : '') + (p.pages === p.padded ? '' : `${p.pages} pages pad to ${p.padded}.`);
 
     // summary
     const sigText = p.binding === 'signatures' ? `${plural(p.signatures.length, 'signature')} of up to ${plural(p.sheetsPerSignature, 'sheet')}` : 'one booklet';
     $('summary').innerHTML =
       `<span class="big">${p.pages} pages → ${plural(p.sheets.length, 'sheet')}, ${esc(sigText)}.</span>` +
       `<span class="note">${esc(Quire.describeBlanks(p))}</span>`;
-    $('warnings').innerHTML = p.warnings.map((w) => `<div class="warn">${esc(w)}</div>`).join('');
+    const inOrder = reading.length === p.padded && reading.every((x, i) => x === i + 1);
+    $('warnings').innerHTML =
+      p.warnings.map((w) => `<div class="warn">${esc(w)}</div>`).join('') +
+      (inOrder ? '' : `<div class="err">Printed on the model printer and folded, this order reads ${esc(reading.slice(0, 8).join(', '))}…, not 1, 2, 3… Something is wrong; please do not print it.</div>`);
+    const wf = Quire.wrongFlip(p);
+    $('wrongflip').textContent = `in this book you would find page ${wf.behindCover} behind the cover, upside down, where page 2 should be`;
 
     renderDialogPath(o);
     renderPdfPath(o);
@@ -410,7 +418,7 @@
       html += `<li>Fold each signature as a stack, ${ltr ? 'left half behind the right' : 'right half behind the left'}, and crease hard. The front of the first sheet shows <b>${p.sheets[0].front[ltr ? 1 : 0]}</b> on the ${ltr ? 'right' : 'left'}: that is the cover, so it goes on the outside.</li>`;
       html += `<li>Stack the folded signatures in order, folds together, and sew through the folds: a pamphlet stitch per signature onto tapes, or a kettle stitch linking each to the last. Glue the spine, or case it in.</li>`;
     }
-    html += `<li>Check: the book should read ${ltr ? 'left to right' : 'right to left'} from <b>1</b> to <b>${p.padded}</b>${p.blankCount ? `, with the blank${p.blankCount === 1 ? '' : 's'} where you asked` : ''}. The preview below does the same fold.</li>`;
+    html += `<li>Check: the book should read ${ltr ? 'left to right' : 'right to left'} from <b>1</b> to <b>${p.padded}</b>${p.blankCount ? `, with the blank${p.blankCount === 1 ? '' : 's'} where you asked` : ''}. The preview below prints the page order on a model printer, folds the sheets this way and reads them.</li>`;
     html += '</ol>';
     $('foldsteps').innerHTML = html;
   }
@@ -465,6 +473,22 @@
     el.innerHTML = isErr ? `<div class="err">${html}</div>` : html;
   }
 
+  // While a PDF is loaded the page count is the file's own, so the field is locked: a smaller
+  // number would build a booklet from only the first pages and silently drop the rest.
+  function lockPages(locked) {
+    $('pages').readOnly = locked;
+    $('pages').title = locked ? 'Counted from the PDF. Forget the PDF to type a count.' : '';
+  }
+
+  function forgetPdf() {
+    pdf = null;
+    lockPages(false);
+    $('fileinfo').hidden = true;
+    $('fileinfo').innerHTML = '';
+    $('file').value = '';
+    render();
+  }
+
   function loadFile(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -472,17 +496,22 @@
       const bytes = new Uint8Array(reader.result);
       try {
         const info = QuirePDF.inspect(bytes);
+        if (info.pages < 1) throw new Error('No pages found in it.');
+        if (info.pages > Quire.MAX_PAGES) throw new Error(`It has ${info.pages} pages, and Quire makes booklets of at most ${Quire.MAX_PAGES}.`);
         pdf = { name: file.name, bytes, info };
         $('pages').value = info.pages;
+        lockPages(true);
         setFileInfo(
-          `<b>${esc(file.name)}</b>: ${plural(info.pages, 'page')}, ${(bytes.length / 1024).toFixed(0)} KB${info.encrypted ? ', encrypted (opens without a password; the reordered copy keeps the same protection)' : ''}.` +
-            (info.warnings.length ? ` <span class="note">${esc(info.warnings.join(' '))}</span>` : '')
+          `<b>${esc(file.name)}</b>: ${plural(info.pages, 'page')}, ${(bytes.length / 1024).toFixed(0)} KB${info.encrypted ? ', encrypted (the reordered copy keeps the same protection, and the same password if it has one)' : ''}.` +
+            (info.warnings.length ? ` <span class="note">${esc(info.warnings.join(' '))}</span>` : '') +
+            ` <button type="button" id="forget">Forget this PDF</button>`
         );
         render();
         $('pdfpath').scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'start' });
       } catch (err) {
         pdf = null;
-        setFileInfo(`Could not read <b>${esc(file.name)}</b>: ${esc(err.message)} You can still type the page count and use the page order.`, true);
+        lockPages(false);
+        setFileInfo(`Could not use <b>${esc(file.name)}</b>: ${esc(err.message)} You can still type the page count and use the page order.`, true);
         render();
       }
     };
@@ -499,6 +528,9 @@
     }
   });
   $('file').addEventListener('change', () => loadFile($('file').files[0]));
+  $('fileinfo').addEventListener('click', (e) => {
+    if (e.target.closest('#forget')) forgetPdf();
+  });
   ['dragenter', 'dragover'].forEach((ev) =>
     drop.addEventListener(ev, (e) => {
       e.preventDefault();
@@ -533,8 +565,6 @@
     if (!btn || !pdf) return;
     const which = btn.dataset.pdf;
     const p = plan;
-    const toOrig = (seq) => seq.map((n) => p.book[n - 1]);
-    const seq = which === 'all' ? p.order : which === 'fronts' ? p.manual.fronts : which === 'backs' ? p.manual.backs : p.manual.backsReversed;
     const base = pdf.name.replace(/\.pdf$/i, '');
     const suffix = { all: 'booklet', fronts: 'pass1-fronts', backs: 'pass2-backs', backsrev: 'pass2-backs-reversed' }[which];
     const old = btn.textContent;
@@ -543,7 +573,8 @@
     $('pdferr').innerHTML = '';
     setTimeout(() => {
       try {
-        const res = QuirePDF.reorder(pdf.bytes, toOrig(seq));
+        // refuses if the plan's page count is not the file's (that would drop pages)
+        const res = QuirePDF.reorder(pdf.bytes, Quire.pdfSequence(p, which, pdf.info.pages));
         download(res.bytes, `${base}-${suffix}.pdf`);
         btn.textContent = 'Saved';
         setTimeout(() => (btn.textContent = old), 1600);
@@ -646,14 +677,17 @@
               : this.spreadText(this.spread);
       $('status').textContent = where;
     },
+    // Spread k shows reading positions 2k and 2k+1. The numbers are whatever the folded model
+    // sheets show there (`reading`), not the positions themselves.
     spreadText(k) {
       const n = plan.padded;
       const ltr = plan.direction === 'ltr';
       const first = 2 * k; // left page in an LTR book
       const second = 2 * k + 1;
-      if (k === 0) return `the cover, page 1`;
-      if (second > n) return `the back cover, page ${n}`;
-      return ltr ? `open at pages ${first}–${second}` : `open at pages ${second}–${first}`;
+      const at = (pos) => reading[pos - 1];
+      if (k === 0) return `the cover, page ${at(1)}`;
+      if (second > n) return `the back cover, page ${at(n)}`;
+      return ltr ? `open at pages ${at(first)}–${at(second)}` : `open at pages ${at(second)}–${at(first)}`;
     },
   };
 
@@ -766,7 +800,9 @@
     }
   }
 
-  // The open book. Spread k: pages 2k (one side of the fold) and 2k+1 (the other).
+  // The open book. Spread k: reading positions 2k (one side of the fold) and 2k+1 (the other).
+  // Each position shows the page the model printer put there, as read off the folded sheets
+  // (`reading`), so a wrong print order would show up here as wrong numbers.
   // t animates a turn from spread `from` to spread `to` (one step either way).
   function drawTurn(from, to, t) {
     clear();
@@ -780,15 +816,15 @@
     const top = 190 - H / 2;
     const g = el('g', {});
     stage.appendChild(g);
-    // page positions: in an LTR book the lower-numbered page of a spread is on the left
+    // reading positions: in an LTR book the earlier position of a spread is on the left
     const leftOf = (k) => (ltr ? 2 * k : 2 * k + 1);
     const rightOf = (k) => (ltr ? 2 * k + 1 : 2 * k);
-    const inBook = (p) => p >= 1 && p <= n;
-    const drawPage = (side, p, width, scaleX, showFold) => {
-      if (!inBook(p) || width < 0.5) return;
+    const inBook = (pos) => pos >= 1 && pos <= n;
+    const drawPage = (side, pos, width, scaleX) => {
+      if (!inBook(pos) || width < 0.5) return;
       const x = side < 0 ? foldX - width : foldX;
       g.appendChild(el('rect', { x, y: top, width, height: H, fill: c.fill, stroke: c.edge, 'stroke-width': 1 }));
-      pageLabel(g, x + width / 2, top + H / 2 + 14, p, 40, scaleX);
+      pageLabel(g, x + width / 2, top + H / 2 + 14, reading[pos - 1], 40, scaleX);
     };
     // table shadow under the book
     g.appendChild(el('rect', { x: foldX - half - 6, y: top + H + 4, width: W + 12, height: 6, rx: 3, fill: c.edge, opacity: 0.35 }));
