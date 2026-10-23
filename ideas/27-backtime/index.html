@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Backtime: set the time you want to eat, and every dish gets its own start time so everything is ready together. Oven and hob clashes are flagged. Everything stays in your browser." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Backtime</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c2541f'/%3E%3Cpath d='M16 8v8l5 3' stroke='%23fff' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <h1>Backtime <small>Everything on the table at the same time.</small></h1>
+      </div>
+      <div class="servebar">
+        <label for="serveAt">Serve at <input type="time" id="serveAt" step="300" /></label>
+        <span class="nudge" role="group" aria-label="Nudge the serve time">
+          <button type="button" data-nudge="-5" aria-label="Serve 5 minutes earlier">−5</button>
+          <button type="button" data-nudge="5" aria-label="Serve 5 minutes later">+5</button>
+          <button type="button" data-nudge="15" aria-label="Serve 15 minutes later">+15</button>
+        </span>
+        <button type="button" id="startNow" class="small">Start now</button>
+      </div>
+    </header>
+
+    <main class="cols">
+      <section class="timeline-col" id="timelineCol" aria-label="Timeline">
+        <div class="print-only" id="printHead"></div>
+        <div id="next" class="next"></div>
+        <p class="summary" id="summary"></p>
+        <ul class="flags" id="flags" aria-label="Things to watch"></ul>
+        <ol class="timeline" id="timeline"></ol>
+      </section>
+
+      <section class="dishes-col" aria-label="Dishes and settings">
+        <h2>Dishes</h2>
+        <div id="dishes"></div>
+        <div class="add-row">
+          <button type="button" id="addDish" class="primary">+ Add a dish</button>
+          <select id="preset" aria-label="Add a dish from a preset">
+            <option value="">…or start from a preset</option>
+          </select>
+        </div>
+
+        <details class="settings">
+          <summary>Settings</summary>
+          <div class="inner">
+            <div class="field">
+              <label>Oven takes <input type="number" id="preheat" min="0" max="180" step="5" /> min to heat up</label>
+            </div>
+            <div class="field">
+              <label>Hob has <input type="number" id="hobRings" min="0" max="12" step="1" /> rings</label>
+              <span class="muted">(0 = don’t check)</span>
+            </div>
+            <div class="field">
+              <label>Oven clash when temperatures differ by more than <input type="number" id="tolerance" min="0" max="300" step="5" /> °</label>
+            </div>
+            <div class="field">
+              <label>Temperatures in <select id="tempUnit"><option value="C">°C</option><option value="F">°F</option></select></label>
+              <label>Clock <select id="clock"><option value="auto">auto</option><option value="24">24-hour</option><option value="12">12-hour</option></select></label>
+              <label>Look <select id="theme"><option value="auto">auto</option><option value="light">light</option><option value="dark">dark</option></select></label>
+            </div>
+            <div class="field">
+              <label><input type="checkbox" id="sound" /> Chime when a job comes due (while this tab is open)</label>
+            </div>
+          </div>
+        </details>
+
+        <details class="tools">
+          <summary>Tools</summary>
+          <div class="inner">
+            <button type="button" id="export" class="small">Save to a file</button>
+            <button type="button" id="import" class="small">Load a file</button>
+            <input type="file" id="file" accept=".json,application/json" hidden />
+            <button type="button" id="copyLink" class="small">Copy link</button>
+            <button type="button" id="print" class="small">Print the sheet</button>
+            <button type="button" id="startOver" class="small">Clear ticks</button>
+            <button type="button" id="reset" class="small ghost">Reset to the example</button>
+            <input type="text" id="linkbox" class="linkbox" readonly hidden aria-label="Link to this dinner" />
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      <p>Your dinner stays in this browser. Nothing is sent anywhere, and there is no account. Save a file or copy a link to move it. Preset timings are starting points to edit, not food-safety advice: check the thickest part of any meat with a thermometer.</p>
+    </footer>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script src="backtime.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
