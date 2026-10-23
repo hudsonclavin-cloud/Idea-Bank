@@ -931,7 +931,8 @@
     guess: null,
     shot: null, // { m, n, sim, progress }
     results: [], // one per table: { guess, actual, bounces }
-    uf: { t: 0, k: 0, anim: null, view: null, flip: null, ext: null },
+    // the unfolding: table t, k cushions unfolded; flip/miss are copies turning over; own/wrong count the reader's picks
+    uf: { t: 0, k: 0, anim: null, view: null, viewAnim: null, flip: null, ext: null, miss: null, missAnim: null, missTimer: 0, hint: false, note: null, own: 0, wrong: 0, kbd: null, px: 0 },
     free: { m: 6, n: 4 },
     quiz: [
       { m: 1000, n: 600, answer: null },
@@ -945,6 +946,7 @@
   P.go = function (phase) {
     if (P.anim) P.anim.finish();
     if (P.uf.anim) P.uf.anim.finish();
+    if (stopMiss()) P.uf.view = null;
     P.phase = phase;
     if (phase === 'redraw') P.uf.view = null;
     renderPocket();
@@ -958,6 +960,12 @@
       svg = s('svg', { id: 'p-svg', class: 'p-svg', role: 'img', 'aria-label': 'A billiard table' });
       stage.append(svg);
       svg.addEventListener('click', onPocketSvgClick);
+      svg.addEventListener('keydown', (e) => {
+        const wall = e.target.closest && e.target.closest('[data-wall]');
+        if (!wall || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        pickCushion(wall.getAttribute('data-wall'), true);
+      });
     }
     return svg;
   }
@@ -977,7 +985,7 @@
   function drawCopy(g, m, n, i, j, opts) {
     const x0 = i * m;
     const y0 = j * n;
-    s('rect', { class: 'cloth' + (opts.copy ? ' copy' : ''), x: x0, y: Y(y0 + n), width: m, height: n }, g);
+    s('rect', { class: 'cloth' + (opts.copy ? ' copy' : '') + (opts.miss ? ' miss' : ''), x: x0, y: Y(y0 + n), width: m, height: n }, g);
     if (opts.grid) {
       const d = [];
       for (let u = 1; u < m; u++) d.push(`M${x0 + u} ${Y(y0)}V${Y(y0 + n)}`);
@@ -1012,7 +1020,7 @@
     const hit = e.target.closest('[data-pocket]');
     if (hit && P.phase === 'play') { guessPocket(hit.getAttribute('data-pocket')); return; }
     const wall = e.target.closest('[data-wall]');
-    if (wall && P.phase === 'redraw') unfoldNext();
+    if (wall && P.phase === 'redraw') pickCushion(wall.getAttribute('data-wall'), false);
   }
 
   /* --- play: guess, then watch the ball --- */
@@ -1136,7 +1144,7 @@
     }, ok ? 'Unfold the table →' : 'Redraw it (try two tables first)'));
   }
 
-  /* --- redraw: unfold the table, one cushion at a time --- */
+  /* --- redraw: unfold the table, one cushion at a time. The reader chooses each cushion. --- */
   function ufTable() { return TABLES[P.uf.t]; }
   function ufCopies(k) {
     const [m, n] = ufTable();
@@ -1158,60 +1166,121 @@
     if (hh > w * 1.15) { const extra = hh / 1.15 - w; w += extra; x0 -= extra / 2; }
     return { x: x0 - pad, y: y0 - pad, w, h: hh };
   }
+  // Where the ball waits after k unfoldings: on the cushion it last crossed (at the start, just out of pocket A).
+  function restT(k, px) {
+    const [m, n] = ufTable();
+    const steps = PK.unfoldSteps(m, n);
+    if (k >= steps.length) return PK.predict(m, n).L;
+    if (k > 0) return steps[k - 1].at;
+    return Math.min(0.4 * Math.min(m, n), Math.max(0.3, (px || 0) * 14));
+  }
+  // One cushion of copy (i, j), as a segment in table units.
+  function sideLine(m, n, i, j, side) {
+    const x0 = i * m, x1 = (i + 1) * m, y0 = j * n, y1 = (j + 1) * n;
+    return side === 'left' ? [x0, y0, x0, y1] : side === 'right' ? [x1, y0, x1, y1] : side === 'bottom' ? [x0, y0, x1, y0] : [x0, y1, x1, y1];
+  }
+  // The area that picks a cushion: the quarter of the copy next to it, plus a strip just outside it.
+  function sidePoly(m, n, i, j, side, out) {
+    const [ax, ay, bx, by] = sideLine(m, n, i, j, side);
+    const nx = side === 'left' ? -1 : side === 'right' ? 1 : 0;
+    const ny = side === 'bottom' ? -1 : side === 'top' ? 1 : 0;
+    const pts = [[ax, ay], [ax + nx * out, ay + ny * out], [bx + nx * out, by + ny * out], [bx, by], [(i + 0.5) * m, (j + 0.5) * n]];
+    return pts.map(([x, y]) => `${x},${Y(y)}`).join(' ');
+  }
 
   function drawUnfold() {
     const svg = pocketSvg();
     const [m, n] = ufTable();
     const uf = P.uf;
     const { copies, steps } = ufCopies(uf.k);
-    const animCopies = uf.flip ? copies.concat([uf.flip.to]) : copies;
-    const target = ufFit(m, n, animCopies);
-    if (!uf.view) uf.view = target;
+    const extra = uf.flip ? [uf.flip.to] : uf.miss ? [uf.miss.to] : [];
+    if (!uf.view) uf.view = ufFit(m, n, copies.concat(extra));
     const vb = uf.view;
     setView(svg, vb);
+    const act = document.activeElement;
+    const hadFocus = act && svg.contains(act) && act.getAttribute ? act.getAttribute('data-wall') : null;
     svg.textContent = '';
     const px = unitsPerPx(svg, vb);
+    uf.px = px;
     const g = s('g', null, svg);
     copies.forEach(([i, j], idx) => drawCopy(g, m, n, i, j, { grid: m / px > 40, px, copy: idx > 0 }));
-    // the flipping copy
-    if (uf.flip) {
-      const f = uf.flip;
+    // a copy turning over across a cushion like a page: the next copy, or a wrong one that will turn back
+    const turning = uf.flip || uf.miss;
+    if (turning) {
+      const f = turning;
       const sc = -Math.cos(Math.PI * f.p);
+      const scs = Math.abs(sc) < 0.02 ? 0.02 * Math.sign(sc || 1) : sc;
       const gg = s('g', null, svg);
-      if (f.wall === 'v') gg.setAttribute('transform', `translate(${f.at} 0) scale(${Math.abs(sc) < 0.02 ? 0.02 * Math.sign(sc || 1) : sc} 1) translate(${-f.at} 0)`);
-      else gg.setAttribute('transform', `translate(0 ${Y(f.at)}) scale(1 ${Math.abs(sc) < 0.02 ? 0.02 * Math.sign(sc || 1) : sc}) translate(0 ${-Y(f.at)})`);
-      drawCopy(gg, m, n, f.to[0], f.to[1], { grid: m / px > 40, px, copy: true });
+      if (f.wall === 'v') gg.setAttribute('transform', `translate(${f.at} 0) scale(${scs} 1) translate(${-f.at} 0)`);
+      else gg.setAttribute('transform', `translate(0 ${Y(f.at)}) scale(1 ${scs}) translate(0 ${-Y(f.at)})`);
+      drawCopy(gg, m, n, f.to[0], f.to[1], { grid: m / px > 40, px, copy: true, miss: f === uf.miss });
       if (sc < 0) s('rect', { class: 'flipback', x: f.to[0] * m, y: Y((f.to[1] + 1) * n), width: m, height: n, opacity: 0.25 * -sc }, gg);
+      if (f === uf.miss && f.p >= 0.999) {
+        // a cross on the copy the straight line never enters
+        const cx = (f.to[0] + 0.5) * m, cy = (f.to[1] + 0.5) * n, d = Math.min(m, n) * 0.16;
+        s('path', { class: 'missx', d: `M${cx - d} ${Y(cy - d)}L${cx + d} ${Y(cy + d)}M${cx - d} ${Y(cy + d)}L${cx + d} ${Y(cy - d)}`, 'stroke-width': px * 4 }, gg);
+      }
     }
+    const complete = uf.k >= steps.length && !uf.flip && !uf.ext;
+    const resting = !complete && !uf.flip && !uf.ext;
+    const tNow = uf.ext ? uf.ext.t : restT(uf.k, px);
     // the zigzag on the real table, as far as the ball has got
-    const tNow = uf.ext ? uf.ext.t : uf.k < steps.length ? steps[uf.k].at : PK.predict(m, n).L;
     const zig = [];
     const N = Math.max(2, Math.ceil(tNow * 4));
     for (let q = 0; q <= N; q++) { const t = (tNow * q) / N; const f = PK.fold(m, n, t, t); zig.push(`${f.x},${Y(f.y)}`); }
     s('polyline', { class: 'zig', points: zig.join(' '), 'stroke-width': px * 1.6 }, svg);
-    // the straight line
-    const complete = uf.k >= steps.length && !uf.flip && !uf.ext;
-    let wall = null;
-    if (!complete && !uf.flip && !uf.ext) {
-      const st = steps[uf.k];
-      const [i, j] = st.from;
-      let x1, y1, x2, y2;
-      if (st.wall === 'v') { x1 = x2 = (i + 1) * m; y1 = j * n; y2 = (j + 1) * n; }
-      else { y1 = y2 = (j + 1) * n; x1 = i * m; x2 = (i + 1) * m; }
-      wall = { x1, y1: Y(y1), x2, y2: Y(y2) };
-      s('line', Object.assign({ class: 'wallhint', 'stroke-width': px * 6, 'stroke-dasharray': `${px * 10} ${px * 7}` }, wall), svg);
+    // after a wrong cushion: where the straight line really leaves the copy it is in
+    if (uf.miss && uf.miss.p >= 0.999 && uf.k < steps.length) {
+      const tEnd = steps[uf.k].at + 0.35 * Math.min(m, n);
+      s('line', { class: 'ghostray', x1: tNow, y1: Y(tNow), x2: tEnd, y2: Y(tEnd), 'stroke-width': px * 2.6, 'stroke-dasharray': `${px * 8} ${px * 6}` }, svg);
     }
+    // the straight line
     s('line', { class: 'straight', x1: 0, y1: 0, x2: tNow, y2: Y(tNow), 'stroke-width': px * 3.2 }, svg);
     // pockets at every lattice corner of the copies shown
     const corners = new Map();
     for (const [i, j] of copies) for (const [a, b] of [[0, 0], [1, 0], [1, 1], [0, 1]]) corners.set(`${i + a},${j + b}`, [i + a, j + b]);
     drawPockets(svg, m, n, [...corners.values()], px, { small: copies.length > 1 });
     if (!complete) s('circle', { class: 'ball', cx: tNow, cy: Y(tNow), r: px * 7, 'stroke-width': px * 1.2 }, svg);
-    if (wall) s('line', Object.assign({ class: 'wallhit', 'stroke-width': px * 44, 'data-wall': 1 }, wall), svg);
+    if (resting) {
+      // which way the ball is heading (kept well short of the next cushion, so it gives nothing away)
+      const room = (steps[uf.k].at - tNow) * 0.45;
+      const a = Math.min(room * 0.4, (px * 11) / Math.SQRT2);
+      const b = Math.min(room, (px * 30) / Math.SQRT2);
+      const hd = Math.min(b - a, (px * 8) / Math.SQRT2);
+      if (b > a) s('path', { class: 'heading', d: `M${tNow + a} ${Y(tNow + a)}L${tNow + b} ${Y(tNow + b)}M${tNow + b - hd * 1.4} ${Y(tNow + b)}L${tNow + b} ${Y(tNow + b)}L${tNow + b} ${Y(tNow + b - hd * 1.4)}`, 'stroke-width': px * 2.2 }, svg);
+      // every cushion of the copy the ball is in can be chosen
+      const [i, j] = steps[uf.k].from;
+      const next = steps[uf.k].wall === 'v' ? 'right' : 'top';
+      const picks = s('g', { class: 'picks' }, svg);
+      for (const side of PK.SIDES) {
+        const gp = s('g', {
+          class: 'pick' + (uf.hint && side === next ? ' hinted' : ''), 'data-wall': side, tabindex: 0, role: 'button',
+          'aria-label': `The ${side} cushion of ${uf.k ? 'the newest copy' : 'the table'}`,
+        }, picks);
+        s('polygon', { class: 'hit', points: sidePoly(m, n, i, j, side, px * 24) }, gp);
+        // the visible cushion stops short of the pockets at its ends
+        const [ax0, ay0, bx0, by0] = sideLine(m, n, i, j, side);
+        const len = Math.hypot(bx0 - ax0, by0 - ay0);
+        const ins = Math.min(px * (copies.length > 1 ? 13 : 16), len * 0.3) / len;
+        const ax = ax0 + (bx0 - ax0) * ins, ay = ay0 + (by0 - ay0) * ins;
+        const bx = bx0 - (bx0 - ax0) * ins, by = by0 - (by0 - ay0) * ins;
+        if (uf.hint && side === next) s('line', { class: 'wallhint', x1: ax, y1: Y(ay), x2: bx, y2: Y(by), 'stroke-width': px * 6, 'stroke-dasharray': `${px * 10} ${px * 7}` }, gp);
+        else s('line', { class: 'cue', x1: ax, y1: Y(ay), x2: bx, y2: Y(by), 'stroke-width': px * 3.4 }, gp);
+      }
+      const want = hadFocus || uf.kbd;
+      if (want) {
+        const f = picks.querySelector(`[data-wall="${want}"]`);
+        if (f) f.focus({ preventScroll: true });
+      }
+    }
     if (complete) drawEnd(svg, m, n, PK.predict(m, n).L, px);
+    svg.setAttribute('role', resting ? 'group' : 'img');
+    svg.setAttribute('aria-label', resting ? 'The unfolding table: choose a cushion' : 'A billiard table, unfolded');
     const st = $('p-stage').dataset;
     st.k = String(uf.k);
     st.complete = complete ? '1' : '0';
+    st.miss = uf.miss ? '1' : '0';
+    st.wrong = String(uf.wrong);
     return { complete, steps };
   }
 
@@ -1222,40 +1291,110 @@
     uf.viewAnim = tween(ms, (p) => {
       const t = ease(p);
       uf.view = { x: lerp(from.x, to.x, t), y: lerp(from.y, to.y, t), w: lerp(from.w, to.w, t), h: lerp(from.h, to.h, t) };
-      if (!uf.anim) drawUnfold();
+      if (!uf.anim && !uf.missAnim && P.phase === 'redraw') drawUnfold();
     }, () => { uf.viewAnim = null; });
   }
 
-  function unfoldNext() {
+  // A wrong cushion's copy, folded out and waiting to fold back. Returns true if there was one.
+  function stopMiss() {
+    const uf = P.uf;
+    clearTimeout(uf.missTimer);
+    if (uf.missAnim) uf.missAnim.cancel();
+    uf.missAnim = null;
+    if (!uf.miss) return false;
+    uf.miss = null;
+    return true;
+  }
+
+  // The reader taps a cushion of the copy the ball is in.
+  function pickCushion(side, viaKey) {
+    const uf = P.uf;
+    if (P.phase !== 'redraw') return;
+    uf.kbd = viaKey ? side : null;
+    if (uf.anim) { uf.anim.finish(); return; }
+    const [m, n] = ufTable();
+    if (stopMiss()) animateView(ufFit(m, n, ufCopies(uf.k).copies), 260);
+    const ch = PK.cushionChoice(m, n, uf.k, side);
+    if (!ch) return;
+    if (ch.kind === 'next') { unfoldAcross(ch, uf.hint); return; }
+    if (ch.kind === 'entry') { uf.note = 'entry'; renderPocket(); return; }
+    // a wrong cushion: fold the copy out across it, show that the straight line misses it, fold it back
+    uf.wrong++;
+    uf.note = 'miss';
+    const { copies } = ufCopies(uf.k);
+    animateView(ufFit(m, n, copies.concat([ch.to])), 380);
+    uf.miss = { wall: ch.wall, at: ch.at, to: ch.to, p: 0 };
+    renderPocket();
+    const miss = uf.miss;
+    uf.missAnim = tween(480, (p) => { miss.p = ease(p); drawUnfold(); }, () => {
+      uf.missAnim = null;
+      uf.missTimer = setTimeout(() => {
+        if (uf.miss !== miss) return;
+        animateView(ufFit(m, n, copies), 380);
+        uf.missAnim = tween(480, (p) => { miss.p = 1 - ease(p); drawUnfold(); }, () => {
+          uf.missAnim = null;
+          uf.miss = null;
+          if (P.phase === 'redraw') renderPocket();
+        });
+      }, 1300);
+    });
+  }
+
+  // The right cushion: the ball runs to it, then a mirror copy turns over across it like a page.
+  function unfoldAcross(ch, helped) {
+    const uf = P.uf;
+    const [m, n] = ufTable();
+    const { copies, steps } = ufCopies(uf.k);
+    const k = uf.k;
+    const t0 = restT(k, uf.px);
+    const t1 = steps[k].at;
+    const last = k + 1 >= steps.length;
+    const L = PK.predict(m, n).L;
+    const dRun = Math.min(700, 120 + (t1 - t0) * 40);
+    const dFlip = 560;
+    const dEnd = last ? Math.min(700, 120 + (L - t1) * 40) : 0;
+    const total = dRun + dFlip + dEnd;
+    uf.hint = false;
+    uf.note = null;
+    if (!helped) uf.own++;
+    animateView(ufFit(m, n, copies.concat([ch.to])), 420);
+    uf.ext = { t: t0 };
+    uf.anim = tween(total, (p) => {
+      const ms = p * total;
+      if (ms < dRun) uf.ext.t = lerp(t0, t1, ms / dRun);
+      else if (ms < dRun + dFlip) { uf.ext.t = t1; uf.flip = { wall: ch.wall, at: ch.at, to: ch.to, p: ease((ms - dRun) / dFlip) }; }
+      else { uf.flip = null; uf.k = k + 1; uf.ext.t = last ? lerp(t1, L, (ms - dRun - dFlip) / dEnd) : t1; }
+      drawUnfold();
+    }, () => {
+      uf.anim = null;
+      uf.flip = null;
+      uf.ext = null;
+      uf.k = k + 1;
+      if (P.phase === 'redraw') renderPocket();
+    });
+  }
+  // The hint: first press lights the right cushion; a second press unfolds it for the reader.
+  function hintCushion() {
     const uf = P.uf;
     if (uf.anim) { uf.anim.finish(); return; }
     const [m, n] = ufTable();
-    const { copies, steps } = ufCopies(uf.k);
+    const steps = PK.unfoldSteps(m, n);
     if (uf.k >= steps.length) return;
-    const st = steps[uf.k];
-    const nextT = uf.k + 1 < steps.length ? steps[uf.k + 1].at : PK.predict(m, n).L;
-    animateView(ufFit(m, n, copies.concat([st.to])), 420);
-    uf.flip = { wall: st.wall, at: st.wall === 'v' ? (st.from[0] + 1) * m : (st.from[1] + 1) * n, to: st.to, p: 0 };
-    uf.anim = tween(560, (p) => { uf.flip.p = ease(p); drawUnfold(); }, () => {
-      uf.flip = null;
-      uf.k++;
-      const t0 = st.at;
-      uf.ext = { t: t0 };
-      uf.anim = tween(Math.min(700, 120 + (nextT - t0) * 40), (p) => { uf.ext.t = lerp(t0, nextT, p); drawUnfold(); }, () => {
-        uf.anim = null;
-        uf.ext = null;
-        renderPocket();
-      });
-    });
+    if (stopMiss()) animateView(ufFit(m, n, ufCopies(uf.k).copies), 260);
+    if (!uf.hint) { uf.hint = true; uf.note = null; renderPocket(); return; }
+    unfoldAcross(PK.cushionChoice(m, n, uf.k, steps[uf.k].wall === 'v' ? 'right' : 'top'), true);
   }
   function unfoldAll() {
     const uf = P.uf;
     if (uf.anim) uf.anim.finish();
+    stopMiss();
     const [m, n] = ufTable();
     const steps = PK.unfoldSteps(m, n);
     uf.k = steps.length;
     uf.flip = null;
     uf.ext = null;
+    uf.hint = false;
+    uf.note = null;
     animateView(ufFit(m, n, ufCopies(uf.k).copies), 500);
     renderPocket();
   }
@@ -1263,10 +1402,16 @@
     const uf = P.uf;
     if (uf.anim) uf.anim.cancel();
     if (uf.viewAnim) uf.viewAnim.cancel();
+    stopMiss();
     uf.anim = null;
+    uf.viewAnim = null;
     uf.flip = null;
     uf.ext = null;
     uf.k = 0;
+    uf.hint = false;
+    uf.note = null;
+    uf.own = 0;
+    uf.wrong = 0;
     if (t != null) uf.t = t;
     uf.view = null;
     renderPocket();
@@ -1278,19 +1423,30 @@
     const { complete, steps } = drawUnfold();
     const pr = PK.predict(m, n);
     if (complete) {
-      if (!P.done.has('redraw')) { P.done.add('redraw'); P.unlocked.add('again'); reveal('p-after'); renderSteps('p'); }
-      setStatus('p-status', `<span class="good">A straight line, into a copy of pocket ${pr.pocket}.</span> On the real table that is ${pr.bounces} bounces, and you never had to follow one. It crossed ${pr.across} tables across and ${pr.up} up.`);
-    } else if (uf.k === 0) {
-      setStatus('p-status', `The ${m}&nbsp;&times;&nbsp;${n} table. Don&rsquo;t bounce the ball: <b>tap the glowing cushion to fold a mirror copy of the table out across it</b>, and let the ball run straight on.`);
+      if (!P.done.has('redraw')) { P.done.add('redraw'); P.unlocked.add('again'); renderSteps('p'); }
+      const own = uf.own === steps.length ? ' You chose every cushion yourself.' : ` You chose ${uf.own} of the ${steps.length} cushions yourself.`;
+      setStatus('p-status', `<span class="good">A straight line, into a copy of pocket ${pr.pocket}.</span> On the real table that is ${pr.bounces} bounces, and you never had to follow one. It crossed ${pr.across} tables across and ${pr.up} up.` + (steps.length ? own : ''));
     } else {
-      setStatus('p-status', `${uf.k} cushion${uf.k > 1 ? 's' : ''} unfolded. The faint zigzag is the real ball; the gold line is the same path, unbent. <b>Tap the next cushion.</b>`);
+      let msg = '';
+      if (uf.miss) msg = '<span class="them">Not that cushion.</span> The copy that folded out across it is one the straight line never enters: the dashed line shows where the line really leaves. ';
+      else if (uf.note === 'miss') msg = '<span class="them">Not that cushion:</span> the straight line never enters the copy across it. ';
+      else if (uf.note === 'entry') msg = 'The ball came in through that cushion, and the copy behind it is already unfolded. ';
+      if (uf.k === 0) {
+        msg += msg ? '<b>Which cushion will the ball hit first?</b>'
+          : `The ${m}&nbsp;&times;&nbsp;${n} table. The ball leaves A heading up and to the right at 45&deg;. Don&rsquo;t bounce it: <b>tap the cushion it will hit first</b>, and a mirror copy of the table folds out across it.`;
+      } else {
+        msg += msg ? '<b>Which cushion of the newest copy will the line reach next?</b>'
+          : `${uf.k} cushion${uf.k > 1 ? 's' : ''} unfolded. The faint zigzag is the real ball; the gold line is the same path, unbent. <b>Which cushion of the newest copy will the line reach next? Tap it.</b>`;
+      }
+      if (uf.hint) msg += '<br><span class="note">Hint: it&rsquo;s the glowing cushion. Tap it, or press the button again and the page unfolds it for you.</span>';
+      setStatus('p-status', msg);
     }
     const controls = $('p-controls');
     controls.textContent = '';
     const tabs = h('div', { class: 'ptabs', role: 'group', 'aria-label': 'Table' });
     TABLES.forEach(([a, b], t) => tabs.append(h('button', { 'aria-pressed': t === uf.t ? 'true' : 'false', on: { click: () => foldUp(t) } }, `${a}×${b}`)));
     controls.append(tabs,
-      h('button', { class: 'btn', disabled: complete, on: { click: unfoldNext } }, 'Unfold next'));
+      h('button', { class: 'btn', disabled: complete, on: { click: hintCushion } }, uf.hint ? 'Unfold it for me' : 'Hint'));
     if (uf.k >= 3 && !complete) controls.append(h('button', { class: 'btn', on: { click: unfoldAll } }, 'Unfold the rest'));
     controls.append(
       h('button', { class: 'btn', disabled: uf.k === 0, on: { click: () => foldUp() } }, 'Fold up'),
@@ -1299,7 +1455,6 @@
         class: 'btn' + (P.unlocked.has('again') ? ' primary' : ''), disabled: !P.unlocked.has('again'),
         on: { click: () => P.go('again') },
       }, P.unlocked.has('again') ? 'Any table →' : 'Play again (unfold one first)'));
-    void steps;
   }
 
   /* --- again: any table, and three you could never trace --- */
@@ -1347,17 +1502,24 @@
       shape + `The line crosses ${pr.across.toLocaleString('en')} tables across (${pr.across % 2 ? 'odd' : 'even'}, so ${lr}) and ${pr.up.toLocaleString('en')} up (${pr.up % 2 ? 'odd' : 'even'}, so ${tb}), after ${pr.bounces.toLocaleString('en')} bounces.`;
   }
 
+  // The odd-and-even rule is held back until the reader has called the three big tables, so that the
+  // ledger's "after" column is the reader's own reading of the unfolded picture, not a rule the page told them.
+  const quizDone = () => P.quiz.every((x) => x.answer != null);
   function renderPocketAgain() {
     drawLattice();
     const { m, n } = P.free;
     const pr = PK.predict(m, n);
     const lr = pr.across % 2 ? 'right' : 'left';
     const tb = pr.up % 2 ? 'top' : 'bottom';
-    setStatus('p-status', `A ${m}&nbsp;&times;&nbsp;${n} table, unfolded. The line meets its first corner after <b>${pr.across}</b> table${pr.across > 1 ? 's' : ''} across (${pr.across % 2 ? 'odd' : 'even'}: ${lr}) and <b>${pr.up}</b> up (${pr.up % 2 ? 'odd' : 'even'}: ${tb}). Pocket <b>${pr.pocket}</b>, ${pr.bounces} bounce${pr.bounces === 1 ? '' : 's'}.`);
+    const done = quizDone();
+    const acrossTxt = `<b>${pr.across}</b> table${pr.across > 1 ? 's' : ''} across` + (done ? ` (${pr.across % 2 ? 'odd' : 'even'}: ${lr})` : '');
+    const upTxt = `<b>${pr.up}</b> up` + (done ? ` (${pr.up % 2 ? 'odd' : 'even'}: ${tb})` : '');
+    setStatus('p-status', `A ${m}&nbsp;&times;&nbsp;${n} table, unfolded. The line meets its first corner after ${acrossTxt} and ${upTxt}. Pocket <b>${pr.pocket}</b>, ${pr.bounces} bounce${pr.bounces === 1 ? '' : 's'}.`);
     const controls = $('p-controls');
     controls.textContent = '';
     controls.append(stepper('Wide', 'm'), stepper('High', 'n'));
-    const quiz = h('div', { class: 'quiz' }, h('h3', null, 'Three tables you could never trace by eye'));
+    const quiz = h('div', { class: 'quiz' }, h('h3', null, 'Three tables you could never trace by eye'),
+      done ? null : h('p', { class: 'note' }, 'Call all three. The answers, and the rule behind them, come after the third.'));
     P.quiz.forEach((q, qi) => {
       const keys = h('div', { class: 'pocket-keys', role: 'group', 'aria-label': `Pocket for the ${q.m} by ${q.n} table` });
       for (const lab of ['A', 'B', 'C', 'D']) {
@@ -1369,7 +1531,7 @@
             q.answer = lab;
             record.p.after.total++;
             if (lab === PK.predict(q.m, q.n).pocket) record.p.after.right++;
-            if (P.quiz.every((x) => x.answer != null)) P.done.add('again');
+            if (quizDone()) { P.done.add('again'); reveal('p-after'); }
             renderLedger();
             renderPocket();
           } },
@@ -1378,7 +1540,7 @@
       quiz.append(h('div', { class: 'qrow', 'data-q': qi },
         h('span', { class: 'q' }, `${q.m.toLocaleString('en')} wide, ${q.n.toLocaleString('en')} high`),
         keys,
-        h('div', { class: 'verdict', html: q.answer != null ? quizVerdict(q) : '' })));
+        h('div', { class: 'verdict', html: q.answer != null && done ? quizVerdict(q) : '' })));
     });
     controls.append(quiz);
   }
@@ -1442,21 +1604,58 @@
     const gridWin = (mask) => F15.LINES.some((ln) => ln.every((c) => mask & (1 << c)));
     const a = count(numWin);
     const b = count(gridWin);
+    // the machine against every sequence of choices you could make, taking every tie-break it could take
+    // (18 evenly spaced tie-break draws reach every member of a tie of up to 9 moves)
+    const rngs = Array.from({ length: 18 }, (_, i) => () => (i + 0.5) / 18);
+    const nums = (mask) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((k) => mask & F15.bit(k));
+    const holds = (mask) => numWin(nums(mask).reduce((m, k) => m | (1 << (k - 1)), 0));
+    const vs = { games: 0, won: 0, drawn: 0, lost: 0 };
+    const play = (you, mach, machineToMove) => {
+      const free = nums(F15.ALL & ~(you | mach));
+      if (machineToMove) {
+        for (const k of new Set(rngs.map((r) => F15.machineMove(mach, you, r)))) {
+          const nm = mach | F15.bit(k);
+          if (holds(nm)) { vs.games++; vs.won++; } else if (free.length === 1) { vs.games++; vs.drawn++; } else play(you, nm, false);
+        }
+      } else {
+        for (const k of free) {
+          const ny = you | F15.bit(k);
+          if (holds(ny)) { vs.games++; vs.lost++; } else if (free.length === 1) { vs.games++; vs.drawn++; } else play(ny, mach, true);
+        }
+      }
+    };
+    play(0, 0, true);
+    play(0, 0, false);
+    // after each even opening, which of your replies avoid a loss under best play
+    const safe = [2, 4, 6, 8].map((e) => [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((r) => r !== e && F15.moveValue(0, F15.bit(e), r) >= 0));
     return [
       `triples of 1-9: ${triples}; adding to 15: ${fifteen}`,
       `grids checked: ${perms.toLocaleString('en')}; every line 15: ${magic}`,
       `games of Fifteen: ${a.games.toLocaleString('en')} (first wins ${a.first.toLocaleString('en')}, second ${a.second.toLocaleString('en')}, draws ${a.draw.toLocaleString('en')})`,
       `games of noughts and crosses: ${b.games.toLocaleString('en')} (first wins ${b.first.toLocaleString('en')}, second ${b.second.toLocaleString('en')}, draws ${b.draw.toLocaleString('en')})`,
       `value of Fifteen with best play: ${['first player loses', 'draw', 'first player wins'][F15.value(0, 0) + 1]}`,
+      `the machine against every choice you could make, both ways round: ${vs.games.toLocaleString('en')} games; it won ${vs.won.toLocaleString('en')}, drew ${vs.drawn.toLocaleString('en')}, lost ${vs.lost}`,
+      `your replies that don't lose after it opens 2, 4, 6, 8: ${safe.map((x) => x.join(' ')).join('; ')}`,
     ];
   }));
   $('k-run').addEventListener('click', () => runProof('k-proof-out', () => {
     const dist = KN.distances(KN.START);
     const ring = KN.ringOrder().map((i) => KN.SQUARES[i].name);
+    // every way to put two white and two black knights on the eight outer squares
+    const outer = KN.SQUARES.map((_, i) => i).filter((i) => i !== 4);
+    let placements = 0, reached = 0;
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) for (let c = 0; c < 8; c++) for (let d = c + 1; d < 8; d++) {
+      if (c === a || c === b || d === a || d === b) continue;
+      const cells = Array(9).fill('.');
+      cells[outer[a]] = cells[outer[b]] = 'W';
+      cells[outer[c]] = cells[outer[d]] = 'B';
+      placements++;
+      if (dist.has(cells.join(''))) reached++;
+    }
     return [
       `centre square b2 has ${KN.NEIGHBOURS[4].length} knight moves`,
       `the other eight, following the strings: ${ring.join(' - ')} - ${ring[0]}`,
-      `positions reachable from the start: ${dist.size} (of 420)`,
+      `placements of two white and two black knights on the outer squares: ${placements}; reachable from the start: ${reached} (the search found ${dist.size} positions in all)`,
       `moves to the swap: ${dist.get(KN.TARGETS.swap)}`,
       `diagonals reachable: ${dist.has(KN.TARGETS.diagonals) ? 'yes' : 'no'}`,
       `colours round the ring at the start: ${KN.ringColours(KN.START)}; for the diagonals: ${KN.ringColours(KN.TARGETS.diagonals)}`,
@@ -1488,6 +1687,6 @@
   let resizeTimer = 0;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { if (!P.anim && !P.uf.anim) renderPocket(); }, 120);
+    resizeTimer = setTimeout(() => { if (!P.anim && !P.uf.anim && !P.uf.missAnim) renderPocket(); }, 120);
   });
 })();

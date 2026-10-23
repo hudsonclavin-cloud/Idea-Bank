@@ -32,6 +32,7 @@
   --string: #6b5a44;
   --shadow: rgba(35, 32, 25, 0.16);
   --focus: #2f7fd0;
+  --cloth-miss: #6a4b33;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -69,6 +70,7 @@
     --string: #b9a27f;
     --shadow: rgba(0, 0, 0, 0.45);
     --focus: #79b8ff;
+    --cloth-miss: #4d3424;
     color-scheme: dark;
   }
 }
@@ -340,7 +342,19 @@ h1 { margin: 0; font-size: clamp(2.6rem, 9vw, 3.6rem); line-height: 1.02; letter
 .p-svg .pocket-hit { fill: transparent; cursor: pointer; }
 .p-svg .pocket.guess { stroke: var(--ink); }
 .p-svg .wallhint { stroke: var(--gold); stroke-linecap: round; }
-.p-svg .wallhit { stroke: transparent; cursor: pointer; }
+/* the cushions of the copy the ball is in: each one can be chosen */
+.p-svg .pick { cursor: pointer; outline: none; }
+.p-svg .pick .hit { fill: transparent; }
+.p-svg .pick .cue { stroke: #fff6d8; stroke-linecap: round; opacity: 0.5; }
+@media (hover: hover) { .p-svg .pick:hover .cue { stroke: var(--gold); opacity: 1; } }
+.p-svg .pick:focus-visible .cue { stroke: var(--focus); opacity: 1; }
+.p-svg .pick:focus-visible .wallhint { stroke: var(--focus); }
+.p-svg .heading { fill: none; stroke: #fff6d8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; pointer-events: none; }
+.p-svg .ball, .p-svg .straight, .p-svg .zig, .p-svg .ghostray { pointer-events: none; }
+/* a wrong cushion's copy: one the straight line never enters */
+.p-svg .cloth.miss { fill: var(--cloth-miss); }
+.p-svg .missx { fill: none; stroke: var(--them); stroke-linecap: round; }
+.p-svg .ghostray { fill: none; stroke: var(--gold); stroke-linecap: round; opacity: 0.9; }
 .p-svg .endring { fill: none; stroke: var(--gold); }
 .p-svg .dimlabel { fill: var(--muted); font-family: system-ui, sans-serif; text-anchor: middle; }
 .p-svg .flipback { fill: #000; }
@@ -365,6 +379,7 @@ h1 { margin: 0; font-size: clamp(2.6rem, 9vw, 3.6rem); line-height: 1.02; letter
 .stepper output { min-width: 2.2em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; }
 .quiz { margin-top: 14px; border-top: 1px solid var(--rule); padding-top: 12px; }
 .quiz h3 { margin: 0 0 6px; font-size: 1rem; }
+.quiz .note { margin: 0 0 4px; }
 .qrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-bottom: 1px dashed var(--rule); }
 .qrow:last-child { border-bottom: 0; }
 .qrow .q { flex: 1 1 14em; min-width: 0; }
@@ -381,6 +396,7 @@ h1 { margin: 0; font-size: clamp(2.6rem, 9vw, 3.6rem); line-height: 1.02; letter
 .ledger thead th { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
 .ledger tbody th { font-weight: 650; white-space: nowrap; }
 .ledger td.none { color: var(--muted); }
+.ledger-note { color: var(--ink-2); font-size: 0.93rem; }
 .question { font-size: clamp(1.6rem, 6vw, 2.2rem); line-height: 1.2; margin: 26px 0 14px; }
 .foot { color: var(--muted); font-size: 0.85rem; padding-top: 24px; padding-bottom: 48px; border-top: 1px solid var(--rule); margin-top: 30px; }
 

@@ -425,7 +425,8 @@
   }
 
   // The unfolding, one wall at a time: the copies of the table the straight line passes through,
-  // in order, and the wall (shared edge) crossed to reach each new copy.
+  // in order, and the wall (shared edge) crossed to reach each new copy. steps[k].from is the copy
+  // the line is in after k unfoldings; the line always leaves it through its right or top cushion.
   function unfoldSteps(m, n) {
     const { L } = predict(m, n);
     const steps = [];
@@ -455,7 +456,38 @@
     return { x: f(x, m), y: f(y, n) };
   }
 
-  const Pocket = { gcd, lcm, cornerLabel, predict, simulate, unfoldSteps, toCopy, fold };
+  // Does the straight line y = x (0 < t < L) pass through the inside of copy (i, j)?
+  function lineEnters(m, n, i, j) {
+    const { L } = predict(m, n);
+    const lo = Math.max(i * m, j * n, 0);
+    const hi = Math.min((i + 1) * m, (j + 1) * n, L);
+    return hi > lo;
+  }
+  // The copy that folds out across one cushion of copy (i, j).
+  const SIDES = ['left', 'right', 'bottom', 'top'];
+  function neighbour(i, j, side) {
+    return side === 'left' ? [i - 1, j] : side === 'right' ? [i + 1, j] : side === 'bottom' ? [i, j - 1] : [i, j + 1];
+  }
+  // The reader has unfolded k cushions and taps one cushion of the newest copy. Which kind of tap is it?
+  //   next  - the cushion the straight line reaches next: unfold across it
+  //   entry - the cushion the line came in through: the copy behind it is already there
+  //   miss  - any other cushion: the copy across it is one the line never enters
+  // Returns null once the line has reached its corner (nothing left to unfold).
+  function cushionChoice(m, n, k, side) {
+    const steps = unfoldSteps(m, n);
+    if (k >= steps.length) return null;
+    const cur = steps[k].from;
+    const to = neighbour(cur[0], cur[1], side);
+    const wall = side === 'left' || side === 'right' ? 'v' : 'h';
+    const at = side === 'left' ? cur[0] * m : side === 'right' ? (cur[0] + 1) * m : side === 'bottom' ? cur[1] * n : (cur[1] + 1) * n;
+    const next = steps[k].wall === 'v' ? 'right' : 'top';
+    if (side === next) return { kind: 'next', from: cur, to, wall, at };
+    const prev = k > 0 ? steps[k - 1].from : null;
+    if (prev && prev[0] === to[0] && prev[1] === to[1]) return { kind: 'entry', from: cur, to, wall, at };
+    return { kind: 'miss', from: cur, to, wall, at };
+  }
+
+  const Pocket = { gcd, lcm, cornerLabel, predict, simulate, unfoldSteps, toCopy, fold, lineEnters, SIDES, neighbour, cushionChoice };
 
   return { Fifteen, Knights, Pocket };
 });

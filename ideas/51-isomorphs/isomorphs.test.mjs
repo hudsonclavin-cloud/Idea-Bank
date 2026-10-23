@@ -465,42 +465,93 @@ test('on the ring, the swap is every knight walking four steps the same way roun
   assert.equal(4 * 4, Knights.distances(Knights.START).get(Knights.TARGETS.swap));
 });
 
-test('a player making random legal moves needs about 398 moves on average to stumble on the swap', () => {
-  // independent move rules (letters and digits); expected hitting time by solving (I - Q) t = 1
+// Expected moves for a random player to stumble on the swap, solved exactly in whole numbers (BigInt
+// fraction-free Gauss-Jordan on the 279 non-target positions). pick(moves) gives each move's probability
+// as [numerator, denominator] pairs; independent move rules (letters and digits).
+function hittingTime(pick) {
   const start = { a1: 'W', c1: 'W', a3: 'B', c3: 'B' };
   const { dist, key } = bfs(start);
   const target = key({ a3: 'W', c3: 'W', a1: 'B', c1: 'B' });
   const states = [...dist.keys()].filter((k) => k !== target);
   const index = new Map(states.map((k, i) => [k, i]));
   const N = states.length;
-  const A = states.map(() => new Float64Array(N + 1));
-  states.forEach((k, i) => {
+  const gcdB = (x, y) => { x = x < 0n ? -x : x; y = y < 0n ? -y : y; while (y) [x, y] = [y, x % y]; return x; };
+  const rows = states.map((k, i) => {
     const p = {};
     SQ.forEach((sq, j) => { if (k[j] !== '.') p[sq] = k[j]; });
-    const next = [];
+    const moves = [];
     for (const sq of Object.keys(p)) for (const t of jumps(sq)) {
       if (p[t]) continue;
       const q = { ...p };
       q[t] = q[sq];
       delete q[sq];
-      next.push(key(q));
+      moves.push({ knight: sq, to: key(q) });
     }
-    A[i][i] += 1;
-    A[i][N] = 1;
-    for (const q of next) if (q !== target) A[i][index.get(q)] -= 1 / next.length;
+    const probs = pick(moves);
+    const den = probs.reduce((l, [, d]) => (l * d) / gcdB(l, d), 1n);
+    // den * h_i - sum over moves of den * prob * h_q = den   (h_target = 0)
+    const r = new Map([[i, den]]);
+    moves.forEach((mv, k2) => {
+      if (mv.to === target) return;
+      const j = index.get(mv.to);
+      const [pn, pd] = probs[k2];
+      r.set(j, (r.get(j) || 0n) - (den / pd) * pn);
+    });
+    return { r, rhs: den };
   });
   for (let c = 0; c < N; c++) {
     let piv = c;
-    for (let r = c + 1; r < N; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
-    [A[c], A[piv]] = [A[piv], A[c]];
+    while (!rows[piv].r.get(c)) piv++;
+    [rows[c], rows[piv]] = [rows[piv], rows[c]];
+    const P = rows[c];
+    const pc = P.r.get(c);
     for (let r = 0; r < N; r++) {
-      if (r === c || !A[r][c]) continue;
-      const f = A[r][c] / A[c][c];
-      for (let k = c; k <= N; k++) A[r][k] -= f * A[c][k];
+      if (r === c) continue;
+      const R = rows[r];
+      const rc = R.r.get(c);
+      if (!rc) continue;
+      const nr = new Map();
+      for (const [j, v] of R.r) nr.set(j, v * pc);
+      for (const [j, v] of P.r) { const w = (nr.get(j) || 0n) - rc * v; if (w === 0n) nr.delete(j); else nr.set(j, w); }
+      let rhs = R.rhs * pc - rc * P.rhs;
+      let g = rhs;
+      for (const v of nr.values()) g = gcdB(g, v);
+      if (g > 1n) { for (const [j, v] of nr) nr.set(j, v / g); rhs /= g; }
+      R.r = nr;
+      R.rhs = rhs;
     }
   }
-  const t = A[index.get(key(start))][N] / A[index.get(key(start))][index.get(key(start))];
-  assert.ok(Math.abs(t - 397.5) < 0.5, `expected hitting time ${t}`);
+  const s = index.get(key(start));
+  const R = rows.find((x) => x.r.size === 1 && x.r.has(s));
+  let num = R.rhs;
+  let den = R.r.get(s);
+  const g = gcdB(num, den);
+  num /= g; den /= g;
+  if (den < 0n) { num = -num; den = -den; }
+  return `${num}/${den}`;
+}
+
+test('random play: exactly 4,591,360/11,551 (about 397.49) moves to the swap when every legal move is equally likely', () => {
+  const uniform = (moves) => moves.map(() => [1n, BigInt(moves.length)]);
+  assert.equal(hittingTime(uniform), '4591360/11551');
+  assert.ok(Math.abs(4591360 / 11551 - 397.4859) < 1e-4);
+});
+
+test('the figure depends on the random model: a random knight, then a random jump, gives 29,313,715,992/91,739,833 (about 319.5)', () => {
+  const byKnight = (moves) => {
+    const knights = [...new Set(moves.map((m) => m.knight))];
+    return moves.map((m) => [1n, BigInt(knights.length * moves.filter((x) => x.knight === m.knight).length)]);
+  };
+  assert.equal(hittingTime(byKnight), '29313715992/91739833');
+});
+
+test('the README gives the random-play figure exactly and names its model', async () => {
+  const fs = await import('node:fs');
+  const readme = fs.readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+  assert.ok(readme.includes('4,591,360/11,551'), 'exact fraction missing');
+  assert.ok(readme.includes('every legal move is equally likely'), 'random model not named');
+  assert.ok(readme.includes('29,313,715,992/91,739,833'), 'other model missing');
+  assert.ok(!/needs 397\.5 moves/.test(readme), 'bare 397.5 still presented as exact');
 });
 
 test('string crossings: 16 on the board, none once the squares are laid round a circle in ring order', () => {
@@ -684,6 +735,45 @@ test('unfolding one cushion at a time: one fold per bounce, adjacent copies, and
         assert.deepEqual([back.x, back.y], [u, v]);
       }
     }
+  }
+});
+
+test('choosing a cushion: exactly one is next; every wrong one folds a copy the line never enters', () => {
+  // independent: the copies the ball's straight line passes through, walked in unit steps along y = x
+  for (let m = 1; m <= 16; m++) for (let n = 1; n <= 16; n++) {
+    const L = (m * n) / gcd(m, n);
+    const visited = new Set();
+    for (let t2 = 1; t2 < 2 * L; t2 += 2) visited.add(`${Math.floor(t2 / 2 / m)},${Math.floor(t2 / 2 / n)}`);
+    for (let i = -1; i <= L / m; i++) for (let j = -1; j <= L / n; j++) {
+      assert.equal(Pocket.lineEnters(m, n, i, j), visited.has(`${i},${j}`), `${m}x${n} copy ${i},${j}`);
+    }
+    const steps = Pocket.unfoldSteps(m, n);
+    let cur = [0, 0];
+    for (let k = 0; k < steps.length; k++) {
+      const kinds = {};
+      for (const side of ['left', 'right', 'bottom', 'top']) {
+        const ch = Pocket.cushionChoice(m, n, k, side);
+        assert.deepEqual(ch.from, cur);
+        kinds[side] = ch.kind;
+        const [i, j] = cur;
+        assert.deepEqual(ch.to, { left: [i - 1, j], right: [i + 1, j], bottom: [i, j - 1], top: [i, j + 1] }[side]);
+        // the copy across a wrong cushion is never entered; the next one is; the entry one already was
+        assert.equal(visited.has(`${ch.to[0]},${ch.to[1]}`), ch.kind !== 'miss', `${m}x${n} k=${k} ${side}`);
+        if (ch.kind === 'next') assert.deepEqual(ch.to, steps[k].to);
+        if (ch.kind === 'entry') assert.deepEqual(ch.to, steps[k - 1].from);
+        // the fold is across the cushion itself
+        assert.equal(ch.wall, side === 'left' || side === 'right' ? 'v' : 'h');
+        assert.equal(ch.at, { left: i * m, right: (i + 1) * m, bottom: j * n, top: (j + 1) * n }[side]);
+      }
+      const count = (kind) => Object.values(kinds).filter((x) => x === kind).length;
+      assert.equal(count('next'), 1);
+      assert.equal(count('entry'), k === 0 ? 0 : 1);
+      assert.equal(count('miss'), k === 0 ? 3 : 2);
+      // the line always leaves through the right or the top
+      assert.ok(kinds.right === 'next' || kinds.top === 'next');
+      cur = steps[k].to;
+    }
+    assert.equal(Pocket.cushionChoice(m, n, steps.length, 'top'), null);
   }
 });
 

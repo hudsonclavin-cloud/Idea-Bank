@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const URL_ = pathToFileURL(path.join(HERE, 'index.html')).href;
 const require = createRequire(import.meta.url);
-const { Fifteen, Knights } = require('./isomorphs.js');
+const { Fifteen, Knights, Pocket } = require('./isomorphs.js');
 
 function loadPlaywright() {
   try { return require('playwright'); } catch { /* fall through to the global install */ }
@@ -224,41 +224,90 @@ async function pocketRoom(page, io) {
   await io.tap(await centre(page, '#p-controls button:has-text("Next table")'));
   await io.tap(await centre(page, '#p-controls .pkey.C'));
   await page.waitForFunction(() => /dropped into/.test(document.getElementById('p-status').innerText));
-  // 2. Unfold: tap the glowing cushion five times on the 4 x 3 table
+  // 2. Unfold. Every cushion of the copy the ball is in can be chosen; the reader has to find the right one.
   await io.tap(await centre(page, '#p-controls .btn.primary'));
   assert.equal((await ds(page, 'p-stage')).phase, 'redraw');
-  for (let k = 1; k <= 5; k++) {
-    await io.tap(await centre(page, '#p-svg [data-wall]'));
-    await page.waitForFunction((k) => document.getElementById('p-stage').dataset.k === String(k) && !document.querySelector('#p-svg .flipback'), k);
-    await page.waitForTimeout(50);
-    await page.waitForFunction(() => document.querySelector('#p-svg [data-wall]') || document.getElementById('p-stage').dataset.complete === '1');
+  const nextSide = (m, n, k) => (Pocket.unfoldSteps(m, n)[k].wall === 'v' ? 'right' : 'top');
+  const pick = async (side) => {
+    await centreStage(page, 'p-stage');
+    await io.tap(await at(page, `#p-svg [data-wall="${side}"] .hit`));
+  };
+  const rest = (k) => page.waitForFunction((k) => {
+    const d = document.getElementById('p-stage').dataset;
+    return d.k === String(k) && d.miss === '0' && !document.querySelector('#p-svg .flipback') && (document.querySelector('#p-svg [data-wall]') || d.complete === '1');
+  }, k);
+  // only the four cushions of the table are choosable, and none of them is singled out
+  assert.equal(await page.locator('#p-svg [data-wall]').count(), 4);
+  assert.equal(await page.locator('#p-svg .wallhint').count(), 0);
+  // a wrong cushion folds out a copy the straight line never enters, then folds it back by itself
+  await pick('left');
+  await page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '1' && document.querySelector('#p-svg .cloth.miss'));
+  assert.match(await page.locator('#p-status').innerText(), /Not that cushion\. The copy that folded out across it is one the straight line never enters/);
+  await page.waitForFunction(() => document.querySelector('#p-svg .ghostray'));
+  await page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '0' && !document.querySelector('#p-svg .cloth.miss'), null, { timeout: 6000 });
+  assert.equal((await ds(page, 'p-stage')).k, '0');
+  assert.equal((await ds(page, 'p-stage')).wrong, '1');
+  // the other wrong way ahead (the 4 x 3 ball hits the top first); a tap on the right cushion while it shows
+  // cancels the wrong copy and unfolds
+  assert.equal(nextSide(4, 3, 0), 'top');
+  await pick('right');
+  await page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '1');
+  await page.waitForTimeout(600);
+  await pick('top');
+  await rest(1);
+  assert.equal((await ds(page, 'p-stage')).wrong, '2');
+  // the cushion it came in through: nothing new to unfold
+  await pick('bottom');
+  assert.match(await page.locator('#p-status').innerText(), /came in through that cushion/);
+  assert.equal((await ds(page, 'p-stage')).k, '1');
+  for (let k = 1; k < 5; k++) {
+    await pick(nextSide(4, 3, k));
+    await rest(k + 1);
   }
   await page.waitForFunction(() => document.getElementById('p-stage').dataset.complete === '1');
-  assert.match(await page.locator('#p-status').innerText(), /copy of pocket B\. On the real table that is 5 bounces/);
-  // the 7 x 5 table: three cushions by hand, then the rest at once
+  assert.match(await page.locator('#p-status').innerText(), /copy of pocket B\. On the real table that is 5 bounces.* You chose every cushion yourself\./);
+  // the 7 x 5 table: one cushion by hand, one with the hint lit, one unfolded by the hint, then the rest at once
   await io.tap(await centre(page, '#p-controls .ptabs button:has-text("7×5")'));
-  for (let k = 1; k <= 3; k++) {
-    await io.tap(await centre(page, '#p-controls button:has-text("Unfold next")'));
-    await page.waitForFunction((k) => document.getElementById('p-stage').dataset.k === String(k) && document.querySelector('#p-svg [data-wall]'), k);
-  }
+  await rest(0);
+  await pick(nextSide(7, 5, 0));
+  await rest(1);
+  await io.tap(await centre(page, '#p-controls button:has-text("Hint")'));
+  assert.equal(await page.locator(`#p-svg [data-wall="${nextSide(7, 5, 1)}"] .wallhint`).count(), 1);
+  assert.match(await page.locator('#p-status').innerText(), /Hint: it.s the glowing cushion/);
+  await pick(nextSide(7, 5, 1));
+  await rest(2);
+  await io.tap(await centre(page, '#p-controls button:has-text("Hint")'));
+  await io.tap(await centre(page, '#p-controls button:has-text("Unfold it for me")'));
+  await rest(3);
   await io.tap(await centre(page, '#p-controls button:has-text("Unfold the rest")'));
   await page.waitForFunction(() => document.getElementById('p-stage').dataset.complete === '1');
-  assert.match(await page.locator('#p-status').innerText(), /copy of pocket C\. On the real table that is 10 bounces/);
-  // 3. Any table: 6 x 4 by the steppers, then the three big tables
+  assert.match(await page.locator('#p-status').innerText(), /copy of pocket C\. On the real table that is 10 bounces.* You chose 1 of the 10 cushions yourself\./);
+  // 3. Any table: 6 x 4 by the steppers, then the three big tables. The odd-and-even rule and the
+  // explanation stay hidden until all three are called.
+  assert.equal(await page.locator('#p-after').isVisible(), false);
   await io.tap(await centre(page, '#p-controls .btn.primary'));
   await io.tap(await centre(page, '#p-controls button[aria-label="Wide: more"]'));
-  assert.match(await page.locator('#p-status').innerText(), /A 7\s×\s4 table, unfolded\. .*Pocket D, 9 bounces/);
+  const before = await page.locator('#p-status').innerText();
+  assert.match(before, /A 7\s×\s4 table, unfolded\. .*after 4 tables across and 7 up\. Pocket D, 9 bounces/);
+  assert.doesNotMatch(before, /odd|even/);
   await io.tap(await centre(page, '#p-controls button[aria-label="Wide: less"]'));
   assert.match(await page.locator('#p-status').innerText(), /A 6\s×\s4 table, unfolded\. .*Pocket D, 3 bounces/);
   for (const [q, lab] of [[0, 'C'], [1, 'D'], [2, 'B']]) {
+    const shown = (await page.locator('#p-controls .verdict').allInnerTexts()).filter((t) => t.trim()).length;
+    assert.equal(shown, 0, 'no verdict before all three are called');
+    assert.equal(await page.locator('#p-after').isVisible(), false);
     await io.tap(await centre(page, `#p-controls .qrow[data-q="${q}"] .pkey.${lab}`));
   }
   const verdicts = await page.locator('#p-controls .verdict').allInnerTexts();
   assert.match(verdicts[0], /^Yes, C\. It is a 5\s×\s3 table scaled up 200 times/);
   assert.match(verdicts[1], /^Yes, D\. The line crosses 1,000 tables across \(even, so left\) and 1,001 up \(odd, so top\), after 1,999 bounces/);
   assert.match(verdicts[2], /^Yes, B\. It is a 4\s×\s3 table scaled up 16 times/);
+  assert.equal(await page.locator('#p-after').isVisible(), true);
+  assert.match(await page.locator('#p-status').innerText(), /2 tables across \(even: left\) and 3 up \(odd: top\)\. Pocket D, 3 bounces/);
   const row = await page.locator('#ledger tbody tr').nth(2).innerText();
   assert.match(row, /called 2 of 3 pockets\s+called 3 of 3 pockets/);
+  // the coda says what the ledger can and can't show
+  assert.match(await page.locator('.coda .ledger-note').innerText(), /a diary, not an experiment/);
 }
 
 async function proofs(page, io) {
@@ -269,8 +318,9 @@ async function proofs(page, io) {
     const text = await page.locator(`#${room}-proof-out`).innerText();
     for (const e of expect) assert.ok(text.includes(e), `${room} proof output lacks "${e}":\n${text}`);
   };
-  await run('f', ['adding to 15: 8', 'every line 15: 8', 'games of Fifteen: 255,168 (first wins 131,184, second 77,904, draws 46,080)', 'games of noughts and crosses: 255,168 (first wins 131,184, second 77,904, draws 46,080)', 'value of Fifteen with best play: draw']);
-  await run('k', ['b2 has 0 knight moves', 'reachable from the start: 280 (of 420)', 'moves to the swap: 16', 'diagonals reachable: no', 'BBWW', 'BWBW']);
+  await run('f', ['adding to 15: 8', 'every line 15: 8', 'games of Fifteen: 255,168 (first wins 131,184, second 77,904, draws 46,080)', 'games of noughts and crosses: 255,168 (first wins 131,184, second 77,904, draws 46,080)', 'value of Fifteen with best play: draw',
+    'the machine against every choice you could make, both ways round: 4,272 games; it won 2,528, drew 1,744, lost 0', "your replies that don't lose after it opens 2, 4, 6, 8: 5; 5; 5; 5"]);
+  await run('k', ['b2 has 0 knight moves', 'placements of two white and two black knights on the outer squares: 420; reachable from the start: 280 (the search found 280 positions in all)', 'moves to the swap: 16', 'diagonals reachable: no', 'BBWW', 'BWBW']);
   await run('p', ['tables checked: 3,600', 'agrees with the straight line: 3,600', 'came back to A: 0']);
 }
 
@@ -339,6 +389,27 @@ test('the whole piece, played through', { skip: playwright ? false : 'Playwright
       // focus stays on the square being moved
       assert.equal(await page.evaluate(() => document.activeElement.getAttribute('data-node')), '2');
       assert.ok(moves >= 6, `only ${moves} moves made by keyboard`);
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    });
+    await t.test('keyboard: the pocket\'s cushions can be chosen without a pointer', async () => {
+      const { ctx, page, errors } = await open(browser, { viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+      const key = async (sel, k = 'Enter') => { await page.locator(sel).first().focus(); await page.keyboard.press(k); };
+      for (let t = 0; t < 2; t++) {
+        await key('#p-controls .pkey.A');
+        await page.waitForFunction(() => /dropped into/.test(document.getElementById('p-status').innerText));
+        if (t === 0) await key('#p-controls button:has-text("Next table")');
+      }
+      await key('#p-controls .btn.primary');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.phase === 'redraw');
+      // Enter on a wrong cushion folds out a wrong copy; Space on the right one unfolds it
+      await key('#p-svg [data-wall="right"]');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.miss === '1');
+      await key('#p-svg [data-wall="top"]', ' ');
+      await page.waitForFunction(() => document.getElementById('p-stage').dataset.k === '1' && document.querySelector('#p-svg [data-wall]'));
+      // focus comes back to the cushions, so the next choice is one key away
+      assert.ok(await page.evaluate(() => !!document.activeElement.closest('#p-svg [data-wall]')));
+      await page.keyboard.press('Tab');
       assert.deepEqual(errors, []);
       await ctx.close();
     });
