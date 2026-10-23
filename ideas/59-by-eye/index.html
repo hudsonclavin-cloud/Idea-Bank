@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>By Eye</title>
+<meta name="description" content="Letters drawn exactly equal by the ruler. Make them look equal, measure how far your eye bent the ruler, and get the alphabet your eye would draw.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1 class="title"><svg id="title" role="img" aria-label="By Eye"></svg></h1>
+  <p class="tagline">Every pair of letters below is equal by the ruler. Make it look equal, see how far your eye bent the ruler, and get the alphabet your eye would have drawn.</p>
+</header>
+
+<main>
+  <section class="intro">
+    <p>Type designers break the ruler on purpose. An O drawn exactly as tall as an H looks too small; a crossbar at exactly half height looks low; a horizontal stroke as thick as an upright one looks heavier. So they draw the O a little bigger, the bar a little higher, the horizontal a little thinner, until the letters <em>look</em> right.</p>
+    <p>Below are five of those corrections. Each test draws its letters from rules that make them provably equal, puts one dimension on a slider, and knocks it off at random. Drag until the letters look equal to you, tap <b>Looks equal</b>, and do it once more from the other side. Then the page shows what you did, measures it against real typefaces, and shows you how to see through it.</p>
+    <p class="small">About two minutes. Nothing leaves this browser.</p>
+  </section>
+
+  <ol class="tests" id="tests"></ol>
+
+  <section class="alphabet" id="alphabet" aria-labelledby="alphabet-h">
+    <h2 id="alphabet-h">Your alphabet</h2>
+    <p id="alphabet-status" class="status"></p>
+    <div class="spec-controls">
+      <label class="textfield"><span class="sr">Text to set</span>
+        <input id="spec-text" type="text" value="SPHINX OF BLACK QUARTZ, JUDGE MY VOW" maxlength="120" autocomplete="off" spellcheck="false" autocapitalize="characters">
+      </label>
+      <div class="buttons">
+        <button type="button" id="spec-overlay" aria-pressed="false">Overlay</button>
+        <button type="button" id="spec-turn" aria-pressed="false">Turn it over</button>
+        <button type="button" id="spec-all">All 36</button>
+        <button type="button" id="spec-dl">Download SVG</button>
+      </div>
+    </div>
+    <figure class="spec" id="spec-pair">
+      <div class="spec-row"><figcaption>By the ruler</figcaption><svg id="spec-ruler" role="img" aria-label="The text set in the ruler's alphabet"></svg></div>
+      <div class="spec-row"><figcaption>By your eye</figcaption><svg id="spec-eye" role="img" aria-label="The text set in your eye's alphabet"></svg></div>
+    </figure>
+    <figure class="spec" id="spec-over" hidden>
+      <div class="spec-row"><figcaption>Your eye, in ink; <span class="ruler-key">the ruler, in red outline</span></figcaption><svg id="spec-overlay-svg" role="img" aria-label="Your alphabet with the ruler's outlines drawn over it"></svg></div>
+    </figure>
+    <div class="summary" id="summary"></div>
+    <p class="actions"><button type="button" id="reset" class="quiet">Start over</button></p>
+  </section>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">What can be proven, and what can only be felt</h2>
+
+    <details open>
+      <summary>The ruler: checked live, in this browser</summary>
+      <p>The ruler's alphabet is drawn from rules, so its evenness can be checked rather than judged. Each letter is a union of upright stems, horizontal bars, straight diagonals and elliptical rings, all 100 units thick across the stroke at a cap height of 700. This page re-checks the claims below every time it loads, from the drawn outlines:</p>
+      <ul class="checks" id="checks"><li>Checking…</li></ul>
+      <p>Your corrections are applied exactly as you set them. Measured back off your own alphabet with the same scanning code that measures the typefaces below:</p>
+      <div class="table-wrap"><table class="mini" id="measured-back"></table></div>
+      <p class="small">Honest limits of the ruler. Circular rings (O C G Q U J) are exactly 100 thick all the way round; elliptical ones are exactly 100 at their four extreme points and between 98 and 100 in between, because an ellipse inset inside an ellipse is not exactly parallel to it. Curves are drawn with cubic B&eacute;zier pieces, which stay within 0.03% of a true ellipse. The comma's tail is shaped by hand and follows none of these rules.</p>
+    </details>
+
+    <details>
+      <summary>The tests: how your settings are taken</summary>
+      <p>Each test is a <em>method of adjustment</em>, one of the classical methods of psychophysics: you change one thing until two things look equal. Two things can bias it. Where you start can pull on where you stop, so each test runs twice, once starting too big and once too small, and your setting is the average of the two. And the middle of a slider can act as an anchor, so the slider's range is shifted at random on every try and its middle means nothing. No number is shown until you have committed both tries.</p>
+      <p>Your settings live only in this browser's storage. They are one person, on one screen, at one size, on one day: an anecdote, not data. What the page can show is the <em>direction</em> of your corrections, and whether it agrees with the typefaces.</p>
+    </details>
+
+    <details>
+      <summary>The typefaces: measured, not quoted</summary>
+      <p>The grey dots are eight openly licensed sans serifs, measured by <code>measure.mjs</code>: a small TrueType reader that flattens each face's H, O, A, V, 8 and B and scans them with the same code that measures your alphabet. Only these numbers are kept; no outline is copied.</p>
+      <div class="table-wrap"><table class="mini" id="faces"></table></div>
+      <p class="small">None of the eight has a pointed A or V: all cut their apexes flat (the flat top of each A is 15–31% of the cap height wide, 1% below the top), so a flat cut needs no overshoot. For the pointed test the comparison is the V of two serif faces whose V comes nearly to a point.</p>
+    </details>
+
+    <details>
+      <summary>Why the eye does this (what is known)</summary>
+      <p><b>Thick horizontals.</b> In 2019 de Waard, Van der Burg and Olivers showed people one horizontal and one vertical line. On average the vertical had to be 5.4% thicker before the two looked equally thick (2.6% in a second experiment), and the bias showed in 27 of 28 people. They found it related to the older illusion in which vertical lengths look longer than horizontal ones. Before their paper, they wrote, the illusion was widely accepted among type designers but untested.</p>
+      <p><b>High middles.</b> Asked to mark the middle of a vertical line, most people mark it slightly too high; the effect is small and consistent (Shelton, Bowers and Heilman 1990, and later work). A mark that looks central is above the centre, so a bar placed at the true centre looks low, and the upper of two equal halves looks larger. That is one plausible reason for both the raised crossbar and the smaller top storey; it is not a settled account of either.</p>
+      <p><b>Overshoot.</b> A round or pointed shape touches a guideline at a single point, while a flat one sits on it along its whole width, so the round shape seems to stop short. How much to add is craft knowledge rather than a measured law. The eight faces here add 1.1% to 2.4% of the cap height to their O, and type designers' own accounts give points more than rounds.</p>
+      <p class="small">Sources are listed in the README.</p>
+    </details>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>By Eye. The letterforms are drawn by <code>letters.js</code> from rules; no font file is used.</p>
+</footer>
+
+<script src="letters.js"></script>
+<script src="typefaces.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
