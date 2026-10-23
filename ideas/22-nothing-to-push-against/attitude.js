@@ -11,8 +11,14 @@
  *
  * State (all SI)
  *   H  [3]  total angular momentum of body + wheels, expressed in body axes (N·m·s)
- *   h  [3]  wheel momenta relative to the body, one wheel per body axis (N·m·s)
- *   ω = (H − h) / J componentwise, where J = principal inertias with the wheels locked.
+ *   h  [3]  ABSOLUTE axial angular momentum of each wheel, I_w·(ω_i + Ω_i), one wheel per body
+ *           axis (N·m·s); Ω_i is the wheel's spin relative to the body
+ *   ω = (H − h) / J componentwise, where J = principal inertias of the body EXCLUDING each wheel's
+ *   axial inertia about its own spin axis (J_locked − I_w; the difference is ~1e-4 of J here).
+ *   With these definitions the equations below are exact for symmetric wheels. (Read h as momentum
+ *   relative to the body and J as the locked inertia and they are off by O(I_w/J): the wheel equation
+ *   would need −I_w·ω̇_i and the energy a cross term ω·h. The tests check this against a model built
+ *   in relative coordinates.)
  *
  * Dynamics
  *   Ḣ = −ω × H + τ_ext,b          (Euler's equation; motor torques are internal and never touch H)
@@ -43,12 +49,19 @@
 
   /** Default spacecraft: a ~60 kg microsatellite box, long axis along the boresight. */
   const DEFAULTS = Object.freeze({
-    J: [7.5, 6.0, 3.5], // kg·m², principal inertias (wheels locked). x > y > z, so y is the middle axis.
+    box: [0.5, 0.7, 1.0], // m, the body's dimensions along x, y, z (z, the boresight, is the long side)
+    // kg·m², principal inertias (body without the wheels' axial inertia, see above): about a uniform
+    // 60 kg box of that size, rounded. x > y > z, so x (the SHORT side) has the most inertia, y is the
+    // middle axis, and z (the LONG side) has the least.
+    J: [7.5, 6.0, 3.5],
     Iw: 8e-4, // kg·m², axial inertia of one wheel (only for the rpm readout)
     hMax: 0.5, // N·m·s, momentum capacity of each wheel (±)
     tauMax: 0.02, // N·m, motor torque limit per wheel
-    tauThr: 0.016, // N·m, thruster couple torque per axis (two 0.02 N thrusters, 0.4 m arm)
-    thrArm: 0.4, // m, thruster lever arm
+    tauThr: 0.016, // N·m, thruster couple torque per axis (two 0.02 N thrusters, each 0.4 m from the axis)
+    // m, thruster lever arm, the same idealised 0.4 m on every axis. Pitch and yaw pairs fit easily along
+    // the 1 m length; the roll pair has only the 0.5 × 0.7 m cross-section, so it sits on two corners,
+    // canted (see thrusterLayout). Thrusters firing straight out of a face would get only 0.35 m for roll.
+    thrArm: 0.4,
     isp: 65, // s, cold-gas specific impulse
     propMass: 2.0, // kg, propellant loaded at start
     tauDist: [0, 0, 1e-5], // N·m, steady disturbance torque, fixed in the INERTIAL frame
@@ -59,6 +72,30 @@
     rateFrac: 0.8, // fraction of h_max/J used as the slew rate limit
     desatBand: 0.01, // fraction of h_max: thrusters stop when |H_i| is below this
   });
+
+  /**
+   * Where the thrusters sit (body axes, m), for the drawing and the tests. For each axis i there are two
+   * couples: `pos` gives +arm·F of torque about i, `neg` gives −arm·F. Each couple is two thrusters
+   * [r, f] (position, unit force direction on the body) at r and −r firing f and −f, so the net force is
+   * zero and r × f = arm·e_i exactly. Every thruster sits on the box surface and its exhaust (−f) leaves
+   * the box.
+   */
+  function thrusterLayout(p) {
+    const bx = p.box[0] / 2, by = p.box[1] / 2, a = p.thrArm;
+    // roll: canted at the corners (±bx, ±by) of the cross-section so that bx·f_y − by·f_x = a
+    const R = Math.hypot(bx, by);
+    const beta = Math.atan2(by, bx) + Math.PI - Math.asin(Math.min(1, a / R));
+    const fr = [Math.cos(beta), Math.sin(beta), 0];
+    const pair = (r, f) => [[r, f], [r.map((v) => -v), f.map((v) => -v)]];
+    return [
+      // pitch (x): on the ±y faces, a along the length, firing straight out of the face
+      { pos: pair([0, by, a], [0, -1, 0]), neg: pair([0, -by, a], [0, 1, 0]) },
+      // yaw (y): on the ±x faces, a along the length
+      { pos: pair([bx, 0, -a], [-1, 0, 0]), neg: pair([-bx, 0, -a], [1, 0, 0]) },
+      // roll (z): mirror images across the xz plane flip the sign of the torque
+      { pos: pair([bx, by, 0], fr), neg: pair([bx, -by, 0], [fr[0], -fr[1], 0]) },
+    ];
+  }
 
   // ---------- small vector / quaternion helpers (no allocation in the hot path) ----------
   function qmul(a, b, out) {
@@ -128,7 +165,7 @@
   // ---------- state ----------
   function makeParams(over) {
     const p = Object.assign({}, DEFAULTS, over || {});
-    p.J = p.J.slice(); p.tauDist = p.tauDist.slice();
+    p.J = p.J.slice(); p.tauDist = p.tauDist.slice(); p.box = p.box.slice();
     return p;
   }
 
@@ -145,6 +182,7 @@
       ctrl: {
         mode: 'hold', // 'hold' (autopilot) or 'raw' (your drag is the motor torque, nothing damps)
         phase: 'hold', // autopilot sub-state: 'detumble' | 'hold'
+        lost: false, // in 'hold': the target needs more momentum than the wheels can carry, so only rates are damped
         qT: [1, 0, 0, 0], // held/commanded attitude
         raw: [0, 0, 0], // raw mode: commanded motor torque as a fraction of τ_max, per axis
         desat: false,
@@ -164,6 +202,7 @@
     out[2] = (s.H[2] - s.h[2]) / p.J[2];
     return out;
   }
+  /** Kinetic energy: ½ΣJω² + ½Σh²/I_w, exact with h the wheels' absolute axial momentum (see the header). */
   function kineticEnergy(s, p) {
     const w = omega(s, p, TMP_V1);
     let T = 0;
@@ -217,7 +256,14 @@
   }
 
   // ---------- controller ----------
-  const CTRL_E = [0, 0, 0], CTRL_W = [0, 0, 0], CTRL_WC = [0, 0, 0], CTRL_G = [0, 0, 0];
+  const CTRL_E = [0, 0, 0], CTRL_W = [0, 0, 0], CTRL_WC = [0, 0, 0], CTRL_G = [0, 0, 0], CTRL_HT = [0, 0, 0];
+  /** True if the wheels could hold the commanded attitude at rest: every component of the total momentum,
+   *  expressed in the target's body axes, is within a wheel's capacity. */
+  function targetHoldable(s, p) {
+    const r = qmul(qconj(s.ctrl.qT, TMP_Q1), s.q, TMP_Q2); // target axes ← body axes
+    const Ht = rotate(r, s.H, CTRL_HT);
+    return Math.abs(Ht[0]) <= p.hMax && Math.abs(Ht[1]) <= p.hMax && Math.abs(Ht[2]) <= p.hMax;
+  }
   /** Writes motor torque (N·m) into tauM and thruster torque into tauT. Pure function of the state. */
   function control(s, p, tauM, tauT) {
     const c = s.ctrl;
@@ -235,6 +281,7 @@
     if (c.desat && c.mode === 'raw') { c.mode = 'hold'; c.phase = 'detumble'; }
 
     if (c.mode === 'raw') {
+      c.lost = false;
       for (let i = 0; i < 3; i++) tauM[i] = clamp(c.raw[i], -1, 1) * p.tauMax;
       return;
     }
@@ -246,7 +293,15 @@
     } else if (wmag > 2.5 * rateLim) {
       c.phase = 'detumble';
     }
-    if (c.phase === 'detumble') {
+    // Can the wheels hold the target at all? At rest there, they would have to carry the whole momentum,
+    // h = R(qT)ᵀ·H_inertial. If any component is over capacity, no attitude law can hold that pointing.
+    // A plain PD law would keep chasing it, and once the error passed 180° it would go "the other way
+    // round", spinning the full wheel down into a fast body whip and then refilling it. So the autopilot
+    // gives up the hold (c.lost) and only damps the body rate. A full wheel stays pinned and the sky drifts
+    // at exactly (H − h_max)/J. It picks the target up again once the momentum fits: after the thrusters,
+    // or if you point somewhere the wheels can carry it.
+    c.lost = c.phase === 'hold' && !targetHoldable(s, p);
+    if (c.phase === 'detumble' || c.lost) {
       CTRL_WC[0] = CTRL_WC[1] = CTRL_WC[2] = 0;
     } else {
       const e = errorVector(s.q, c.qT, CTRL_E);
@@ -375,7 +430,7 @@
   }
 
   return {
-    DT, G0, W0, W1, DEFAULTS,
+    DT, G0, W0, W1, DEFAULTS, thrusterLayout, targetHoldable,
     qmul, qconj, qnormalize, qFromAxisAngle, qToMat, rotate, rotateInv, errorVector,
     makeParams, makeState, omega, kineticEnergy, inertialMomentum, resetLedger, ledgerResidual,
     drift, control, step, nudgeTarget, setMode, setTumble,

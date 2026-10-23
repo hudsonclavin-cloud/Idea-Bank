@@ -4,8 +4,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 
 const A = createRequire(import.meta.url)('./attitude.js');
+const here = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
+const PAGE = here('./index.html'), APP = here('./app.js'), README = here('./README.md');
 const { DT, G0 } = A;
 const log = (...a) => console.log('   ', ...a);
 const deg = (r) => (r * 180) / Math.PI;
@@ -182,7 +185,7 @@ test('axisymmetric body: transverse rate precesses at (Ja−Jt)/Jt · ωa in the
   assert.ok(Math.abs(w2[2] - wa) < 1e-12, 'spin rate about the symmetry axis is exactly constant');
 });
 
-test('middle-axis spin is unstable at the analytic growth rate; long and short axes are stable', () => {
+test('middle-axis spin is unstable at the analytic growth rate; short (x) and long (z) axes are stable', () => {
   const rate = 0.3, eps = 1e-4;
   const { p, s } = fresh();
   const lam = A.intermediateGrowthRate(p.J, rate);
@@ -217,7 +220,7 @@ test('middle-axis spin is unstable at the analytic growth rate; long and short a
       const w = A.omega(st, p, [0, 0, 0]);
       maxPert = Math.max(maxPert, axis === 0 ? Math.hypot(w[1], w[2]) : Math.hypot(w[0], w[1]));
     });
-    log(`${axis === 0 ? 'long' : 'short'} axis: cross-axis rate stays ≤ ${maxPert.toExponential(2)} rad/s over 600 s (started ${(eps * Math.SQRT2).toExponential(2)})`);
+    log(`${axis === 0 ? 'short (x, most inertia)' : 'long (z, least inertia)'} axis: cross-axis rate stays ≤ ${maxPert.toExponential(2)} rad/s over 600 s (started ${(eps * Math.SQRT2).toExponential(2)})`);
     assert.ok(maxPert < 3 * eps * Math.SQRT2);
   }
 });
@@ -243,7 +246,7 @@ test('single wheel: body takes exactly the opposite momentum (ω = −h/J), iner
   assert.ok(Math.abs(w2[1] + p.hMax / p.J[1]) < 1e-15);
 });
 
-test('the ledger balances: sun deposits + thruster withdrawals = change of inertial momentum', () => {
+test('the ledger balances: disturbance deposits + thruster withdrawals = change of inertial momentum', () => {
   const { p, s } = fresh({ tauDist: [3e-6, -8e-6, 5e-6] });
   s.h = [0.3, -0.2, 0.4]; s.H = [0.3, -0.2, 0.4]; // preloaded wheels, body at rest
   A.resetLedger(s);
@@ -290,10 +293,17 @@ test('long haul: 24 simulated hours at 100 µN·m with a desaturation every 2 h 
   assert.ok(maxRes < 1e-8);
 });
 
-test('rest-to-rest 90° slew: autopilot lands on target, takes a sane multiple of the bang-bang bound, wheels return to zero', () => {
+test('rest-to-rest 90° slew: autopilot lands on target, takes a sane multiple of the eigenaxis bang-bang time, wheels return to zero', () => {
   const { p, s } = fresh();
   A.nudgeTarget(s, 0, Math.PI / 2, 0);
-  const bound = A.slewTime(p.J[1], p.tauMax, (p.rateFrac * p.hMax) / p.J[1], Math.PI / 2);
+  // eigenaxis (single-axis) bang-bang times. Not a time-optimal bound for three independently limited
+  // wheels: a three-axis time-optimal slew can be faster (Bilimoria & Wie 1993).
+  const bound = A.slewTime(p.J[1], p.tauMax, (p.rateFrac * p.hMax) / p.J[1], Math.PI / 2); // with the controller's own rate cap
+  const bangFree = A.slewTime(p.J[1], p.tauMax, Infinity, Math.PI / 2);
+  const bangWheel = A.slewTime(p.J[1], p.tauMax, p.hMax / p.J[1], Math.PI / 2); // the wheel's physical limit
+  log(`eigenaxis bang-bang 2√(θJ/τ) = ${bangFree.toFixed(3)} s (peak ${deg(p.tauMax / p.J[1] * bangFree / 2).toFixed(2)}°/s, under the wheel's ${deg(p.hMax / p.J[1]).toFixed(2)}°/s, so the wheel limit does not bind: ${bangWheel.toFixed(3)} s); with the controller's 0.8·h_max/J cap ${bound.toFixed(3)} s`);
+  assert.equal(bangWheel, bangFree, 'the physical wheel limit does not slow the eigenaxis slew');
+  assert.ok(bound > bangFree, 'the 43.6 s figure comes from the controller\'s own rate cap');
   let settled = null, maxH = 0;
   run(s, p, 200, (st) => {
     const e = A.errorVector(st.q, st.ctrl.qT, [0, 0, 0]);
@@ -302,7 +312,7 @@ test('rest-to-rest 90° slew: autopilot lands on target, takes a sane multiple o
     if (settled === null && Math.hypot(...e) < 0.05 * Math.PI / 180 && Math.hypot(...w) < 1e-4) settled = st.t;
   });
   const e = A.errorVector(s.q, s.ctrl.qT, [0, 0, 0]);
-  log(`90° yaw slew: settled (within 0.05°, rate < 1e-4 rad/s) at ${settled?.toFixed(1)} s; bang-bang bound ${bound.toFixed(1)} s; peak wheel momentum ${maxH.toFixed(4)} N·m·s; final error ${deg(Math.hypot(...e)).toExponential(2)}°; wheels after ${s.h.map((v) => v.toExponential(1)).join(', ')}`);
+  log(`90° yaw slew: settled (within 0.05°, rate < 1e-4 rad/s) at ${settled?.toFixed(1)} s (${(settled / bangFree).toFixed(2)}× the eigenaxis bang-bang time); rate-capped eigenaxis time ${bound.toFixed(1)} s; peak wheel momentum ${maxH.toFixed(4)} N·m·s; final error ${deg(Math.hypot(...e)).toExponential(2)}°; wheels after ${s.h.map((v) => v.toExponential(1)).join(', ')}`);
   assert.ok(settled !== null && settled > bound && settled < 1.6 * bound);
   assert.ok(Math.hypot(...s.h) < 1e-4, 'an internal manoeuvre leaves no net momentum in the wheels');
 });
@@ -320,23 +330,47 @@ test('stored momentum moves between wheels when you turn: h = (0.3,0,0), yaw 90�
   assert.ok(deg(Math.hypot(...e)) < 0.05);
 });
 
-test('a steady torque fills a wheel at the analytic time; after that the hold is lost', () => {
+test('a steady torque fills a wheel at the analytic time; after that the hold is lost and the full wheel stays pinned', () => {
   const tau = 1e-5;
   const { p, s } = fresh({ tauDist: [0, 0, tau] }); // inertial z = body z while pointing along z
   const tFill = A.fillTime(p, tau);
-  let tSat = null, errAtSat = 0, errLater = 0;
+  let tSat = null, errAtSat = 0, minH = Infinity, maxRateErr = 0, turned = 0, lostAll = true;
   run(s, p, tFill + 3600, (st) => {
     const e = deg(Math.hypot(...A.errorVector(st.q, st.ctrl.qT, [0, 0, 0])));
     if (tSat === null && st.h[2] >= p.hMax) { tSat = st.t; errAtSat = e; }
-    if (tSat !== null) errLater = e;
+    if (tSat !== null) {
+      // After saturation the wheel must stay full and the body must take the whole excess, ω = τ(t − t_sat)/J,
+      // with no wheel unloading. (A plain PD law chased the target "the other way round" once the error
+      // passed 180°: the wheel fell to 0.115 and the body whipped round at several °/s.)
+      const w = A.omega(st, p, [0, 0, 0]);
+      minH = Math.min(minH, st.h[2]);
+      maxRateErr = Math.max(maxRateErr, Math.abs(w[2] - (tau * (st.t - tSat)) / p.J[2]), Math.hypot(w[0], w[1]));
+      turned += w[2] * DT;
+      if (st.t > tSat + 1) lostAll = lostAll && st.ctrl.lost;
+    }
   });
   const w = A.omega(s, p, [0, 0, 0]);
-  log(`τ_d = ${tau} N·m: wheel z full at ${tSat.toFixed(1)} s (analytic h_max/τ = ${tFill.toFixed(1)} s = ${(tFill / 3600).toFixed(2)} h); pointing error at that moment ${errAtSat.toExponential(2)}°, one hour later ${errLater.toFixed(2)}°, body rate then ${deg(Math.hypot(...w)).toExponential(2)} °/s`);
+  const errLater = deg(Math.hypot(...A.errorVector(s.q, s.ctrl.qT, [0, 0, 0])));
+  log(`τ_d = ${tau} N·m: wheel z full at ${tSat.toFixed(1)} s (analytic h_max/τ = ${tFill.toFixed(1)} s = ${(tFill / 3600).toFixed(2)} h); pointing error at that moment ${errAtSat.toExponential(2)}°; over the next hour the wheel stays at ≥ ${minH.toFixed(6)}, the body rate tracks τ·Δt/J_z to ${maxRateErr.toExponential(1)} rad/s and ends at ${deg(Math.hypot(...w)).toFixed(3)} °/s; the sky has turned ${deg(turned).toFixed(0)}° (${errLater.toFixed(1)}° from the target, the short way)`);
   assert.ok(Math.abs(tSat - tFill) / tFill < 0.01);
   assert.ok(errAtSat < 0.01 && errLater > 1);
+  assert.ok(minH > p.hMax - 1e-9, `the full wheel unloaded to ${minH}`);
+  assert.ok(lostAll, 'the autopilot reports the hold as lost');
+  assert.ok(maxRateErr < 1e-6, `${maxRateErr}`);
   // body rate after an hour of unresisted torque: ω = τ·Δt/J_z (the wheel can give nothing more)
   const wWant = (tau * 3600) / p.J[2];
-  assert.ok(Math.abs(Math.abs(w[2]) - wWant) / wWant < 0.05, `${w[2]} vs ${wWant}`);
+  assert.ok(Math.abs(Math.abs(w[2]) - wWant) / wWant < 1e-3, `${w[2]} vs ${wWant}`);
+  assert.ok(Math.abs(turned - (tau * 3600 * 3600) / (2 * p.J[2])) < 1e-3, 'turned ½τΔt²/J');
+
+  // then empty the wheels: the target becomes holdable again and the autopilot swings back to it
+  const used0 = s.propUsed;
+  s.ctrl.desat = true;
+  let tBack = null;
+  run(s, p, 400, (st) => { if (tBack === null && !st.ctrl.lost) tBack = st.t; });
+  const e2 = deg(Math.hypot(...A.errorVector(s.q, s.ctrl.qT, [0, 0, 0])));
+  log(`after "Empty the wheels": target holdable again after ${(tBack - tFill - 3600).toFixed(1)} s; back on target to ${e2.toExponential(1)}° 400 s later; ${((s.propUsed - used0) * 1e3).toFixed(2)} g used; wheels ${s.h.map((v) => v.toFixed(4)).join(', ')}`);
+  assert.ok(e2 < 0.01 && !s.ctrl.lost && !s.ctrl.desat);
+  assert.ok(A.ledgerResidual(s) < 1e-10);
 });
 
 test('desaturation: propellant per dump matches τ·t/(arm·Isp·g0); lifetime formula', () => {
@@ -430,4 +464,203 @@ test('the numbers the page and README quote', () => {
   log(`middle-axis growth rate at 0.3 rad/s: ${A.intermediateGrowthRate(p.J, 0.3).toFixed(4)} /s (e-fold ${(1 / A.intermediateGrowthRate(p.J, 0.3)).toFixed(1)} s)`);
   log(`fill time at 10 µN·m: ${(A.fillTime(p, 1e-5) / 3600).toFixed(2)} h; propellant lifetime ${(A.lifetime(p, p.propMass, 1e-5) / 86400).toFixed(0)} days`);
   assert.ok(Math.abs(A.fillTime(p, 1e-5) / 3600 - 13.89) < 0.01);
+  assert.ok(Math.abs(A.fillTime(p, 1e-6) / 86400 - 5.79) < 0.01);
+  // the page: "together they hold up to 0.87 along a diagonal" — the hold-lost rule agrees
+  const holdable = (m) => {
+    const s = A.makeState(p);
+    const d = m / Math.sqrt(3);
+    s.h = [d, -d, d]; s.H = [d, -d, d];
+    return A.targetHoldable(s, p);
+  };
+  log(`momentum the three wheels can hold along a body diagonal: ${(p.hMax * Math.sqrt(3)).toFixed(3)} N·m·s (0.86 holdable: ${holdable(0.86)}, 0.87 holdable: ${holdable(0.87)})`);
+  assert.ok(holdable(0.86) && !holdable(0.87) && !holdable(0.51 * Math.sqrt(3)));
+  assert.match(PAGE, /hold up to 0\.87 along a diagonal/);
+});
+
+// ---------- added after the independent review: each of these pins a fix ----------
+
+test('a drag borrows momentum from a wheel and hands it all back when the body stops (and the page says so)', () => {
+  const { p, s } = fresh();
+  let peak = 0;
+  for (let k = 0; k < 100; k++) { A.nudgeTarget(s, 0, 0.003, 0); A.step(s, p); peak = Math.max(peak, Math.abs(s.h[1])); } // 2 s drag, 17°
+  const during = A.omega(s, p, [0, 0, 0]);
+  run(s, p, 100);
+  const after = A.omega(s, p, [0, 0, 0]);
+  log(`during a 2 s drag the yaw wheel holds ${peak.toFixed(4)} N·m·s with the body at ${deg(Math.hypot(...during)).toFixed(2)}°/s; once it stops, wheels ${s.h.map((v) => v.toExponential(1)).join(', ')} and body ${deg(Math.hypot(...after)).toExponential(1)}°/s`);
+  assert.ok(peak > 0.03 && Math.hypot(...s.h) < 1e-12 && Math.hypot(...after) < 1e-12);
+  // the page used to say the wheel "keeps whatever it was lent"; with no outside push it keeps nothing
+  assert.doesNotMatch(PAGE + APP, /keeps whatever it was lent|opposite momentum and keeps it/);
+  assert.match(PAGE, /when the body stops, the wheel hands the spin back/);
+  assert.match(APP, /then gives it back when you stop/);
+});
+
+test('axis names match the drawn box: x is the short side (most inertia), z the long side (least inertia)', () => {
+  const p = A.makeParams();
+  const [a, b, c] = p.box, m = 60;
+  const Jbox = [(m / 12) * (b * b + c * c), (m / 12) * (a * a + c * c), (m / 12) * (a * a + b * b)];
+  log(`uniform 60 kg box ${p.box.join(' × ')} m: J = ${Jbox.map((v) => v.toFixed(2)).join(', ')} kg·m² (model ${p.J.join(', ')})`);
+  for (let i = 0; i < 3; i++) assert.ok(Math.abs(Jbox[i] - p.J[i]) < 0.3);
+  const longest = p.box.indexOf(Math.max(...p.box)), shortest = p.box.indexOf(Math.min(...p.box));
+  assert.equal(longest, 2); assert.equal(shortest, 0);
+  assert.equal(p.J.indexOf(Math.min(...p.J)), longest, 'the long side has the least inertia');
+  assert.equal(p.J.indexOf(Math.max(...p.J)), shortest, 'the short side has the most inertia');
+  const btn = (label) => {
+    const mm = PAGE.match(new RegExp(`data-v="(\\d)" title="([^"]*)">${label}<`));
+    assert.ok(mm, label);
+    return { axis: Number(mm[1]), title: mm[2] };
+  };
+  const L = btn('Long axis'), S = btn('Short axis'), M = btn('Middle axis');
+  assert.equal(L.axis, longest); assert.equal(S.axis, shortest); assert.equal(M.axis, 1);
+  assert.match(L.title, /least inertia/); assert.match(S.title, /most inertia/);
+  assert.match(APP, /'short axis \(x, most inertia\): steady', 'middle axis \(y\): watch it turn over', 'long axis \(z, your line of sight, least inertia\): steady'/);
+  assert.match(APP, /const BOX = A\.DEFAULTS\.box\.map/);
+});
+
+test('the default 10 µN·m is a lumped disturbance, not sunlight: sizing from first principles', () => {
+  const P = 1361 / 299792458; // N/m², solar radiation pressure at 1 au on an absorber
+  // sunlight on a uniform box with its centre of mass in the middle: every face's push cancels
+  const half = A.DEFAULTS.box.map((d) => d / 2);
+  const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const srpTorque = (sun, rho, cm) => {
+    const T = [0, 0, 0];
+    for (let i = 0; i < 3; i++) for (const sg of [1, -1]) {
+      const n = [0, 0, 0]; n[i] = sg;
+      const ct = n[0] * sun[0] + n[1] * sun[1] + n[2] * sun[2];
+      if (ct <= 0) continue;
+      const area = 4 * half[(i + 1) % 3] * half[(i + 2) % 3];
+      const F = [0, 1, 2].map((k) => -P * area * ct * ((1 - rho) * sun[k] + 2 * rho * ct * n[k]));
+      const r = [0, 0, 0]; r[i] = sg * half[i];
+      const t = cross([r[0] - cm[0], r[1] - cm[1], r[2] - cm[2]], F);
+      for (let k = 0; k < 3; k++) T[k] += t[k];
+    }
+    return Math.hypot(...T);
+  };
+  let centred = 0, offset = 0, seed = 3;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 3000; k++) {
+    const z = 2 * rnd() - 1, ph = 2 * Math.PI * rnd(), r = Math.sqrt(1 - z * z);
+    const sun = [r * Math.cos(ph), r * Math.sin(ph), z];
+    for (const rho of [0, 0.5, 1]) {
+      centred = Math.max(centred, srpTorque(sun, rho, [0, 0, 0]));
+      offset = Math.max(offset, srpTorque(sun, rho, [0.03, 0.03, 0.03]));
+    }
+  }
+  // a one-sided solar array: 3 m², (1 + ρ) = 1.6
+  const arrayForce = P * 3 * 1.6;
+  const arrayOffset = 1e-5 / arrayForce;
+  // gravity gradient at 500 km for these inertias
+  const n2 = 3.986004418e14 / (6378137 + 500e3) ** 3;
+  const J = A.DEFAULTS.J;
+  const ggPeak = 1.5 * n2 * (Math.max(...J) - Math.min(...J));
+  const ggSecular = 0.75 * n2 * (Math.max(...J) - Math.min(...J)); // orbit average, inertially pointed, worst orbit plane
+  const p = A.makeParams();
+  log(`sunlight on the bare box: ${centred.toExponential(1)} N·m with the centre of mass in the middle, ≤ ${(offset * 1e6).toFixed(2)} µN·m with it 3 cm off on each axis`);
+  log(`a 3 m² one-sided array (1+ρ = 1.6) pushes ${(arrayForce * 1e6).toFixed(1)} µN, so 10 µN·m needs its centre of pressure ${arrayOffset.toFixed(2)} m off the centre of mass`);
+  log(`gravity gradient at 500 km: peak ${(ggPeak * 1e6).toFixed(1)} µN·m, steady (orbit-averaged) part at most ${(ggSecular * 1e6).toFixed(1)} µN·m`);
+  log(`at 1 µN·m a wheel fills in ${(A.fillTime(p, 1e-6) / 86400).toFixed(1)} days and the tank lasts ${(A.lifetime(p, p.propMass, 1e-6) / 3.15576e7).toFixed(1)} years`);
+  assert.ok(centred < 1e-15, 'a symmetric box feels no sunlight torque at all');
+  assert.ok(offset < 1e-6, 'sunlight on the bare box is well under 1 µN·m');
+  assert.ok(1e-5 > ggSecular && 1e-5 < 2 * ggPeak, '10 µN·m is above the steady gravity-gradient part but within a factor of two of its peak');
+  // the page and README call it a disturbance and quote these numbers
+  assert.doesNotMatch(PAGE, /Sunlight torque|sunlight put in/);
+  assert.match(PAGE, /Disturbance torque/);
+  assert.match(PAGE, /16 years for a quieter craft/);
+  assert.ok(Math.abs(A.lifetime(p, p.propMass, 1e-6) / 3.15576e7 - 16.2) < 0.05);
+  const r1 = (x) => x.toFixed(1);
+  for (const q of ['0.27 µN·m', `${arrayOffset.toFixed(2)} m`, `${r1(ggPeak * 1e6)} µN·m`, `${r1(ggSecular * 1e6)} µN·m`, '5.8 days', '16 years']) {
+    assert.ok(README.includes(q), `README quotes ${q}`);
+  }
+  assert.ok(Math.abs(offset * 1e6 - 0.27) < 0.005);
+  assert.doesNotMatch(README, /order-of-magnitude figure for solar pressure|time-optimal bound with the torque and rate limits/);
+});
+
+test('state definitions: h is the wheels\' absolute axial momentum and J excludes their axial inertia (vs a model in relative coordinates)', () => {
+  // Reference written from the parts: a body with inertia Jb about its axes (wheel axial inertia not
+  // included) and three symmetric wheels spinning at Ω_i RELATIVE to the body. Each wheel's absolute axial
+  // momentum I_w(ω_i + Ω_i) changes only by its motor torque; the total obeys Euler's equation.
+  const p = A.makeParams({ tauDist: [0, 0, 0] });
+  const Iw = p.Iw, J = p.J;
+  const tauM = [0.1, -0.1, 0.05].map((f) => f * p.tauMax);
+  const reference = (Jb, w0, Om0) => {
+    const deriv = (y) => {
+      const q = y.slice(0, 4), w = y.slice(4, 7), Om = y.slice(7, 10);
+      const H = [0, 1, 2].map((i) => Jb[i] * w[i] + Iw * (w[i] + Om[i]));
+      const dH = [-(w[1] * H[2] - w[2] * H[1]), -(w[2] * H[0] - w[0] * H[2]), -(w[0] * H[1] - w[1] * H[0])];
+      const dw = [0, 1, 2].map((i) => (dH[i] - tauM[i]) / Jb[i]); // Jb ω̇ + I_w(ω̇+Ω̇) = Ḣ and I_w(ω̇+Ω̇) = τ_m
+      const dOm = [0, 1, 2].map((i) => tauM[i] / Iw - dw[i]);
+      const dq = A.qmul(q, [0, w[0], w[1], w[2]], [0, 0, 0, 0]).map((v) => v / 2);
+      return [...dq, ...dw, ...dOm];
+    };
+    let y = [1, 0, 0, 0, ...w0, ...Om0];
+    const n = Math.round(20 / DT) * 20, h = DT / 20, add = (a, b, f) => a.map((v, i) => v + f * b[i]);
+    for (let k = 0; k < n; k++) {
+      const k1 = deriv(y), k2 = deriv(add(y, k1, h / 2)), k3 = deriv(add(y, k2, h / 2)), k4 = deriv(add(y, k3, h));
+      y = y.map((v, i) => v + (h / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+      const qn = Math.hypot(y[0], y[1], y[2], y[3]); for (let i = 0; i < 4; i++) y[i] /= qn;
+    }
+    return { q: y.slice(0, 4), w: y.slice(4, 7), Om: y.slice(7, 10) };
+  };
+  // the module, started with a tumbling body and fast wheels
+  const s = A.makeState(p);
+  s.ctrl.mode = 'raw'; s.ctrl.raw = [0.1, -0.1, 0.05];
+  s.h = [0.36, -0.24, 0.416];
+  s.H = [J[0] * 0.2 + s.h[0], J[1] * -0.3 + s.h[1], J[2] * 0.25 + s.h[2]];
+  const w0 = A.omega(s, p, [0, 0, 0]), h0 = s.h.slice(), T0 = A.kineticEnergy(s, p);
+  run(s, p, 20);
+  const wMod = A.omega(s, p, [0, 0, 0]);
+  const maxd = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
+  // reading 1 (the header now): h absolute, J without the wheels' axial inertia → Jb = J, Ω = h/I_w − ω
+  const r1 = reference(J, w0, [0, 1, 2].map((i) => h0[i] / Iw - w0[i]));
+  const d1 = { w: maxd(wMod, r1.w), h: maxd(s.h, [0, 1, 2].map((i) => Iw * (r1.w[i] + r1.Om[i]))), q: maxd(s.q, r1.q) };
+  const T1 = 0.5 * [0, 1, 2].reduce((a, i) => a + J[i] * w0[i] ** 2 + h0[i] ** 2 / Iw, 0); // same parts, exact energy
+  // reading 2 (the old header): h relative to the body, J locked → Jb = J − I_w, Ω = h/I_w
+  const r2 = reference(J.map((v) => v - Iw), w0, h0.map((v) => v / Iw));
+  const d2 = { w: maxd(wMod, r2.w), h: maxd(s.h, r2.Om.map((v) => Iw * v)) };
+  const T2 = T1 + [0, 1, 2].reduce((a, i) => a + w0[i] * h0[i], 0); // true energy under reading 2 has the cross term ω·h
+  log(`vs a relative-coordinates model, 20 s with motor torques: reading h as absolute and J without the wheel axis, |Δω| ${d1.w.toExponential(1)} rad/s, |Δh| ${d1.h.toExponential(1)}, |Δq| ${d1.q.toExponential(1)}, energy formula off by ${(Math.abs(T0 - T1) / T1).toExponential(1)}; reading h as relative and J as locked (the old comment), |Δω| ${d2.w.toExponential(1)}, |Δh| ${d2.h.toExponential(1)}, energy formula off by ${(Math.abs(T0 - T2) / T2).toExponential(1)}`);
+  assert.ok(d1.w < 1e-7 && d1.h < 1e-12 && d1.q < 1e-6 && Math.abs(T0 - T1) / T1 < 1e-15);
+  assert.ok(d2.h > 1e-5 && d2.w > 100 * d1.w && Math.abs(T0 - T2) / T2 > 1e-5, 'the old reading is measurably wrong (O(I_w/J))');
+  assert.match(here('./attitude.js'), /ABSOLUTE axial angular momentum of each wheel/);
+});
+
+test('thrusters: the drawn couples have the modelled 0.4 m arm, sit on the box and fire out of it', () => {
+  const p = A.makeParams();
+  const half = p.box.map((d) => d / 2);
+  const lay = A.thrusterLayout(p);
+  const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  const inside = (r, tol) => r.every((v, i) => Math.abs(v) <= half[i] + tol);
+  for (let i = 0; i < 3; i++) {
+    for (const [key, sgn] of [['pos', 1], ['neg', -1]]) {
+      const T = [0, 0, 0], F = [0, 0, 0];
+      for (const [r, f] of lay[i][key]) {
+        const t = cross(r, f);
+        for (let k = 0; k < 3; k++) { T[k] += t[k]; F[k] += f[k]; }
+        assert.ok(Math.abs(Math.hypot(...f) - 1) < 1e-12);
+        assert.ok(inside(r, 1e-12) && r.some((v, k) => Math.abs(Math.abs(v) - half[k]) < 1e-12), `axis ${i} ${key}: on the surface`);
+        assert.ok(!inside(r.map((v, k) => v - 1e-3 * f[k]), 0), `axis ${i} ${key}: the exhaust leaves the box`);
+      }
+      for (let k = 0; k < 3; k++) {
+        assert.ok(Math.abs(F[k]) < 1e-12, 'a pure couple');
+        assert.ok(Math.abs(T[k] - (k === i ? sgn * 2 * p.thrArm : 0)) < 1e-12, `axis ${i} ${key} torque ${T}`);
+      }
+    }
+  }
+  const corner = Math.hypot(half[0], half[1]);
+  log(`couples: 2 × 0.02 N × ${p.thrArm} m = ${(2 * 0.02 * p.thrArm).toFixed(3)} N·m on every axis; roll needs canted corner thrusters (up to ${corner.toFixed(2)} m), face-mounted it would get ${half[1].toFixed(2)} m and ${(p.thrArm / half[1]).toFixed(2)}× the gas`);
+  assert.ok(Math.abs(2 * 0.02 * p.thrArm - p.tauThr) < 1e-15 && p.thrArm <= corner);
+  assert.match(APP, /A\.thrusterLayout\(P\)/);
+});
+
+test('emptying costs the sum of the per-axis components: momentum on a body diagonal costs up to √3 more gas', () => {
+  const dump = (H) => {
+    const { p, s } = fresh();
+    s.h = H.slice(); s.H = H.slice(); A.resetLedger(s);
+    s.ctrl.desat = true;
+    run(s, p, 200);
+    return s.propUsed;
+  };
+  const m = 0.5, d = m / Math.sqrt(3);
+  const onAxis = dump([m, 0, 0]), diag = dump([d, d, d]);
+  log(`dumping 0.5 N·m·s along one axis: ${(onAxis * 1e3).toFixed(3)} g; the same along the body diagonal: ${(diag * 1e3).toFixed(3)} g (${(diag / onAxis).toFixed(3)}×)`);
+  assert.ok(Math.abs(diag / onAxis - Math.sqrt(3)) < 0.03);
 });

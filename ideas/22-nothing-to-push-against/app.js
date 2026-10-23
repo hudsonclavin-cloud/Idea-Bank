@@ -56,13 +56,15 @@
     { name: 'Sable', d: norm([-0.3, -0.8, -0.55]), col: '#ffe6a8' },
   ];
   const SUN = norm([0, 0.6, 0.8]); // 37° above the starting line of sight
-  // sunlight pushes along SUN; an off-centre push twists about an axis ⊥ SUN. Taken along inertial x,
-  // which is the pitch wheel's axis at the start, so the quoted fill time is exact until you turn.
+  // The steady disturbance: the part of the outside torques (sunlight on an off-centre array, gravity
+  // gradient, drag, magnetic) that doesn't average out, lumped into one constant inertial vector. Taken
+  // along inertial x, which is the pitch wheel's axis at the start, so the quoted fill time is exact until you turn.
   const TORQUE_DIR = [1, 0, 0];
-  const BOX = [0.25, 0.35, 0.5]; // half-sizes (m) of the drawn body: 0.5 × 0.7 × 1.0 m box
+  const BOX = A.DEFAULTS.box.map((d) => d / 2); // half-sizes (m) of the drawn body: 0.5 × 0.7 × 1.0 m box
 
   // ---------- simulation ----------
   const P = A.makeParams();
+  const THR = A.thrusterLayout(P);
   let S = A.makeState(P);
   const clock = A.makeClock();
   let rate = 10, paused = false, lastT = 0;
@@ -97,8 +99,8 @@
 
   // ---------- tries ----------
   const TRIES = [
-    ['Borrow a spin', 'drag the sky; a wheel takes the opposite momentum and keeps it'],
-    ['Fill a wheel', 'let the sunlight torque fill a wheel (600× helps) and watch the hold fail'],
+    ['Borrow a spin', 'drag the sky; a wheel takes the opposite momentum while you turn, then gives it back when you stop'],
+    ['Fill a wheel', 'let the disturbance torque fill a wheel (600× helps) and watch the hold fail'],
     ['Pay to empty it', 'fire the thrusters and watch the ledger balance to round-off'],
     ['Move the load', 'with momentum stored in one wheel, turn 90° and watch it move to another wheel'],
     ['See the flip', 'tumble about the middle axis and wait: the sky turns over by itself'],
@@ -302,19 +304,17 @@
     // the sun, as a dot on the rim
     const sp = P2([SUN[0] * 1.3, SUN[1] * 1.3, SUN[2] * 1.3]);
     ctx.fillStyle = '#fff1c0'; ctx.beginPath(); ctx.arc(sp[0], sp[1], 3, 0, 6.2832); ctx.fill();
-    // thruster puffs
+    // thruster puffs: the couple actually firing about each axis, drawn where the model puts it
+    // (lever arm P.thrArm), with the exhaust going out opposite to the force on the body
     if (S.thrusting) {
-      ctx.fillStyle = 'rgba(255,230,180,0.8)';
+      ctx.strokeStyle = 'rgba(255,230,180,0.85)'; ctx.lineWidth = 2;
       for (let i = 0; i < 3; i++) {
         if (!S.tauThr[i]) continue;
-        const sgn = Math.sign(S.tauThr[i]);
-        const j = (i + 1) % 3, k = (i + 2) % 3;
-        // a couple about axis i: puffs at ±BOX[j] along j, pointing ∓/± along k
-        for (const side of [1, -1]) {
-          const base = [0, 0, 0]; base[j] = side * BOX[j] * 1.05;
-          const tip = base.slice(); tip[k] += side * sgn * 0.3;
-          const b0 = P2(bodyToIn(base)), t0 = P2(bodyToIn(tip));
-          ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(t0[0], t0[1]); ctx.strokeStyle = 'rgba(255,230,180,0.85)'; ctx.lineWidth = 2; ctx.stroke();
+        const couple = S.tauThr[i] > 0 ? THR[i].pos : THR[i].neg;
+        for (const [r, f] of couple) {
+          const tip = [r[0] - 0.3 * f[0], r[1] - 0.3 * f[1], r[2] - 0.3 * f[2]];
+          const b0 = P2(bodyToIn(r)), t0 = P2(bodyToIn(tip));
+          ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(t0[0], t0[1]); ctx.stroke();
         }
       }
     }
@@ -345,6 +345,7 @@
     let mode;
     if (c.mode === 'raw') mode = 'Autopilot off · nothing damps';
     else if (c.phase === 'detumble') mode = 'Autopilot · detumbling';
+    else if (c.lost) mode = 'Autopilot · hold lost';
     else {
       const e = A.errorVector(S.q, c.qT, V2);
       mode = Math.hypot(e[0], e[1], e[2]) > 1 * DEG ? 'Autopilot · slewing' : 'Autopilot · holding';
@@ -365,6 +366,7 @@
     if (S.prop <= 0) hint = 'Out of gas: the wheels can never be emptied again';
     else if (S.thrusting) hint = 'Thrusters firing · the wheels wind down against them';
     else if (anySat) hint = 'A wheel is full · empty the wheels, or the sky drifts';
+    else if (c.mode === 'hold' && c.lost) hint = 'Too much momentum for the wheels to hold that way · empty them';
     else if (c.mode === 'raw') hint = tr.tumbleAxis >= 0 ? 'Free tumble · autopilot on to catch it' : 'Hold a drag to push · let go and it keeps turning';
     else hint = tr.dragging ? 'The sky follows your finger · a wheel takes the spin' : 'Drag the sky to point somewhere else';
     hudHint.textContent = hint;
@@ -387,7 +389,7 @@
     const tau = Math.hypot(P.tauDist[0], P.tauDist[1], P.tauDist[2]);
     const fill = tau > 0 ? A.fillTime(P, tau) : Infinity;
     const life = tau > 0 ? A.lifetime(P, S.prop, tau) : Infinity;
-    $('rLife').textContent = tau > 0 ? `a wheel lined up with it fills in ${fmtDur(fill)} · the tank lasts ${fmtDur(life)}` : 'no disturbance: the wheels only hold what you lend them';
+    $('rLife').textContent = tau > 0 ? `a wheel lined up with it fills in ${fmtDur(fill)} · the tank lasts ${fmtDur(life)}` : 'no disturbance: the wheels only carry your turns, and hand them back when you stop';
     $('distNote').textContent = tau > 0 ? `Fills a wheel lined up with it in ${fmtDur(fill)}. A full tank buys ${fmtDur(A.lifetime(P, P.propMass, tau))} of emptying.` : 'No disturbance. The wheels never fill on their own.';
     // ledger, in inertial axes so the columns add up exactly
     const L = S.ledger;
@@ -425,6 +427,15 @@
 
   // ---------- input ----------
   let drag = null;
+  // When the hold is lost the target stays where it was while the sky drifts away from it. A new gesture
+  // (after 1.5 s without one) then starts from what you can see, so you can point somewhere the wheels can hold.
+  let lastNudgeAt = -1e9;
+  function nudge(dx, dy, dz) {
+    const now = performance.now();
+    if (S.ctrl.lost && now - lastNudgeAt > 1500) S.ctrl.qT = S.q.slice();
+    lastNudgeAt = now;
+    A.nudgeTarget(S, dx, dy, dz);
+  }
   function pointerPos(e) {
     const r = canvas.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
@@ -444,7 +455,7 @@
     const [x, y] = pointerPos(e);
     if (S.ctrl.mode === 'hold') {
       const f = focal();
-      A.nudgeTarget(S, -(y - drag.y) / f, -(x - drag.x) / f, 0);
+      nudge(-(y - drag.y) / f, -(x - drag.x) / f, 0);
     } else {
       joystick.x = x; joystick.y = y;
       const ox = (x - joystick.x0) / 80, oy = (y - joystick.y0) / 80;
@@ -469,7 +480,7 @@
     const start = (e) => {
       e.preventDefault();
       holding = true;
-      if (S.ctrl.mode === 'hold') A.nudgeTarget(S, 0, 0, sign * 10 * DEG);
+      if (S.ctrl.mode === 'hold') nudge(0, 0, sign * 10 * DEG);
       else S.ctrl.raw[2] = -sign;
     };
     const stop = () => { if (!holding) return; holding = false; S.ctrl.raw[2] = 0; };
@@ -497,7 +508,7 @@
     const NUDGE = { ArrowUp: [-2, 0, 0], ArrowDown: [2, 0, 0], ArrowLeft: [0, -2, 0], ArrowRight: [0, 2, 0], KeyQ: [0, 0, -10], KeyE: [0, 0, 10] };
     if (NUDGE[c]) {
       e.preventDefault();
-      if (S.ctrl.mode === 'hold') { const n = NUDGE[c]; A.nudgeTarget(S, n[0] * DEG, n[1] * DEG, n[2] * DEG); }
+      if (S.ctrl.mode === 'hold') { const n = NUDGE[c]; nudge(n[0] * DEG, n[1] * DEG, n[2] * DEG); }
       else { keysDown.add(c); applyKeyTorque(); }
     } else if (c === 'Space') { e.preventDefault(); togglePause(); }
     else if (c === 'KeyA') setMode(S.ctrl.mode === 'hold' ? 'raw' : 'hold');
@@ -539,7 +550,7 @@
     A.setTumble(S, P, axis, 0.3, 0.003);
     tr.tumbleAxis = axis; tr.prevWy = 0; tr.loadDir = null;
     markMode('raw');
-    const names = ['long axis (x): steady', 'middle axis (y): watch it turn over', 'short axis (z, your line of sight): steady'];
+    const names = ['short axis (x, most inertia): steady', 'middle axis (y): watch it turn over', 'long axis (z, your line of sight, least inertia): steady'];
     toast(`Free tumble at 17°/s about the ${names[axis]}. Autopilot off.`);
   }
   $('desat').addEventListener('click', desat);
