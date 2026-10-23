@@ -176,6 +176,9 @@
         forgotStart: `That is only the change (${n(a.net)}). Add the ${n(item.s0)} there at the start.`,
         reversed: `That takes the change away instead of adding it: more ${a.net >= 0 ? 'came in than went out' : 'went out than came in'}, so the level ended ${a.net >= 0 ? 'higher' : 'lower'} than it started.`,
         addedBoth: `That adds what went out (${n(a.outArea)}) instead of subtracting it.`,
+        forgotIn: `That takes away what went out (${n(a.outArea)}) but forgets what came in (${n(a.inArea)}).`,
+        doubleStart: `That counts the ${n(item.s0)} at the start twice.`,
+        rateNow: `That takes the gap between the lines ${whenP(item, item.at)} (${rate(item, Tub.netAt(item, item.at))}) as if it had held all along. The lines moved; what counts is the area under each.`,
       }[pick.why];
       if (text) lines.push(text);
     }
@@ -191,18 +194,66 @@
   }
 
   /* ----- Draw it ----- */
+  // Says why a sketch passed or failed, in the grader's own terms: where the
+  // level turns (the crossings), whether the line turned there, and which way
+  // it went in between.
   function sketchFeedback(item, grade) {
     const lines = [];
     if (grade.reason === 'empty' || grade.reason === 'short') {
       lines.push(`Draw across at least ${Math.round(Tub.SKETCH.cover * 100)}% of the time span, left to right.`);
       return { ok: false, lines, pct: 0 };
     }
-    const pct = Math.round(grade.agree * 100);
-    lines.push(`Your line went the right way ${pct}% of the time (${Math.round(Tub.SKETCH.pass * 100)}% passes). Only direction is marked, not height.`);
+    const S = subject(item);
+    const pct = Math.round((grade.agree || 0) * 100);
+    const turnsTo = (kind) => (kind === 'top' ? 'stops rising and starts to fall' : 'stops falling and starts to rise');
+    const verb = (kind) => (kind === 'top' ? 'peaks' : 'bottoms out');
+    if (grade.reason === 'flat') {
+      lines.push(`Your line is nearly flat, but ${S} does go up and down.`);
+    } else if (grade.ok) {
+      lines.push(`Your line turns where ${S} turns, and goes the right way in between.`);
+      // smaller turns that are not marked are still named, so “turns where” is not oversold
+      const minor = [];
+      for (const d of grade.minor || []) if (!minor.includes(when(item, d.t))) minor.push(when(item, d.t));
+      if (minor.length) {
+        lines.push(
+          `Not marked: your line also turns a little near ${listJoin(minor)}, where ${S} does not turn. ${minor.length > 1 ? 'Those turns are' : 'That turn is'} too small to mark once the line is lightly smoothed, so ${minor.length > 1 ? 'they are' : 'it is'} taken as a wobble of the hand.`
+        );
+      }
+    } else {
+      const said = [];
+      for (const m of grade.missing || []) {
+        if (m.drawn) {
+          said.push(m.drawn);
+          lines.push(`Your line ${verb(m.kind)} ${whenP(item, m.drawn.t)}, but ${S} ${verb(m.kind)} ${whenP(item, m.t)}, ${m.drawn.t < m.t ? 'later' : 'earlier'}, where the lines cross.`);
+        } else if (m.beyond === 'before') {
+          lines.push(`Your line starts after ${when(item, m.t)}, where ${S} ${turnsTo(m.kind)}.`);
+        } else if (m.beyond) {
+          lines.push(`Your line stops before ${when(item, m.t)}, where ${S} ${turnsTo(m.kind)}.`);
+        } else {
+          lines.push(`Your line does not turn ${whenP(item, m.t)}, where the lines cross: ${S} ${turnsTo(m.kind)} there.`);
+        }
+      }
+      const w = item.time.to - item.time.from;
+      for (const x of grade.extra || []) {
+        if (said.some((d) => d.kind === x.kind && Math.abs(d.t - x.t) <= 0.03 * w)) continue;
+        const n = Tub.netAt(item, x.t);
+        lines.push(`Your line turns ${whenP(item, x.t)}, but ${S} does not turn there: it is ${n > 0 ? 'rising' : 'falling'}, because the “${item.inName}” line is ${n > 0 ? 'on top' : 'underneath'}.`);
+      }
+      if (grade.agree < Tub.SKETCH.pass && grade.marks) {
+        const bad = grade.marks.filter((k) => !k.good);
+        const flat = bad.filter((k) => k.dir === 0).length;
+        lines.push(
+          flat * 2 >= bad.length
+            ? `Under the red marks your line is too flat: ${S} is clearly moving there. (Your line went the right way ${pct}% of the time; ${Math.round(Tub.SKETCH.pass * 100)}% passes.)`
+            : `Under the red marks your line goes the wrong way. (It went the right way ${pct}% of the time; ${Math.round(Tub.SKETCH.pass * 100)}% passes.)`
+        );
+      }
+    }
     const turns = Tub.crossings(item).map((c) => when(item, c.t));
     const tail = `rising while the “${item.inName}” line is on top, falling while it is underneath.`;
     if (turns.length === 1) lines.push(`The level turns once, ${whenP(item, Tub.crossings(item)[0].t)}, where the lines cross: ${tail}`);
     else if (turns.length > 1) lines.push(`The level turns at ${listJoin(turns)}, each time the lines cross: ${tail}`);
+    lines.push('Marked: that your line turns inside each shaded band, and which way it goes in between. Not how high it goes.');
     return { ok: grade.ok, lines, pct };
   }
 

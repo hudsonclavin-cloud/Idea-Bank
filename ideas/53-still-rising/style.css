@@ -502,6 +502,21 @@ h2 {
 .agree-bad {
   fill: var(--bad);
 }
+.turnmark {
+  fill: var(--panel);
+  stroke-width: 2.5;
+}
+.turnmark.ok {
+  stroke: var(--ok);
+}
+.turnmark.bad {
+  stroke: var(--bad);
+}
+.turnmark.minor {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 2.5 2;
+}
 .drawpad {
   position: absolute;
   cursor: crosshair;

@@ -335,6 +335,12 @@
       }
     }
 
+    // where the drawn line turned: green where it matched a true turn, red where
+    // not, and a faint dashed ring for a small turn that was not marked
+    function markTurns(list, cls) {
+      for (const d of list) el('circle', { class: `turnmark ${cls}`, cx: X(d.t), cy: YS(clamp(d.y, sFloor, sTop)), r: 5 }, gUser);
+    }
+
     function markAgree(marks) {
       const w = Math.max(2, plotW / T.SKETCH.grid - 1);
       for (const m of marks) {
@@ -381,6 +387,7 @@
       markTruth,
       markBand,
       markAgree,
+      markTurns,
       drawSketch,
       svgPoint,
       toTime: (x) => clamp(TX(x), t0, t1),
@@ -436,7 +443,8 @@
     const name = B.RUNGS[pick.rung] ? B.RUNGS[pick.rung].name : '';
     if (pick.mode === 'cold') return 'First look';
     if (pick.mode === 'twin') return 'Last look';
-    if (pick.mode === 'review') return `Review · ${name}`;
+    // reviews do not name their rung: working out what kind of question it is is part of the practice
+    if (pick.mode === 'review') return 'Review';
     if (pick.mode === 'open') return `Open water · ${name}`;
     return `Rung ${pick.rung} · ${name}${item.generated ? ' · fresh' : ''}`;
   }
@@ -471,7 +479,7 @@
     tag.textContent = modeLabel(pick, item);
     tag.className = `tag ${pick.mode === 'review' ? 'review' : ''}`;
     $('qCount').textContent = `Question ${state.q + 1}`;
-    $('qTitle').textContent = item.title || (item.generated ? 'Fresh practice' : '');
+    $('qTitle').textContent = pick.of ? 'Like one you missed, somewhere else' : item.title || (item.generated ? 'Fresh practice' : '');
     $('qStory').textContent = item.story;
     $('qAsk').textContent = askText(item);
     $('feedback').hidden = true;
@@ -758,7 +766,9 @@
     if (cur.answered) return;
     const path = combinedPath(cur.strokes);
     const grade = T.gradeSketch(cur.item, path, cur.chart.panelRange);
-    if (grade.reason !== 'graded') {
+    // only a line that does not reach far enough is sent back; a flat one is
+    // an answer, and is marked (wrong, saying it is flat) like any other
+    if (grade.reason === 'empty' || grade.reason === 'short') {
       toast('Draw across more of the chart first.');
       return;
     }
@@ -833,8 +843,26 @@
       const s = T.stockAt(item, item.at);
       c.markTruth(item.at, cur.chartMode === 'amount' ? W.level(item, s) : '');
     } else if (cur.chartMode === 'sketch') {
+      const g = cur.grade;
+      if (g && g.truth) {
+        // each true turn, with the band a drawn turn had to land in
+        c.markBand(g.truth.map((tr) => tr.win));
+        for (const tr of g.truth) c.markTruth(tr.t, W.when(item, tr.t));
+      }
       c.drawSketch(combinedPath(cur.strokes));
-      if (cur.grade && cur.grade.marks) c.markAgree(cur.grade.marks);
+      if (g && g.marks) c.markAgree(g.marks);
+      if (g && g.matched) {
+        c.markTurns(g.matched, 'ok');
+        // a misplaced turn can be both the nearest to a missed one and an extra one: circle it once
+        const w = item.time.to - item.time.from;
+        const bad = [];
+        for (const d of g.missing.map((m) => m.drawn).filter(Boolean).concat(g.extra)) {
+          if (!bad.some((b) => b.kind === d.kind && Math.abs(b.t - d.t) <= 0.03 * w)) bad.push(d);
+        }
+        c.markTurns(bad, 'bad');
+        // small turns that were not marked either way, circled faintly so the feedback can point at them
+        if (g.ok) c.markTurns(g.minor || [], 'minor');
+      }
     }
   }
 

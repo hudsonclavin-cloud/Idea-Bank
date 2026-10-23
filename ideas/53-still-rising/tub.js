@@ -297,56 +297,242 @@
     return 'steady';
   }
 
-  // A sketch is graded on the one thing the tool claims to tell you: which way
-  // the level is moving at each moment. The drawing is resampled on a grid; at
-  // every grid time where the flows clearly differ (|net| at least 6% of the
-  // largest flow), the drawn slope over a short window must have the same sign
-  // as the net flow. A drawn stretch flatter than FLAT (as a fraction of the
-  // panel height per window) counts as "level", which is wrong there. The level
-  // itself is not graded: a sketch is about shape, not scale.
-  const SKETCH = { grid: 60, win: 2, dead: 0.06, flat: 0.012, pass: 0.8, cover: 0.8 };
+  // A sketch is graded on what the tool claims to tell you: where the level
+  // turns, and which way it moves in between. Not its height or its scale.
+  //
+  //  1. The drawing is resampled on a grid of 121 times and smoothed (a moving
+  //     average over 4% of the span either side), so hand wobble is not read
+  //     as turning points. Turns are then placed on a lightly smoothed copy
+  //     (1.5% either side), so a sharp drawn corner stays where it was drawn.
+  //  2. Its turning points are found by hysteresis: a turn counts once the line
+  //     has come back by at least 5% of its own height range (turnMin).
+  //  3. Every true turn (a crossing of the flows) must be matched, in order, by
+  //     a drawn turn of the same kind (a top for a top, a bottom for a bottom)
+  //     inside that turn's window: within 5% of the span of the crossing, or
+  //     wider where the true level stays within 3% of its range of the turning
+  //     level, the same rule rung 2 uses for taps (turnTol, levelTol).
+  //  4. No other clear drawn turn may sit outside every window of its kind.
+  //     These are looked for on the lightly smoothed copy, so a short extra
+  //     wiggle is not averaged away: a turn there counts once the line comes
+  //     back by 10% of that copy's height range (bigTurn). Smaller turns there
+  //     (from 5%) outside every window are returned as `minor`: not marked,
+  //     but named in the feedback, so a pass does not claim more than it checks.
+  //  5. Away from the windows, wherever the true level clearly moves (by 1% of
+  //     its range over 5% of the span), the drawn line must go the same way at
+  //     80% of the moments. A stretch that moves less than 0.8% of the line's
+  //     own range over that window counts as level, which is wrong there.
+  //  A line whose whole height range is under 4% of the panel is flat and fails.
+  const SKETCH = {
+    grid: 120,
+    cover: 0.8,
+    smooth: 0.04,
+    fine: 0.015,
+    turnMin: 0.05,
+    bigTurn: 0.1,
+    near: 0.005,
+    turnTol: 0.05,
+    levelTol: PEAK_TOL,
+    win: 0.025,
+    moving: 0.01,
+    flat: 0.008,
+    flatLine: 0.04,
+    pass: 0.8,
+  };
 
-  function resample(path, ts) {
-    // path: [[t, s], ...] in any order; keep the last-drawn value per x by sorting.
-    const p = path.slice().sort((a, b) => a[0] - b[0]);
-    const lo = p[0][0];
-    const hi = p[p.length - 1][0];
-    return ts.map((t) => {
-      if (t < lo || t > hi) return null;
-      return val(p, t);
+  // The true turning points, each with the window a drawn turn must land in
+  // (cached per exercise, like the knots).
+  const WINDOWS = new WeakMap();
+  function turnWindows(item) {
+    const c = WINDOWS.get(item);
+    if (c && c.inflow === item.inflow && c.outflow === item.outflow && c.s0 === item.s0) return c.list;
+    const list = computeWindows(item);
+    WINDOWS.set(item, { inflow: item.inflow, outflow: item.outflow, s0: item.s0, list });
+    return list;
+  }
+  function computeWindows(item) {
+    const [t0, t1] = span(item);
+    const w = t1 - t0;
+    const ex = extremes(item);
+    const range = Math.max(1e-12, ex.max.s - ex.min.s);
+    const step = w / 2400;
+    return crossings(item).map((c) => {
+      const sT = stockAt(item, c.t);
+      const close = (t) => Math.abs(stockAt(item, t) - sT) <= SKETCH.levelTol * range;
+      let a = c.t;
+      let b = c.t;
+      while (a - step >= t0 && close(a - step)) a -= step;
+      while (b + step <= t1 && close(b + step)) b += step;
+      return {
+        t: c.t,
+        kind: c.from > 0 ? 'top' : 'bottom',
+        win: [Math.max(t0, Math.min(a, c.t - SKETCH.turnTol * w)), Math.min(t1, Math.max(b, c.t + SKETCH.turnTol * w))],
+      };
     });
+  }
+
+  // Turning points of a sampled line by hysteresis: a top counts once the
+  // smoothed line `ys` has fallen back from its running high by at least
+  // `theta` (a bottom, the same upside down). Each turn is then placed on a
+  // lightly smoothed copy (`raw`), at its extreme within `reach` samples, so
+  // the heavy smoothing does not drag a sharp corner towards the gentler side;
+  // its time is the middle of the stretch that stays within `band` of that
+  // extreme, so a drawn plateau turns in its middle.
+  function lineTurns(ts, ys, raw, i0, i1, theta, band, reach) {
+    const out = [];
+    const place = (e0, kind) => {
+      const sg = kind === 'top' ? 1 : -1;
+      let e = e0;
+      for (let j = Math.max(i0, e0 - reach); j <= Math.min(i1, e0 + reach); j++) if (sg * (raw[j] - raw[e]) > 0) e = j;
+      const near = (j) => sg * (raw[e] - raw[j]) <= band;
+      let a = e;
+      let b = e;
+      while (a - 1 >= i0 && near(a - 1)) a--;
+      while (b + 1 <= i1 && near(b + 1)) b++;
+      out.push({ kind, t: (ts[a] + ts[b]) / 2, y: raw[e] });
+    };
+    let mode = 0;
+    let hiI = i0;
+    let loI = i0;
+    let ext = i0;
+    for (let i = i0 + 1; i <= i1; i++) {
+      const y = ys[i];
+      if (mode === 0) {
+        if (y > ys[hiI]) hiI = i;
+        if (y < ys[loI]) loI = i;
+        if (ys[hiI] - ys[loI] >= theta) {
+          if (hiI > loI) {
+            if (ys[i0] - ys[loI] >= theta) place(loI, 'bottom');
+            mode = 1;
+            ext = hiI;
+          } else {
+            if (ys[hiI] - ys[i0] >= theta) place(hiI, 'top');
+            mode = -1;
+            ext = loI;
+          }
+        }
+      } else if (mode === 1) {
+        if (y > ys[ext]) ext = i;
+        else if (ys[ext] - y >= theta) {
+          place(ext, 'top');
+          mode = -1;
+          ext = i;
+        }
+      } else if (y < ys[ext]) ext = i;
+      else if (y - ys[ext] >= theta) {
+        place(ext, 'bottom');
+        mode = 1;
+        ext = i;
+      }
+    }
+    return out;
   }
 
   function gradeSketch(item, path, panelTop) {
     const [t0, t1] = span(item);
+    const w = t1 - t0;
     const G = SKETCH.grid;
+    const dt = w / G;
     const ts = [];
-    for (let i = 0; i <= G; i++) ts.push(t0 + ((t1 - t0) * i) / G);
+    for (let i = 0; i <= G; i++) ts.push(t0 + dt * i);
     if (!path || path.length < 2) return { ok: false, coverage: 0, agree: 0, counted: 0, reason: 'empty' };
     const xs = path.map((p) => p[0]);
-    const coverage = (Math.min(t1, Math.max(...xs)) - Math.max(t0, Math.min(...xs))) / (t1 - t0);
+    const xlo = Math.max(t0, Math.min(...xs));
+    const xhi = Math.min(t1, Math.max(...xs));
+    const coverage = (xhi - xlo) / w;
     if (coverage < SKETCH.cover) return { ok: false, coverage, agree: 0, counted: 0, reason: 'short' };
-    const ys = resample(path, ts);
-    const top = panelTop || Math.max(1, extremes(item).max.s);
-    const dead = SKETCH.dead * maxFlow(item);
+    // resample (sorted by time), then smooth with a moving average
+    const p = path.slice().sort((a, b) => a[0] - b[0]);
+    const raw = ts.map((t) => (t < p[0][0] || t > p[p.length - 1][0] ? null : val(p, t)));
+    let i0 = 0;
+    while (raw[i0] === null) i0++;
+    let i1 = G;
+    while (raw[i1] === null) i1--;
+    const smooth = (h) =>
+      raw.map((v, i) => {
+        if (v === null) return null;
+        let s = 0;
+        let n = 0;
+        for (let j = Math.max(i0, i - h); j <= Math.min(i1, i + h); j++) {
+          s += raw[j];
+          n++;
+        }
+        return s / n;
+      });
+    const m = Math.max(1, Math.round(SKETCH.smooth * G));
+    const ys = smooth(m);
+    const fine = smooth(Math.round(SKETCH.fine * G));
+    let yHi = -Infinity;
+    let yLo = Infinity;
+    for (let i = i0; i <= i1; i++) {
+      yHi = Math.max(yHi, ys[i]);
+      yLo = Math.min(yLo, ys[i]);
+    }
+    const height = yHi - yLo;
+    const ex = extremes(item);
+    const panel = panelTop || Math.max(1, ex.max.s);
+    const truth = turnWindows(item).map((tr) => Object.assign({}, tr, { win: tr.win.slice() }));
+    const base = { coverage, truth, from: ts[i0], to: ts[i1] };
+    if (height < SKETCH.flatLine * panel) {
+      return Object.assign(base, { ok: false, reason: 'flat', agree: 0, counted: 0, marks: [], drawn: [], matched: [], missing: truth, extra: [], minor: [] });
+    }
+    const drawn = lineTurns(ts, ys, fine, i0, i1, SKETCH.turnMin * height, SKETCH.near * height, m);
+    // extra turns are looked for on the lightly smoothed line, against its own
+    // height, so a short extra wiggle is not halved by the heavy smoothing
+    let fHi = -Infinity;
+    let fLo = Infinity;
+    for (let i = i0; i <= i1; i++) {
+      fHi = Math.max(fHi, fine[i]);
+      fLo = Math.min(fLo, fine[i]);
+    }
+    const big = lineTurns(ts, fine, fine, i0, i1, SKETCH.bigTurn * (fHi - fLo), SKETCH.near * height, m);
+    const inWin = (d, tr) => d.kind === tr.kind && d.t >= tr.win[0] && d.t <= tr.win[1];
+    // 3. every true turn matched, in order, by a drawn turn of its kind in its window
+    const used = new Set();
+    const matched = [];
+    const missing = [];
+    let after = -Infinity;
+    for (const tr of truth) {
+      const d = drawn.find((x) => x.t > after && inWin(x, tr));
+      if (d) {
+        used.add(d);
+        matched.push(d);
+        after = d.t;
+      } else {
+        // the nearest unmatched drawn turn of the same kind, to say where yours was
+        let near = null;
+        for (const x of drawn) if (!used.has(x) && x.kind === tr.kind && (!near || Math.abs(x.t - tr.t) < Math.abs(near.t - tr.t))) near = x;
+        missing.push(Object.assign({}, tr, { drawn: near, beyond: tr.t < ts[i0] ? 'before' : tr.t > ts[i1] ? 'after' : false }));
+      }
+    }
+    // 4. no clear drawn turn outside every window of its kind
+    const extra = big.filter((d) => !truth.some((tr) => inWin(d, tr)));
+    // smaller turns outside every band (found on the same light copy, from 5%
+    // of its height): not marked, but not hidden either
+    const near3 = (a, b) => a.kind === b.kind && Math.abs(a.t - b.t) <= 0.03 * w;
+    const minor = lineTurns(ts, fine, fine, i0, i1, SKETCH.turnMin * (fHi - fLo), SKETCH.near * height, m).filter(
+      (d) => !truth.some((tr) => d.t >= tr.win[0] && d.t <= tr.win[1]) && !extra.some((x) => near3(x, d)) && !missing.some((mm) => mm.drawn && near3(mm.drawn, d))
+    );
+    // 5. the way the line goes, wherever the true level clearly moves
+    const k = Math.max(1, Math.round(SKETCH.win * G));
+    const range = Math.max(1e-12, ex.max.s - ex.min.s);
+    const marks = [];
     let counted = 0;
     let agree = 0;
-    const marks = [];
-    for (let i = SKETCH.win; i <= G - SKETCH.win; i++) {
-      const n = netAt(item, ts[i]);
-      if (Math.abs(n) < dead) continue;
-      const a = ys[i - SKETCH.win];
-      const b = ys[i + SKETCH.win];
-      if (a === null || b === null) continue;
+    for (let i = i0 + k; i <= i1 - k; i++) {
+      const t = ts[i];
+      if (truth.some((tr) => t >= tr.win[0] - k * dt && t <= tr.win[1] + k * dt)) continue;
+      const dS = stockAt(item, ts[i + k]) - stockAt(item, ts[i - k]);
+      if (Math.abs(dS) < SKETCH.moving * range) continue;
+      const dY = ys[i + k] - ys[i - k];
+      const dir = dY > SKETCH.flat * height ? 1 : dY < -SKETCH.flat * height ? -1 : 0;
+      const good = dir === Math.sign(dS);
       counted++;
-      const d = (b - a) / top;
-      const drawn = d > SKETCH.flat ? 1 : d < -SKETCH.flat ? -1 : 0;
-      const good = drawn === Math.sign(n);
       if (good) agree++;
-      marks.push({ t: ts[i], good });
+      marks.push({ t, good, dir });
     }
-    const frac = counted ? agree / counted : 0;
-    return { ok: counted > 0 && frac >= SKETCH.pass, coverage, agree: frac, counted, marks, reason: 'graded' };
+    const frac = counted ? agree / counted : 1;
+    const ok = missing.length === 0 && extra.length === 0 && frac >= SKETCH.pass;
+    return Object.assign(base, { ok, reason: 'graded', agree: frac, counted, marks, drawn, matched, missing, extra, minor });
   }
 
   // Multiple-choice options for "how much is in it at time t?". The correct
@@ -370,22 +556,54 @@
       { v: net, why: 'forgotStart' },
       { v: item.s0 - net, why: 'reversed' },
       { v: item.s0 + inArea + outArea, why: 'addedBoth' },
+      { v: item.s0 - outArea, why: 'forgotIn' },
+      { v: 2 * item.s0 + net, why: 'doubleStart' },
+      { v: item.s0 + netAt(item, t) * (t - item.time.from), why: 'rateNow' },
     ];
     return { correct, inArea, outArea, net, cands };
   }
 
-  // Keep the correct answer and the first three distractors that are clearly
-  // different from it and from each other (and not negative), in a stable order.
+  // The correct answer and three distractors, each a named mistake, clearly
+  // different from it and from each other, not negative, and whole numbers
+  // when the answer is. Which three is chosen so that the right answer's size
+  // gives nothing away: each exercise says how many distractors should sit
+  // below the right answer (`below`, 0 to 3; generated exercises step through
+  // it with their seed, hand-made ones state it), and the first set in order
+  // of preference that does so is used (or the nearest it can get). The order
+  // on screen is shuffled separately.
   function pickAmountChoices(item, t) {
     const a = amountOptions(item, t);
     const gap = Math.max(2, 0.08 * Math.abs(a.correct));
-    const chosen = [a.cands[0]];
-    for (const c of a.cands.slice(1)) {
-      if (chosen.length >= 4) break;
-      if (c.v < 0) continue;
-      if (chosen.every((d) => Math.abs(d.v - c.v) >= gap)) chosen.push(c);
+    const whole = Math.abs(a.correct - Math.round(a.correct)) < 1e-9;
+    const ds = a.cands
+      .slice(1)
+      .filter((c) => c.v >= 0 && Math.abs(c.v - a.correct) >= gap && (!whole || Math.abs(c.v - Math.round(c.v)) < 1e-9));
+    let want = item.below;
+    if (!Number.isInteger(want)) {
+      let h = 7;
+      for (const ch of String(item.id)) h = (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0;
+      want = h % 4;
     }
-    return chosen;
+    let best = null;
+    let bestMiss = Infinity;
+    for (let i = 0; i < ds.length; i++) {
+      for (let j = i + 1; j < ds.length; j++) {
+        for (let k = j + 1; k < ds.length; k++) {
+          const set = [ds[i], ds[j], ds[k]];
+          if (Math.abs(set[0].v - set[1].v) < gap || Math.abs(set[0].v - set[2].v) < gap || Math.abs(set[1].v - set[2].v) < gap) continue;
+          const miss = Math.abs(set.filter((c) => c.v < a.correct).length - want);
+          if (miss < bestMiss) {
+            best = set;
+            bestMiss = miss;
+          }
+        }
+      }
+    }
+    if (best) return [a.cands[0], ...best];
+    // fewer than three usable distractors: as many as fit
+    const chosen = [a.cands[0]];
+    for (const c of ds) if (chosen.every((d) => Math.abs(d.v - c.v) >= gap)) chosen.push(c);
+    return chosen.slice(0, 4);
   }
 
   /* ---------------------------------------------------------------- */
@@ -440,10 +658,23 @@
       }
     }
     if (kind === 'sketch') {
-      // a faithful drawing must pass easily: nowhere may the true level move so
-      // little, where it counts, that a correct line reads as flat
-      const g = gradeSketch(item, stockCurve(item, 120), top - floor);
-      if (g.agree < 0.95) return 'true curve too flat to draw';
+      // Every turn must be plain to see and to draw: between turns (and to and
+      // from the ends) the level moves at least 15% of its range; turns sit at
+      // least 8% of the span from the ends and 15% from each other.
+      const cr = crossings(item);
+      if (!cr.length) return 'no turning point';
+      const times = [t0, ...cr.map((c) => c.t), t1];
+      for (let i = 1; i < times.length; i++) {
+        if (Math.abs(stockAt(item, times[i]) - stockAt(item, times[i - 1])) < 0.15 * (max.s - min.s)) return 'a turn too slight to draw';
+      }
+      for (const c of cr) if (c.t - t0 < 0.08 * w || t1 - c.t < 0.08 * w) return 'a turn too near the end';
+      for (let i = 1; i < cr.length; i++) if (cr[i].t - cr[i - 1].t < 0.15 * w) return 'turns too close together';
+      // the true curve passes, and a sketch shaped like the inflow fails
+      const truth = stockCurve(item, 120);
+      if (!gradeSketch(item, truth, top - floor).ok) return 'the true curve fails the grader';
+      const fmax = Math.max(...item.inflow.map((q) => q[1]));
+      const shaped = truth.map(([t]) => [t, floor + (0.9 * (top - floor) * inAt(item, t)) / fmax]);
+      if (gradeSketch(item, shaped, top - floor).ok) return 'a sketch shaped like the inflow passes';
     }
     if (kind === 'dir') {
       const n = netAt(item, item.at);
@@ -480,6 +711,17 @@
     const ts = [];
     for (let t = t0; t <= t1 + 1e-9; t += T.knotStep) ts.push(Math.round(t * 1000) / 1000);
     const q = (v) => Math.max(0, Math.round(v / T.quantum) * T.quantum);
+    // for 'How much?': how many of the three wrong options sit below the right
+    // one, kept through the retries, so that the right answer's size gives
+    // nothing away. It steps through 0 to 3 with the seed: the trainer numbers
+    // fresh exercises one after another, so the few a learner meets cover every
+    // rank (a random draw left the low seeds everyone meets leaning to 0). The
+    // draw is still taken, so the rest of the exercise is built as before.
+    let below = 0;
+    if (kind === 'amount') {
+      rnd();
+      below = (seed >>> 0) % 4;
+    }
     for (let attempt = 0; attempt < 400; attempt++) {
       const M = T.flowMax;
       const w = t1 - t0;
@@ -541,9 +783,11 @@
       } else if (kind === 'amount') {
         const late = ts.filter((t) => t >= t0 + 0.4 * w && t < t1);
         item.at = late[Math.floor(rnd() * late.length)];
+        item.below = below;
         const exact = stockAt(item, item.at);
         if (Math.abs(exact - Math.round(exact)) > 1e-9) continue;
-        if (pickAmountChoices(item, item.at).length < 4) continue;
+        const ch = pickAmountChoices(item, item.at);
+        if (ch.length < 4 || ch.filter((c) => c.v < exact).length !== item.below) continue;
       }
       if (fairness(item)) continue;
       if (kind === 'peak') {
@@ -631,6 +875,8 @@
     diagnoseExtreme,
     direction,
     SKETCH,
+    turnWindows,
+    lineTurns,
     gradeSketch,
     amountOptions,
     pickAmountChoices,

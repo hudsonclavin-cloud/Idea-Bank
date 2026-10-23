@@ -14,10 +14,15 @@
  *  - If a rung's hand-made exercises run out before it is cleared, graph rungs
  *    get freshly generated exercises (tub.js) and word rungs bring back the
  *    ones you missed, oldest first.
- *  - Every fourth question, once a rung is cleared, is a review from the
- *    cleared rungs (interleaving and spacing): anything missed comes back
- *    first, then exercises not yet seen, then fresh generated ones. Reviews do
- *    not count towards the current rung.
+ *  - So practice is mostly blocked by rung. Once a rung is cleared, every
+ *    fourth question is a review from the cleared rungs (a light dose of
+ *    interleaving and spacing): anything missed comes back first, then
+ *    exercises not yet seen, then fresh generated ones. Reviews do not count
+ *    towards the current rung.
+ *  - A missed graph exercise comes back as a freshly generated one of the same
+ *    kind in another setting, not as the same chart, so it tests the habit
+ *    rather than memory of the answer; getting that one right counts for the
+ *    missed exercise. A missed word problem comes back as itself.
  *  - After the ladder, "open water": everything mixed, with unseen and missed
  *    exercises first, so every exercise in the bank is reachable.
  *
@@ -38,6 +43,7 @@
   const LADDER = [1, 2, 3, 4, 5, 6, 7];
   const GRAPH_RUNGS = { 1: ['dir'], 2: ['peak', 'trough'], 3: ['sketch'], 4: ['amount'] };
   const GAP = 3; // a missed exercise waits at least this many questions before it returns
+  const GEN_KINDS = ['dir', 'peak', 'trough', 'sketch', 'amount'];
 
   function fresh() {
     return {
@@ -54,8 +60,8 @@
       lastRungAt: {}, // rung -> q last practised (for interleaving)
       cold: null, // { id, ok, t, diag }
       twin: null,
-      log: [], // [{ id, ok, mode, rung }], most recent last (capped)
-      current: null, // the pick on screen, so a reload resumes it
+      log: [], // [{ id, ok, mode, rung, of? }], most recent last (capped)
+      current: null, // the pick on screen, so a reload resumes it ({ id, mode, rung, of? })
     };
   }
 
@@ -105,13 +111,16 @@
     if (Array.isArray(p.log)) {
       for (const e of p.log.slice(-200)) {
         if (e && typeof e.id === 'string' && (ids.has(e.id) || isGenId(e.id)) && typeof e.ok === 'boolean') {
-          out.log.push({ id: e.id, ok: e.ok, mode: String(e.mode || '').slice(0, 10), rung: Number.isInteger(e.rung) ? e.rung : -1 });
+          const l = { id: e.id, ok: e.ok, mode: String(e.mode || '').slice(0, 10), rung: Number.isInteger(e.rung) ? e.rung : -1 };
+          if (typeof e.of === 'string' && ids.has(e.of) && isGenId(e.id)) l.of = e.of;
+          out.log.push(l);
         }
       }
     }
     const c = p.current;
     if (c && typeof c.id === 'string' && (ids.has(c.id) || isGenId(c.id)) && ['cold', 'ladder', 'review', 'twin', 'open'].includes(c.mode) && Number.isInteger(c.rung)) {
       out.current = { id: c.id, mode: c.mode, rung: c.rung };
+      if (typeof c.of === 'string' && ids.has(c.of) && isGenId(c.id)) out.current.of = c.of;
     }
     // a twin without a cold, or a cleared ladder without its parts, is incoherent: keep what is consistent
     if (!out.cold) {
@@ -154,12 +163,19 @@
   }
 
   // The ids answered in the last k questions (never repeat one that recently).
+  // A fresh exercise asked in place of a missed one counts as that one.
   function recent(state, k) {
-    return new Set(state.log.slice(-k).map((e) => e.id));
+    const out = new Set();
+    for (const e of state.log.slice(-k)) {
+      out.add(e.id);
+      if (e.of) out.add(e.of);
+    }
+    return out;
   }
 
-  function newGenerated(state, bank, Tub, rung) {
-    const kinds = GRAPH_RUNGS[rung];
+  // A freshly generated exercise for a graph rung (or of one given kind).
+  function newGenerated(state, bank, Tub, rung, onlyKind) {
+    const kinds = onlyKind ? [onlyKind] : GRAPH_RUNGS[rung];
     if (!kinds) return null;
     for (let tries = 0; tries < 20; tries++) {
       const seed = state.gen++;
@@ -197,9 +213,20 @@
     return pool[0] || null;
   }
 
+  // A missed exercise, asked again: a graph one as a fresh exercise of the same
+  // kind in another setting (so the chart cannot simply be remembered), a word
+  // one as itself.
+  function retry(state, bank, Tub, item) {
+    if (GEN_KINDS.includes(item.kind) && item.rung >= 1 && item.rung <= 7) {
+      const id = newGenerated(state, bank, Tub, item.rung, item.kind);
+      if (id) return { id, rung: item.rung, of: item.id };
+    }
+    return { id: item.id, rung: item.rung };
+  }
+
   function reviewPick(state, bank, Tub, rungs) {
     const missed = dueMissed(state, bank, rungs);
-    if (missed.length) return { id: missed[0].id, rung: missed[0].rung };
+    if (missed.length) return retry(state, bank, Tub, missed[0]);
     const un = unseenInterleaved(state, bank, rungs);
     if (un) return { id: un.id, rung: un.rung };
     const graph = rungs.filter((r) => GRAPH_RUNGS[r]);
@@ -225,7 +252,7 @@
       const cleared = LADDER.filter((x) => state.cleared[x]);
       if (cleared.length && state.sinceReview >= REVIEW_EVERY - 1) {
         const rv = reviewPick(state, bank, Tub, cleared);
-        if (rv) pick = { id: rv.id, mode: 'review', rung: rv.rung };
+        if (rv) pick = Object.assign({ mode: 'review' }, rv);
       }
       if (!pick) {
         const items = rungItems(bank, r);
@@ -245,7 +272,7 @@
       // open water: everything, mixed
       const all = LADDER.slice();
       const missed = dueMissed(state, bank, all);
-      if (missed.length) pick = { id: missed[0].id, mode: 'open', rung: missed[0].rung };
+      if (missed.length) pick = Object.assign({ mode: 'open' }, retry(state, bank, Tub, missed[0]));
       if (!pick) {
         const un = unseenInterleaved(state, bank, all);
         if (un) pick = { id: un.id, mode: 'open', rung: un.rung };
@@ -271,11 +298,12 @@
     const res = { cleared: null, ladderDone: false, streak: 0 };
     state.q += 1;
     const id = pick.id;
-    const tracked = !isGenId(id);
+    // a fresh exercise asked in place of a missed one is scored for that one
+    const tracked = isGenId(id) ? pick.of || null : id;
     if (tracked) {
-      state.seen[id] = (state.seen[id] || 0) + 1;
-      state.last[id] = state.q;
-      state.box[id] = ok ? Math.min(3, (state.box[id] || 0) + 1) : 0;
+      state.seen[tracked] = (state.seen[tracked] || 0) + 1;
+      state.last[tracked] = state.q;
+      state.box[tracked] = ok ? Math.min(3, (state.box[tracked] || 0) + 1) : 0;
     }
     const r = pick.rung;
     if (r >= 1 && r <= 7) state.lastRungAt[r] = state.q;
@@ -283,7 +311,7 @@
     st.n += 1;
     if (ok) st.ok += 1;
     state.stats[r] = st;
-    state.log.push({ id, ok, mode: pick.mode, rung: r });
+    state.log.push(pick.of ? { id, ok, mode: pick.mode, rung: r, of: pick.of } : { id, ok, mode: pick.mode, rung: r });
     if (state.log.length > 200) state.log.splice(0, state.log.length - 200);
 
     if (pick.mode === 'cold') state.cold = Object.assign({ id, ok }, extra || {});

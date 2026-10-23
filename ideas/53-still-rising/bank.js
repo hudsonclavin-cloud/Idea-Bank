@@ -7,6 +7,10 @@
  * item also states its expected answer (`answer`) so that a reader (and the
  * test, which recomputes it independently) can check the bank by hand.
  *
+ * 'How much?' exercises state `below`, how many of the three wrong options
+ * are smaller than the right one, so that across the rung the right answer is
+ * not given away by being (say) never the largest.
+ *
  * Word exercises (kind 'choice') give options; `answer` is the index of the
  * right one, and every option carries `why`, the feedback shown when it is
  * chosen. Numbers in word exercises are recomputed by the test from `data`.
@@ -505,13 +509,14 @@
       s0: 40,
       at: 6,
       answer: 76,
+      below: 3, // wrong options below the right one (see Tub.pickAmountChoices)
     },
     {
       id: 'shop-amount',
       rung: 4,
       kind: 'amount',
       title: 'Counting heads',
-      story: 'People coming into and leaving a shop over twenty minutes. There were 12 people inside at the start.',
+      story: 'People coming into and leaving a shop over twenty minutes. There were 60 people inside at the start.',
       ask: 'How many people are inside at minute 10?',
       stock: 'people in the shop',
       inName: 'coming in',
@@ -521,9 +526,10 @@
       time: { ...MIN(1), to: 20, ticks: 2 },
       inflow: [[0, 6], [10, 16], [20, 6]],
       outflow: [[0, 2], [10, 6], [20, 10]],
-      s0: 12,
+      s0: 60,
       at: 10,
-      answer: 82,
+      answer: 130,
+      below: 2, // wrong options below the right one (see Tub.pickAmountChoices)
     },
     {
       id: 'ward-amount',
@@ -544,6 +550,7 @@
       floor: 80,
       at: 6,
       answer: 102,
+      below: 1, // wrong options below the right one (see Tub.pickAmountChoices)
     },
     {
       id: 'reservoir-amount',
@@ -565,6 +572,7 @@
       floor: 60,
       at: 20,
       answer: 80,
+      below: 0, // wrong options below the right one (see Tub.pickAmountChoices)
     },
     {
       id: 'stall-amount',
@@ -585,6 +593,7 @@
       s0: 300,
       at: 30,
       answer: 300,
+      below: 0, // wrong options below the right one (see Tub.pickAmountChoices)
     },
 
     /* ------------------------------------------------------------ */
@@ -962,12 +971,12 @@
       options: [
         { text: 'Nothing: level ÷ flow is the average stay', why: 'Only in a steady state, when in and out have balanced for a long while. This tub is still filling.' },
         { text: 'They should have divided the other way', why: 'Level ÷ flow has the right units (users ÷ users a month = months). The problem is when it applies.' },
-        { text: 'The tub is still filling, so level ÷ flow is only a floor: users stay at least 12 months on average, maybe far longer', why: '' },
+        { text: 'Sign-ups are still growing, so level ÷ flow is only a floor: users stay at least 12 months on average, maybe far longer', why: '' },
         { text: 'It should be multiplied by 2 for the two years', why: 'There is no correction factor to apply: out of a steady state the formula simply does not hold.' },
       ],
       answer: 2,
       explain:
-        'Time in the tub = level ÷ flow needs the level to have settled. While sign-ups keep growing, everyone now in the tub joined at a rate no higher than today’s, so 1.2 million ÷ 100,000 a month can only understate the average stay: it is at least 12 months, and with most users only months old, nobody can yet say how much longer.',
+        'Time in the tub = level ÷ flow needs the level to have settled. While sign-ups keep growing, everyone now in the tub joined at a rate no higher than today’s, so 1.2 million ÷ 100,000 a month can only understate the average stay, as long as newer users stay about as long as earlier ones did: it is at least 12 months, and with most users only months old, nobody can yet say how much longer. (Still filling is not enough on its own: in a tub still filling after sign-ups have peaked, the same division can overstate the stay.)',
     },
     {
       id: 'lanes',
