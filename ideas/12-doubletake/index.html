@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doubletake</title>
+<meta name="description" content="A printable pot whose rim reads as one shape to your eye and another in the mirror behind it. Pick the two shapes, check the proof, download the STL.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>Doubletake</h1>
+  <p class="tagline">A pot that is a square to your eye and a circle in the mirror behind it. The rim is solved exactly; the double take is yours.</p>
+</header>
+
+<div class="app">
+  <main class="stage-wrap">
+    <div class="stage" id="stage">
+      <canvas id="view" tabindex="0" role="img" aria-label="The pot on a turntable in front of an upright mirror. Drag sideways to turn the pot, up and down to raise or lower your eye."></canvas>
+      <div class="hud hud-top" id="hudAngle">eye 45° · pot 0°</div>
+      <div class="hud hud-status" id="status" role="status" aria-live="polite"></div>
+      <div class="stage-tools">
+        <button type="button" class="chip" id="btnDesign" title="Put your eye at the design angle and face the pot to the front (0)">Design view</button>
+        <button type="button" class="chip" id="btnTurn" title="Turn the pot half way round: the two shapes swap places (T)">Turn around</button>
+        <button type="button" class="chip" id="btnSpin" aria-pressed="false" title="Turn the pot slowly, pausing at the front and the back (S)">Spin</button>
+        <button type="button" class="chip" id="btnMirror" aria-pressed="true" title="Show or hide the mirror (M)">Mirror</button>
+      </div>
+    </div>
+    <p class="hint">Drag sideways to turn the pot, up and down to move your eye. From the design angle the rim draws one shape on the pot and another in the mirror; anywhere else it is just a wobbly pot.</p>
+  </main>
+
+  <aside class="panel">
+    <section class="card" aria-labelledby="hShapes">
+      <h2 id="hShapes">Shapes</h2>
+      <div class="pick">
+        <span class="pick-label" id="lblEye">To the eye</span>
+        <div class="shapes" id="pickEye" role="radiogroup" aria-labelledby="lblEye"></div>
+      </div>
+      <div class="pick">
+        <span class="pick-label" id="lblMirror">In the mirror</span>
+        <div class="shapes" id="pickMirror" role="radiogroup" aria-labelledby="lblMirror"></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hSize">
+      <h2 id="hSize">Size and print settings</h2>
+      <div class="sliders" id="sliders"></div>
+      <p class="note" id="capNote" hidden></p>
+    </section>
+
+    <section class="card" aria-labelledby="hProof">
+      <h2 id="hProof">The proof</h2>
+      <p class="small">Each rim vertex, projected the way your eye sees it (left) and the way the mirror shows it (right), on top of the shape it was solved for.</p>
+      <div class="proof">
+        <figure><canvas id="proofEye" aria-label="Rim projected for the eye"></canvas><figcaption id="capEye">Your eye</figcaption></figure>
+        <figure><canvas id="proofMirror" aria-label="Rim projected for the mirror"></canvas><figcaption id="capMirror">The mirror</figcaption></figure>
+      </div>
+      <p class="verdict" id="verdict">—</p>
+    </section>
+
+    <section class="card" aria-labelledby="hPrint">
+      <h2 id="hPrint">Print it</h2>
+      <dl class="stats" id="stats"></dl>
+      <button type="button" class="btn-primary" id="btnDownload" disabled>Download STL</button>
+      <p class="small mono" id="fileInfo">&nbsp;</p>
+      <details class="how">
+        <summary>How to see it</summary>
+        <ol>
+          <li>Print it upright, as it comes, with no supports: it sits on a flat base, and the only downward-facing surface is a 0.5&nbsp;mm chamfer around the bottom edge. PLA or PETG, 0.2&nbsp;mm layers.</li>
+          <li>Stand a mirror upright on the table and push the pot right up against it.</li>
+          <li>Look down at it from the angle you designed it for (<span id="howAngle">45°</span>), from as far away as you can. The rim is solved for a parallel view; up close the mirror view arrives at a shallower angle than the direct one (about 3° shallower at 1&nbsp;m for the default pot, under 1° at 4&nbsp;m). A phone camera zoomed in from across the room does it best.</li>
+          <li>Turn the pot on the table until the rim snaps into a clean shape. It does in two positions, half a turn apart, and the two shapes swap between them.</li>
+        </ol>
+      </details>
+    </section>
+  </aside>
+</div>
+
+<script src="doubletake.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
