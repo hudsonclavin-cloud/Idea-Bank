@@ -212,7 +212,7 @@ window.Exhibits = (function () {
     return {
       title: 'Light switch',
       meta: 'White urea plastic, 10 AX, c. 1985.',
-      text: 'Connected to the gallery lighting. This is the only exhibit connected to the building. Visitors ask whether it is part of the collection. It is.',
+      text: 'Connected to the gallery lighting, one of two exhibits connected to the building. Visitors ask whether it is part of the collection. It is.',
       credit: 'On loan from the building',
       model,
       sounds: { snap: 'rocker' },
@@ -434,6 +434,7 @@ window.Exhibits = (function () {
   function dip() {
     const model = new S.Dip({ ways: 8, bits: [0, 1, 0, 1, 1, 0, 1, 0] });
     const nubs = [];
+    let sel;
     const x0 = 52;
     const pitch = 17;
     return {
@@ -459,10 +460,14 @@ window.Exhibits = (function () {
           g.append(hit(sx - 2, 60, pitch, 54, `way${i}`, 'press'));
         }
         g.append(txt(120, 44, 'SETTINGS'));
+        // the way the keyboard is pointing at; shown only while focused from the keyboard
+        sel = el('rect', { y: 69, width: 16, height: 62, rx: 2.5, fill: 'none', stroke: 'var(--focus)', 'stroke-width': 1.5, class: 'kbd-only' });
+        g.append(sel);
         svg.append(g);
       },
       render() {
         model.bits.forEach((b, i) => nubs[i].setAttribute('y', b ? 73 : 91));
+        sel.setAttribute('x', x0 + model.selected * pitch - 2);
       },
       zones: Object.fromEntries(
         Array.from({ length: 8 }, (_, i) => [
@@ -474,13 +479,16 @@ window.Exhibits = (function () {
           },
         ]),
       ),
+      // Left and Right choose a way; Up puts it ON, Down OFF; Enter or Space flips it.
       key(k) {
-        if (k === 'left') return model.flip(0);
-        if (k === 'right') return model.flip(7);
-        return model.flip(Math.floor(Math.random() * 8));
+        if (k === 'left') return model.select(-1);
+        if (k === 'right') return model.select(1);
+        if (k === 'up') return model.set(model.selected, true);
+        if (k === 'down') return model.set(model.selected, false);
+        return model.flip(model.selected);
       },
       note: () => `Present setting: ${model.toString()}.`,
-      state: () => `set to ${model.toString()}`,
+      state: () => `set to ${model.toString()}; way ${model.selected + 1} selected, ${model.bits[model.selected] ? 'on' : 'off'}`,
     };
   }
 
@@ -608,7 +616,7 @@ window.Exhibits = (function () {
     const wh = 60;
     return {
       title: 'Miniature circuit breaker',
-      meta: '16 A, type B, DIN rail.',
+      meta: '16 A, type B, DIN rail, with the TEST button of an RCBO.',
       text: 'The small button is TEST and trips it. A tripped breaker will not go ON, however hard it is pushed: it must first be pushed fully OFF, then ON. This protects nothing.',
       credit: 'Replaced, and kept',
       model,
@@ -652,11 +660,15 @@ window.Exhibits = (function () {
         if (source === test && e === 'down') return model.test();
         return null;
       },
+      // Left and Right press TEST; Up pushes the lever toward ON, Down toward OFF
+      // (which is how a tripped breaker is reset); Enter or Space flips it.
       key(k) {
         if (k === 'left' || k === 'right') return test.tap();
+        if (k === 'up') return model.push(1);
+        if (k === 'down') return model.push(-1);
         return model.tap();
       },
-      state: () => model.state,
+      state: () => (model.state === 'tripped' ? 'tripped; push it fully OFF to reset' : model.state),
     };
   }
 
@@ -720,8 +732,8 @@ window.Exhibits = (function () {
       },
       key(k) {
         if (k === 'left' || k === 'right') return model.coverTap();
-        if (k === 'up') return model.coverOpen ? model.toggle.set(true) : ['blocked'];
-        if (k === 'down') return model.coverOpen ? model.toggle.set(false) : ['blocked'];
+        if (k === 'up') return model.toggleUsable ? model.toggle.set(true) : ['blocked'];
+        if (k === 'down') return model.toggleUsable ? model.toggle.set(false) : ['blocked'];
         return model.tap();
       },
       state: () => `${model.coverOpen ? 'cover up' : 'cover down'}, ${model.toggle.on ? 'armed' : 'safe'}`,
@@ -770,23 +782,19 @@ window.Exhibits = (function () {
         shadow.setAttribute('fill-opacity', 0.4 - 0.25 * d);
       },
       zones: {
+        // Pressing the head latches it at once, tapped or held, however the
+        // finger wanders; dragging across it twists it.
         head: {
           down(pt) {
             this.x0 = pt.x;
-            this.started = false;
-            return [];
+            return model.grab();
           },
           move(pt) {
-            if (!this.started) {
-              this.started = true;
-              model.twistGrab();
-            }
-            // Dragging across the head twists it: 60 user units for 45 degrees.
-            return model.twistTo(((pt.x - this.x0) / 60) * 45);
+            // 60 user units across the head for 45 degrees of twist.
+            return model.drag(((pt.x - this.x0) / 60) * 45);
           },
-          up(pt, info) {
-            if (info.tap) return model.press();
-            return model.twistRelease();
+          up() {
+            return model.release();
           },
         },
       },
@@ -942,8 +950,8 @@ window.Exhibits = (function () {
         g.append(clip);
         const dg = el('g', { 'clip-path': 'url(#cDrums)' });
         for (let i = 0; i < 4; i++) {
-          const a = el('text', { x: wx + dw * i + dw / 2, 'text-anchor': 'middle', class: 'drum' });
-          const b = el('text', { x: wx + dw * i + dw / 2, 'text-anchor': 'middle', class: 'drum' });
+          const a = el('text', { x: wx + dw * i + dw / 2, 'text-anchor': 'middle', class: 'drum', 'data-drum': i });
+          const b = el('text', { x: wx + dw * i + dw / 2, 'text-anchor': 'middle', class: 'drum', 'data-drum': i });
           dg.append(a, b);
           drums.push([a, b]);
         }
@@ -958,18 +966,15 @@ window.Exhibits = (function () {
         svg.append(g);
       },
       render() {
-        const v = model.shown;
-        for (let i = 0; i < 4; i++) {
-          const place = Math.pow(10, 3 - i);
-          const x = (v / place) % 10;
-          const d = Math.floor(x);
-          const f = x - d;
+        // Each drum carries the next only as it rolls from 9 to 0 (see
+        // Tally.drums), so at rest every drum is square on its digit.
+        model.drums().forEach(({ digit, frac }, i) => {
           const [a, b] = drums[i];
-          a.textContent = String(d);
-          b.textContent = String((d + 1) % 10);
-          a.setAttribute('y', wy + dh - 7 + f * dh);
-          b.setAttribute('y', wy + dh - 7 + (f - 1) * dh);
-        }
+          a.textContent = String(digit);
+          b.textContent = String((digit + 1) % 10);
+          a.setAttribute('y', wy + dh - 7 + frac * dh);
+          b.setAttribute('y', wy + dh - 7 + (frac - 1) * dh);
+        });
         thumbG.setAttribute('transform', `translate(0 ${6 * thumb.depth})`);
       },
       zones: {

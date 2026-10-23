@@ -330,15 +330,27 @@
 
   /* -------------------------------------------------------------------- Dip
    * A bank of tiny rockers. Each flip is one tick. toString() reads the bank
-   * as a binary word, way 1 first. */
+   * as a binary word, way 1 first. `selected` is the way a keyboard user is
+   * pointing at: select() moves it, set() and flip() work any way. */
   class Dip {
     constructor({ ways = 8, bits = null } = {}) {
       this.bits = Array.from({ length: ways }, (_, i) => (bits ? !!bits[i] : false));
+      this.selected = 0;
     }
-    flip(i) {
+    flip(i = this.selected) {
       if (i < 0 || i >= this.bits.length) return [];
       this.bits[i] = !this.bits[i];
       return ['tick'];
+    }
+    // Put way i ON or OFF; a rocker already there does not move.
+    set(i, on) {
+      if (i < 0 || i >= this.bits.length || this.bits[i] === !!on) return [];
+      return this.flip(i);
+    }
+    // Move the selection one way left (dir < 0) or right; it stops at the ends.
+    select(dir) {
+      this.selected = clamp(this.selected + (dir < 0 ? -1 : 1), 0, this.bits.length - 1);
+      return [];
     }
     toString() {
       return this.bits.map((b) => (b ? '1' : '0')).join('');
@@ -428,7 +440,10 @@
    * A chain on a ratchet. pull runs 0..1. Beads tick over the collar every
    * tickEvery of travel; at the end of the stroke the ratchet advances one
    * tooth ('clunk') and the holder changes state. A stroke advances it once,
-   * however long you hang on; a short pull advances nothing. */
+   * however long you hang on; a short pull advances nothing. The ratchet
+   * re-engages once the chain has returned most of the way (below 0.3),
+   * whether it sprang back on its own or the visitor let it back up without
+   * letting go. */
   class PullChain {
     constructor({ tickEvery = 0.12 } = {}) {
       this.tickEvery = tickEvery;
@@ -452,6 +467,10 @@
       if (!this.held) return [];
       p = clamp(p, 0, 1);
       const ev = [];
+      if (p < 0.3) this.advanced = false;
+      // Beads that have gone back up over the collar tick again on the way down.
+      const back = Math.floor(p / this.tickEvery + 1e-9) * this.tickEvery;
+      if (back < this.lastTick) this.lastTick = back;
       while (this.lastTick + this.tickEvery <= p && this.lastTick + this.tickEvery < 0.95) {
         this.lastTick += this.tickEvery;
         ev.push('bead');
@@ -540,6 +559,33 @@
       this.pos = 0.78; // the lever is pushed up and flops back
       return ['refuse'];
     }
+    // A push on the lever in one direction: dir > 0 toward ON, dir < 0 toward
+    // OFF. Pushed toward OFF, a tripped breaker resets; pushed toward ON it
+    // refuses and flops back. A lever already at the end it is pushed toward
+    // does not move.
+    push(dir) {
+      this.held = false;
+      if (dir > 0) {
+        if (this.state === 'off') {
+          this.state = 'on';
+          return ['snap'];
+        }
+        if (this.state === 'tripped') {
+          this.pos = 0.78;
+          return ['refuse'];
+        }
+        return [];
+      }
+      if (this.state === 'on') {
+        this.state = 'off';
+        return ['snap'];
+      }
+      if (this.state === 'tripped') {
+        this.state = 'off';
+        return ['reset'];
+      }
+      return [];
+    }
     test() {
       if (this.state !== 'on') return ['click'];
       this.state = 'tripped';
@@ -558,7 +604,8 @@
   /* ---------------------------------------------------------------- Guarded
    * A toggle under a hinged safety cover. cover runs 0 (closed) to 1 (open).
    * The toggle can only be worked while the cover is open, and closing the
-   * cover forces the toggle OFF. */
+   * cover forces the toggle OFF: on release, or as soon as a cover being
+   * dragged down comes within shutAt of closed, held or not. */
   class Guarded {
     constructor() {
       this.toggle = new Toggle();
@@ -582,6 +629,7 @@
       if (!this.coverHeld) return [];
       this.cover = clamp(c, 0, 1);
       this.coverVel = 0;
+      if (this.coverOpen && this.cover <= Guarded.shutAt) return this.setCover(false);
       return [];
     }
     coverRelease() {
@@ -633,10 +681,15 @@
     }
   }
 
+  Guarded.shutAt = 0.3;
+
   /* ------------------------------------------------------------------ EStop
    * A mushroom-head emergency stop. Push to latch down ('thunk'). It only comes
    * back up when twisted at least releaseAt degrees ('pop'); a smaller twist
-   * springs back and releases nothing. */
+   * springs back and releases nothing. grab / drag / release are the page's
+   * gesture on the head: pressing it latches it at once, however long it is
+   * held and however much the finger wanders, and dragging across it twists
+   * it. */
   class EStop {
     constructor({ releaseAt = 30 } = {}) {
       this.releaseAt = releaseAt;
@@ -655,6 +708,24 @@
     twistGrab() {
       this.twisting = true;
       return [];
+    }
+    grab() {
+      this.wasLatched = this.latched;
+      this.twisted = false;
+      return this.latched ? [] : this.press();
+    }
+    // deg: how far the finger has twisted the head since it was grabbed.
+    drag(deg) {
+      if (!this.twisting) this.twistGrab();
+      if (Math.abs(deg) >= EStop.slop) this.twisted = true;
+      return this.twistTo(deg);
+    }
+    release() {
+      // Pressing a head that was already down, without twisting it, does nothing.
+      const ev = this.wasLatched && this.latched && !this.twisted ? ['dead'] : [];
+      this.wasLatched = false;
+      this.twistRelease();
+      return ev;
     }
     twistTo(deg) {
       if (!this.twisting) return [];
@@ -680,6 +751,8 @@
       return !this.twisting && this.depth === (this.latched ? 1 : 0) && this.vel === 0 && this.twist === 0 && this.twistVel === 0;
     }
   }
+
+  EStop.slop = 5; // degrees of wander that still count as a plain press
 
   /* ------------------------------------------------------------- UselessBox
    * A toggle on a box. Switch it on and, after a pause of its choosing, the
@@ -871,7 +944,9 @@
   }
 
   /* ------------------------------------------------------------------ Tally
-   * A mechanical counter. Four digit drums, so it reads 0000 again after 9999. */
+   * A mechanical counter. Four digit drums, so it reads 0000 again after 9999.
+   * `shown` is where the units drum has rolled to; drums() says where every
+   * drum sits. */
   class Tally {
     constructor({ count = 0 } = {}) {
       this.count = count % 10000;
@@ -889,6 +964,22 @@
     }
     digits() {
       return String(this.count).padStart(4, '0');
+    }
+    // The four drums, thousands first, for a reading v (fractional while the
+    // drums roll): the digit square in the window and how far (0..1) the drum
+    // has turned toward the next. The units drum turns with v. Each higher
+    // drum is carried only while every drum below it shows 9 and the units
+    // drum rolls from 9 to 0, as a counter's carry pinions do, so at rest
+    // every drum sits square on its digit.
+    drums(v = this.shown) {
+      v = ((v % 10000) + 10000) % 10000;
+      const out = [];
+      for (let place = 1000; place >= 1; place /= 10) {
+        const digit = Math.floor(v / place) % 10;
+        const frac = place === 1 ? v - Math.floor(v) : Math.max(0, (v % place) - (place - 1));
+        out.push({ digit, frac });
+      }
+      return out;
     }
     step(dt) {
       // The drums roll toward the count; across the 9999 -> 0000 wrap they roll forward.

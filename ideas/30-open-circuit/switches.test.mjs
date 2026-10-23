@@ -175,6 +175,24 @@ test('dip switch: eight ways, each flip is a tick, read as a binary word', () =>
   assert.deepEqual(d.flip(8), [], 'no ninth way');
 });
 
+test('dip switch: the keyboard chooses a way, then flips it or puts it ON or OFF', () => {
+  const d = new S.Dip({ ways: 8, bits: [0, 1, 0, 1, 1, 0, 1, 0] });
+  assert.equal(d.selected, 0);
+  assert.deepEqual(d.select(-1), [], 'choosing makes no sound');
+  assert.equal(d.selected, 0, 'stops at way 1');
+  d.select(1);
+  d.select(1);
+  assert.equal(d.selected, 2, 'way 3');
+  assert.equal(d.toString(), '01011010', 'choosing a way flips nothing');
+  assert.deepEqual(d.flip(), ['tick']);
+  assert.equal(d.toString(), '01111010', 'only way 3 flipped');
+  assert.deepEqual(d.set(2, true), [], 'already ON: nothing moves');
+  assert.deepEqual(d.set(2, false), ['tick']);
+  assert.equal(d.toString(), '01011010');
+  for (let i = 0; i < 12; i++) d.select(1);
+  assert.equal(d.selected, 7, 'stops at way 8');
+});
+
 /* ------------------------------------------------------------------- Knife */
 test('knife switch: bistable; dropped on the lower half it falls home with one clack', () => {
   const k = new S.Knife({ open: true });
@@ -246,6 +264,27 @@ test('pull chain: caught on the way back up, it will not advance again until it 
   assert.equal(c.on, false);
 });
 
+test('pull chain: let back up without letting go, the ratchet re-engages and the next full pull advances it', () => {
+  const c = new S.PullChain();
+  c.grab();
+  const first = c.drag(1);
+  assert.equal(count(first, 'clunk'), 1);
+  assert.equal(c.on, true);
+  // Back up only half way while held: not re-engaged yet.
+  c.drag(0.5);
+  assert.equal(count(c.drag(1), 'clunk'), 0, 'half way back is not far enough');
+  // All the way back up, still held: re-engaged; the beads tick again on the way down.
+  assert.deepEqual(c.drag(0), []);
+  const second = c.drag(1);
+  assert.equal(count(second, 'clunk'), 1, 'second full stroke in one hold advances it');
+  assert.equal(count(second, 'bead'), count(first, 'bead'), 'and ticks as many beads as the first');
+  assert.equal(c.on, false);
+  assert.deepEqual(c.drag(0.97), [], 'hanging on still does nothing more');
+  c.release();
+  run(c, 1);
+  assert.ok(c.idle());
+});
+
 /* ----------------------------------------------------------------- Breaker */
 test('breaker: TEST trips it only when ON; tripped, it cannot be switched ON until pushed OFF', () => {
   const b = new S.Breaker({ state: 'on' });
@@ -273,6 +312,28 @@ test('breaker: TEST trips it only when ON; tripped, it cannot be switched ON unt
   b.release();
   run(b, 1);
   assert.equal(b.pos, 1);
+  assert.ok(b.idle());
+});
+
+test('breaker: pushed in a direction (the keyboard), it resets from tripped toward OFF and refuses toward ON', () => {
+  const b = new S.Breaker({ state: 'on' });
+  b.test();
+  assert.equal(b.state, 'tripped');
+  assert.deepEqual(b.push(1), ['refuse'], 'pushed toward ON it refuses');
+  assert.equal(b.state, 'tripped');
+  run(b, 1);
+  assert.equal(b.pos, 0.5, 'and flops back to the middle');
+  assert.deepEqual(b.push(-1), ['reset'], 'pushed toward OFF it resets');
+  assert.equal(b.state, 'off');
+  assert.deepEqual(b.push(-1), [], 'already OFF: pushing it further does nothing');
+  assert.equal(b.state, 'off');
+  assert.deepEqual(b.push(1), ['snap']);
+  assert.equal(b.state, 'on');
+  assert.deepEqual(b.push(1), [], 'already ON: pushing it further does nothing');
+  assert.deepEqual(b.push(-1), ['snap']);
+  assert.equal(b.state, 'off');
+  run(b, 1);
+  assert.equal(b.pos, 0);
   assert.ok(b.idle());
 });
 
@@ -313,6 +374,36 @@ test('guarded toggle: cannot be worked under the cover; closing the cover forces
   assert.ok(g.idle());
 });
 
+test('guarded toggle: a cover dragged shut forces the switch OFF while still held', () => {
+  const g = new S.Guarded();
+  g.coverTap();
+  run(g, 1);
+  g.tap();
+  assert.equal(g.toggle.on, true, 'armed');
+  g.coverGrab();
+  assert.deepEqual(g.coverDrag(0.4), [], 'not shut yet');
+  assert.equal(g.toggle.on, true);
+  assert.equal(g.toggleUsable, false, 'but it cannot be worked under a cover that is coming down');
+  assert.deepEqual(g.tap(), ['blocked']);
+  assert.deepEqual(g.coverDrag(0.2), ['drop', 'snap'], 'shut: the switch is forced OFF at once');
+  assert.equal(g.toggle.on, false);
+  assert.equal(g.coverOpen, false);
+  assert.deepEqual(g.coverDrag(0), []);
+  assert.deepEqual(g.coverRelease(), [], 'letting go of a shut cover changes nothing');
+  run(g, 1);
+  assert.equal(g.cover, 0);
+  assert.ok(g.idle());
+  // Dragged shut, then back up past half before letting go: it opens, still OFF.
+  g.coverTap();
+  run(g, 1);
+  g.tap();
+  g.coverGrab();
+  assert.deepEqual(g.coverDrag(0.1), ['drop', 'snap']);
+  assert.deepEqual(g.coverDrag(0.8), []);
+  assert.deepEqual(g.coverRelease(), ['lift']);
+  assert.equal(g.toggle.on, false);
+});
+
 test('guarded toggle: a cover dragged and dropped settles open or closed by halves', () => {
   const g = new S.Guarded();
   g.coverGrab();
@@ -351,6 +442,38 @@ test('e-stop: push latches; it releases only with a twist of 30 degrees or more'
   // Twisting an unlatched head releases nothing.
   e.twistGrab();
   assert.deepEqual(e.twistTo(45), []);
+});
+
+test('e-stop: a press latches it at once, however long it is held and however the finger wanders', () => {
+  const e = new S.EStop();
+  assert.deepEqual(e.grab(), ['thunk'], 'latched on the push, not on letting go');
+  assert.equal(e.latched, true);
+  run(e, 0.6); // held for 0.6 s
+  assert.equal(e.depth, 1);
+  assert.deepEqual(e.drag(3), [], 'a finger that drifts a little');
+  assert.deepEqual(e.release(), []);
+  assert.equal(e.latched, true);
+  run(e, 1);
+  assert.equal(e.twist, 0);
+  // Pressing it again, held, does nothing but make a dead sound on letting go.
+  assert.deepEqual(e.grab(), []);
+  run(e, 0.6);
+  assert.deepEqual(e.release(), ['dead']);
+  assert.equal(e.latched, true);
+  // A small twist springs back; a full one releases it.
+  e.grab();
+  assert.deepEqual(e.drag(20), []);
+  assert.deepEqual(e.release(), [], 'a twist is not a press');
+  run(e, 1);
+  assert.equal(e.latched, true);
+  e.grab();
+  assert.deepEqual(e.drag(15), []);
+  assert.deepEqual(e.drag(31), ['pop']);
+  assert.deepEqual(e.drag(45), [], 'only one pop');
+  assert.deepEqual(e.release(), []);
+  run(e, 1);
+  assert.equal(e.latched, false);
+  assert.ok(e.idle());
 });
 
 /* -------------------------------------------------------------- UselessBox */
@@ -489,6 +612,59 @@ test('tally counter: counts every press and reads 0000 again after 9999', () => 
   run(t, 2);
   assert.equal(t.shown, 0);
   assert.ok(t.idle());
+});
+
+test('tally counter: at rest every drum sits square on its digit, for every count', () => {
+  const t = new S.Tally();
+  for (let n = 0; n < 10000; n++) {
+    const d = t.drums(n);
+    assert.equal(d.map((x) => x.digit).join(''), String(n).padStart(4, '0'), `count ${n}`);
+    assert.ok(d.every((x) => x.frac === 0), `count ${n}: a drum sits between digits (${d.map((x) => x.frac)})`);
+  }
+});
+
+test('tally counter: a drum is carried only while the units drum rolls from 9 to 0 with every drum below it at 9', () => {
+  const t = new S.Tally();
+  for (let n = 0; n < 10000; n++) {
+    for (const f of [0.25, 0.5, 0.75]) {
+      const d = t.drums(n + f);
+      const want = String(n).padStart(4, '0');
+      for (let i = 0; i < 4; i++) {
+        const place = 10 ** (3 - i);
+        const carried = place === 1 || n % place === place - 1;
+        assert.equal(String(d[i].digit), want[i], `${n + f}: drum ${i} digit`);
+        assert.ok(Math.abs(d[i].frac - (carried ? f : 0)) < 1e-9, `${n + f}: drum ${i} turned ${d[i].frac}`);
+      }
+    }
+  }
+  // Every drum turns smoothly forward and never jumps.
+  const pos = (v) => t.drums(v).map((x) => x.digit + x.frac);
+  let prev = pos(0);
+  for (let v = 0.01; v < 10000; v += 0.01) {
+    const p = pos(v);
+    for (let i = 0; i < 4; i++) {
+      const step = (((p[i] - prev[i]) % 10) + 10) % 10;
+      assert.ok(step < 0.0101, `drum ${i} jumped ${step} at ${v}`);
+    }
+    prev = p;
+  }
+});
+
+test('tally counter: after counting at any frame rate, the drums come to rest on the count', () => {
+  const rnd = S.mulberry32(42);
+  for (const dt of [1 / 240, 1 / 120, 1 / 60, 1 / 30, 0.05, Infinity]) {
+    const t = new S.Tally({ count: 9990 });
+    t.shown = 9990;
+    for (let i = 0; i < 300; i++) {
+      if (rnd() < 0.2) t.bump();
+      t.step(dt);
+    }
+    for (let i = 0; i < 300 && !t.idle(); i++) t.step(dt);
+    assert.ok(t.idle(), `dt ${dt}`);
+    const d = t.drums();
+    assert.equal(d.map((x) => x.digit).join(''), t.digits(), `dt ${dt}`);
+    assert.ok(d.every((x) => x.frac === 0), `dt ${dt}`);
+  }
 });
 
 /* ------------------------------------------------------------------ settle */

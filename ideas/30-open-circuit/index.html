@@ -91,6 +91,8 @@
   .vitrine { background: var(--vitrine); padding: 4px; }
   .vitrine svg { display: block; width: 100%; height: auto; outline: none; border-radius: 4px; }
   .vitrine svg:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
+  .vitrine svg .kbd-only { opacity: 0; pointer-events: none; }
+  .vitrine svg:focus-visible .kbd-only { opacity: 1; }
   .zone { touch-action: none; }
   .zone.grab { cursor: grab; }
   .zone.press { cursor: pointer; }

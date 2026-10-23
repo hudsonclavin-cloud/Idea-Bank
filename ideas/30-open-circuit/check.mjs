@@ -108,6 +108,40 @@ async function visit(browser, origin, vp, phoneOnly = false) {
   }
   const settle = (ms = 700) => page.waitForTimeout(ms);
   const T = { toggle: 0, rotary: 1, lights: 2, sound: 3, bell: 4, latch: 5, key: 6, dip: 7, chain: 8, knife: 9, breaker: 10, guard: 11, estop: 12, box: 13, tally: 14 };
+  // What the tally's drums show, read from the drawing itself: for each drum,
+  // the digit most visible in the window. A drum is square when that digit sits
+  // on the window's rest line (7 units above its bottom edge) and the drum's
+  // other digit is wholly out of sight.
+  const drumsShown = () => page.evaluate((i) => {
+    const svg = window.OpenCircuit.exhibits[i].svg;
+    const w = svg.querySelector('#cDrums rect').getBBox();
+    const restLine = w.y + w.height - 7;
+    const drums = [];
+    for (let d = 0; d < 4; d++) {
+      const seen = [...svg.querySelectorAll(`text[data-drum="${d}"]`)].map((t) => {
+        const b = t.getBBox();
+        return { digit: t.textContent, y: Number(t.getAttribute('y')), vis: Math.max(0, Math.min(b.y + b.height, w.y + w.height) - Math.max(b.y, w.y)) / b.height };
+      }).sort((a, b) => b.vis - a.vis);
+      drums.push(seen);
+    }
+    return {
+      reads: drums.map((s) => s[0].digit).join(''),
+      square: drums.map((s) => Math.abs(s[0].y - restLine) < 0.01 && s[0].vis > 0.99 && s[1].vis < 0.01),
+    };
+  }, T.tally);
+  // Put the tally at reading v, still (count and drums together), and draw it.
+  const setTally = (v) => page.evaluate(([i, v]) => {
+    const x = window.OpenCircuit.exhibits[i];
+    x.model.count = Math.floor(v);
+    x.model.shown = v;
+    x.model.vel = 0;
+    x.render();
+  }, [T.tally, v]);
+  // Send keys straight to an exhibit within one task, so nothing animates in between.
+  const keysNow = (i, keys) => page.evaluate(([i, keys]) => {
+    const svg = window.OpenCircuit.exhibits[i].svg;
+    for (const key of keys) svg.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  }, [i, keys]);
 
   if (phoneOnly) {
     // On the phone: touch taps work every exhibit, nothing scrolls sideways, nothing throws.
@@ -123,9 +157,37 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     await settle();
     const s = await sounds();
     check(s.includes('down') && s.includes('up'), `phone: bell push sounds down and up (${s})`);
+    // The e-stop latches under a finger that is held down, or that drifts a little.
+    {
+      const cdp = await context.newCDPSession(page);
+      const touch = (type, p) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: p ? [{ x: p.x, y: p.y }] : [] });
+      const p = await at(T.estop, 120, 88);
+      await touch('touchStart', p);
+      await page.waitForTimeout(600);
+      check(await state(T.estop, 'm.latched'), 'phone: the e-stop latches while a finger is still held on it');
+      await touch('touchEnd');
+      await settle(300);
+      check(await state(T.estop, 'm.latched'), 'phone: and stays latched when the finger lifts after 0.6 s');
+      await page.evaluate((i) => { const m = window.OpenCircuit.exhibits[i].model; m.latched = false; }, T.estop);
+      await settle(500);
+      await touch('touchStart', p);
+      await touch('touchMove', { x: p.x + 5, y: p.y + 2 });
+      await touch('touchEnd');
+      await settle(300);
+      check(await state(T.estop, 'm.latched'), 'phone: a quick touch that drifts 5 px still latches the e-stop');
+      await page.evaluate((i) => { const m = window.OpenCircuit.exhibits[i].model; m.latched = false; }, T.estop);
+      await settle(500);
+    }
     await tap(T.box, 72, 60);
     await page.waitForTimeout(6500);
     check(!(await state(T.box, 'm.toggle.on')), 'phone: the useless machine switched itself off');
+    // At rest after all that, the tally's drums read the count on its plaque.
+    await settle(500);
+    {
+      const shown = await drumsShown();
+      const digits = await state(T.tally, 'm.digits()');
+      check(shown.reads === digits && shown.square.every(Boolean), `phone: the tally's drums read ${digits} at rest (${shown.reads}, square ${shown.square})`);
+    }
     // Hammer everything with touch taps.
     for (let r = 0; r < 4; r++) for (let i = 0; i < 15; i++) await tap(i, 120, 90);
     await settle(1500);
@@ -269,6 +331,22 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     check(before === '01011010' && after === '11011010', `dip: way 1 flipped (${before} -> ${after})`);
     const note = await page.locator('.note').nth(T.dip).textContent();
     check(note === 'Present setting: 11011010.', `dip: plaque updates (${note})`);
+    // From the keyboard: Right chooses a way, Enter flips that way and no other,
+    // Up puts it ON, Down OFF.
+    await svgs.nth(T.dip).focus();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await settle(100);
+    check((await state(T.dip, 'm.toString()')) === '11011010', 'dip keys: choosing a way flips nothing');
+    check((await svgs.nth(T.dip).getAttribute('aria-label')).includes('way 3 selected'), 'dip keys: the chosen way is announced');
+    const mark = await page.evaluate((i) => { const e = window.OpenCircuit.exhibits[i].svg.querySelector('.kbd-only'); return e ? getComputedStyle(e).opacity : 'missing'; }, T.dip);
+    check(mark === '1', `dip keys: the chosen way is marked (opacity ${mark})`);
+    await page.keyboard.press('Enter');
+    check((await state(T.dip, 'm.toString()')) === '11111010', 'dip keys: Enter flips way 3 and only way 3');
+    await page.keyboard.press('ArrowUp');
+    check((await state(T.dip, 'm.toString()')) === '11111010', 'dip keys: Up on a way already ON leaves it');
+    await page.keyboard.press('ArrowDown');
+    check((await state(T.dip, 'm.toString()')) === '11011010', 'dip keys: Down puts it OFF');
   }
 
   /* 9. Pull chain */
@@ -285,6 +363,23 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     check(s.filter((n) => n === 'clunk').length === 1, `chain: exactly one clunk for a full pull (${s})`);
     check(await state(T.chain, 'm.on'), 'chain: ratchet advanced');
     check((await state(T.chain, 'm.pos')) === 0, 'chain: sprang back up');
+    // Two full strokes without letting go: down, back up, down again.
+    await sounds();
+    const t0 = await state(T.tally, 'm.count');
+    const top = await at(T.chain, 150, 126);
+    const bottom = await at(T.chain, 150, 200);
+    await page.mouse.move(top.x, top.y);
+    await page.mouse.down();
+    for (const p of [bottom, top, bottom]) {
+      await page.mouse.move(p.x, p.y, { steps: 20 });
+      await page.waitForTimeout(40);
+    }
+    await page.mouse.up();
+    await settle();
+    s = await sounds();
+    check(s.filter((n) => n === 'clunk').length === 2 && (await state(T.chain, 'm.on')), `chain: two full strokes in one hold advance it twice (${s})`);
+    const counted = (await state(T.tally, 'm.count')) - t0;
+    check(counted === 2, `chain: the tally counts both strokes (+${counted})`);
   }
 
   /* 10. Knife */
@@ -319,6 +414,26 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     await tap(T.breaker, 120, 78);
     await settle();
     check(await state(T.breaker, "m.state === 'on' && m.pos === 1"), 'breaker: and now it goes ON');
+    // The same from the keyboard: Left is TEST, Up pushes toward ON, Down toward OFF.
+    await svgs.nth(T.breaker).focus();
+    await sounds();
+    const press = async (key) => { await page.keyboard.press(key); await settle(250); return [await state(T.breaker, 'm.state'), await sounds()]; };
+    let [st, ks] = await press('ArrowLeft');
+    check(st === 'tripped' && ks.includes('trip'), `breaker keys: Left presses TEST and trips it (${st}; ${ks})`);
+    [st, ks] = await press('ArrowUp');
+    check(st === 'tripped' && ks.includes('refuse'), `breaker keys: Up on a tripped breaker is refused (${st}; ${ks})`);
+    [st, ks] = await press('Enter');
+    check(st === 'tripped', `breaker keys: Enter does not force it ON either (${st})`);
+    [st, ks] = await press('ArrowDown');
+    check(st === 'off' && ks.includes('reset'), `breaker keys: Down pushes it fully OFF and resets it (${st}; ${ks})`);
+    check((await svgs.nth(T.breaker).getAttribute('aria-label')) === 'Miniature circuit breaker: off', 'breaker keys: announced as off');
+    [st, ks] = await press('ArrowDown');
+    check(st === 'off' && ks.length === 0, `breaker keys: Down on an OFF breaker leaves it OFF (${st}; ${ks})`);
+    [st, ks] = await press('ArrowUp');
+    check(st === 'on' && ks.includes('snap'), `breaker keys: Up switches it ON (${st}; ${ks})`);
+    [st, ks] = await press('ArrowUp');
+    check(st === 'on' && ks.length === 0, `breaker keys: Up on an ON breaker leaves it ON (${st}; ${ks})`);
+    check((await state(T.breaker, 'm.pos')) === 1, 'breaker keys: lever at ON');
   }
 
   /* 12. Guarded toggle */
@@ -353,8 +468,33 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     await settle();
     s = await sounds();
     check((await state(T.guard, 'm.toggle.on && m.toggle.pos === 1')) && s.join() === 'snap', `guard: dragging the lever arms it with one snap (${s})`);
-    await tap(T.guard, 120, 14);
+    // Armed, then the cover is dragged shut and held there: the switch goes OFF
+    // as the cover comes down, before it is let go.
+    await sounds();
+    const c0 = await at(T.guard, 120, 14);
+    const c1 = await at(T.guard, 120, 110);
+    await page.mouse.move(c0.x, c0.y);
+    await page.mouse.down();
+    await page.mouse.move(c1.x, c1.y, { steps: 20 });
+    await page.waitForTimeout(100);
+    s = await sounds();
+    check(!(await state(T.guard, 'm.toggle.on')) && !(await state(T.guard, 'm.coverOpen')) && s.includes('drop') && s.includes('snap'), `guard: a cover held shut has already forced the switch OFF (${s})`);
+    check((await svgs.nth(T.guard).getAttribute('aria-label')) === 'Guarded toggle: cover down, safe', 'guard: and says so while held');
+    await page.mouse.up();
     await settle();
+    s = await sounds();
+    check(!s.includes('snap') && (await state(T.guard, 'm.cover === 0')), `guard: letting go changes nothing more (${s})`);
+    // From the keyboard: Right lifts the cover, but Up cannot arm the switch
+    // until the cover is actually up.
+    await keysNow(T.guard, ['ArrowRight', 'ArrowUp']);
+    check((await state(T.guard, 'm.coverOpen && !m.toggle.on')), 'guard keys: Up straight after Right is blocked while the cover is still down');
+    await settle();
+    await page.keyboard.press('ArrowUp');
+    await settle(300);
+    check(await state(T.guard, 'm.toggle.on'), 'guard keys: with the cover up, Up arms it');
+    await page.keyboard.press('ArrowLeft');
+    await settle();
+    check(!(await state(T.guard, 'm.toggle.on')) && !(await state(T.guard, 'm.coverOpen')), 'guard keys: closing the cover forces it OFF');
   }
 
   /* 13. E-stop */
@@ -370,6 +510,32 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     await settle();
     const s = await sounds();
     check(!(await state(T.estop, 'm.latched')) && s.includes('pop') && (await state(T.estop, 'm.depth')) === 0, `estop: a full twist pops it up (${s})`);
+    // A deliberate press-and-hold latches it, on the push.
+    const p = await at(T.estop, 120, 88);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.waitForTimeout(600);
+    check((await state(T.estop, 'm.latched')) && (await sounds()).includes('thunk'), 'estop: pressed and held, it latches with a thunk before it is let go');
+    await page.mouse.up();
+    await settle();
+    check(await state(T.estop, 'm.latched'), 'estop: and stays latched after a 0.6 s hold');
+    // Pressed again while latched: a dead push, nothing changes.
+    await tap(T.estop, 120, 88);
+    await settle();
+    check((await state(T.estop, 'm.latched')) && (await sounds()).includes('dead'), 'estop: pushing a latched head does nothing');
+    await drag(T.estop, 100, 88, 160, 88, 20);
+    await settle();
+    check(!(await state(T.estop, 'm.latched')), 'estop: twisted free again');
+    // A quick press whose finger drifts 6 px still latches it.
+    await sounds();
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await page.mouse.move(p.x + 6, p.y + 1, { steps: 3 });
+    await page.mouse.up();
+    await settle();
+    check((await state(T.estop, 'm.latched')) && (await sounds()).includes('thunk'), 'estop: a press that drifts 6 px latches it');
+    await drag(T.estop, 100, 88, 160, 88, 20);
+    await settle();
   }
 
   /* 14. Useless machine */
@@ -420,6 +586,25 @@ async function visit(browser, origin, vp, phoneOnly = false) {
     check((await state(T.tally, 'm.count')) === count + 1 && (await sounds()).includes('tally'), 'tally: its own press counts once, with a click');
     const note = await page.locator('.note').nth(T.tally).textContent();
     check(note === `Operations so far: ${String(count + 1).padStart(4, '0')}.`, `tally: plaque reads the count (${note})`);
+    // The drums themselves, read from the drawing, agree with the plaque at rest.
+    let shown = await drumsShown();
+    check(shown.reads === String(count + 1).padStart(4, '0') && shown.square.every(Boolean), `tally: the drums read ${String(count + 1).padStart(4, '0')} at rest (${shown.reads}, square ${shown.square})`);
+    // At rest, every count reads true with every drum square.
+    const wrong = [];
+    for (const n of [0, 7, 9, 15, 58, 95, 100, 999, 1009, 1099, 4321, 5050, 8765, 9990, 9999]) {
+      await setTally(n);
+      shown = await drumsShown();
+      if (shown.reads !== String(n).padStart(4, '0') || !shown.square.every(Boolean)) wrong.push(`${n}: ${shown.reads} ${shown.square}`);
+    }
+    check(wrong.length === 0, `tally: every test count reads true at rest (${wrong.join('; ')})`);
+    // Mid-roll: only the drums being carried are between digits.
+    await setTally(1099.5);
+    shown = await drumsShown();
+    check(shown.reads[0] === '1' && shown.square.join() === 'true,false,false,false', `tally: from 1099 to 1100 the thousands drum stays put while the others carry (${shown.reads} ${shown.square})`);
+    await setTally(1234.5);
+    shown = await drumsShown();
+    check(shown.reads.slice(0, 3) === '123' && shown.square.join() === 'true,true,true,false', `tally: from 1234 to 1235 only the units drum turns (${shown.reads} ${shown.square})`);
+    await setTally(count + 1);
   }
 
   /* keyboard */
