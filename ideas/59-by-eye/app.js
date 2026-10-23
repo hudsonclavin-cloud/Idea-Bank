@@ -3,9 +3,12 @@
   'use strict';
   const L = window.ByEyeLetters;
   const FACES = window.ByEyeTypefaces;
+  const M = window.ByEyeMethod;
   const CAP = L.CAP;
   const NS = 'http://www.w3.org/2000/svg';
-  const STORE = 'by-eye-v1';
+  // v2: four tries per test, each with its start. Results taken by the first method (two tries,
+  // starts centred on the typefaces' answers) are not carried over.
+  const STORE = 'by-eye-v2';
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------- small helpers ----------
@@ -65,13 +68,19 @@
     const m = s.length >> 1;
     return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
   };
+  const validTry = (q) => q && Number.isFinite(q.start) && Number.isFinite(q.stop) && (q.side === 1 || q.side === -1);
   function load() {
     try {
       const raw = window.localStorage.getItem(STORE);
       const d = raw ? JSON.parse(raw) : null;
-      return d && d.v === 1 && d.tests ? d : { v: 1, tests: {} };
+      if (!d || d.v !== 2 || !d.tests) return { v: 2, tests: {} };
+      for (const k of Object.keys(d.tests)) {
+        const r = d.tests[k];
+        if (!r || !Array.isArray(r.tries) || !r.tries.every(validTry) || !Array.isArray(r.sides) || r.sides.length !== M.TRIES) delete d.tests[k];
+      }
+      return d;
     } catch (e) {
-      return { v: 1, tests: {} };
+      return { v: 2, tests: {} };
     }
   }
   function save() {
@@ -83,20 +92,28 @@
   }
   const state = load();
 
-  // The reader's alphabet: each finished test's value, the ruler's for the rest.
+  // A test's result: method.js's estimate from the four tries, or null while tries remain.
+  function resultOf(key) {
+    const r = state.tests[key];
+    if (!r || r.tries.length < M.TRIES) return null;
+    return M.estimate(key, r.tries);
+  }
+  // The reader's alphabet: each test with a reliable result takes its value; the ruler's for the rest.
   function eyeParams() {
     const p = Object.assign({}, L.RULER);
     for (const t of TESTS) {
-      const r = state.tests[t.key];
-      if (r && r.tries && r.tries.length === 2) p[t.key] = (r.tries[0] + r.tries[1]) / 2;
+      const res = resultOf(t.key);
+      if (res && res.ok) p[t.key] = res.value;
     }
     return p;
   }
-  const doneCount = () => TESTS.filter((t) => state.tests[t.key] && state.tests[t.key].tries.length === 2).length;
+  const finished = () => TESTS.filter((t) => resultOf(t.key));
+  const reliable = () => TESTS.filter((t) => (resultOf(t.key) || {}).ok);
 
   // ---------- what the typefaces did, in each test's display units ----------
   const sans = FACES.sans;
   const faceLabel = (f) => `${f.name} ${f.style}`;
+  const pctRange = (v, d = 1) => `${fmt(Math.min(...v), d)}% to ${fmt(Math.max(...v), d)}%`;
 
   const TESTS = [
     {
@@ -104,12 +121,8 @@
       title: 'Round against flat',
       word: 'HOH',
       ask: 'Make the O look exactly as tall as the H.',
-      less: 'Smaller O',
-      more: 'Bigger O',
-      span: [-0.03, 0.065],
-      high: [0.035, 0.055],
-      low: [-0.025, -0.012],
-      nudge: 0.0007,
+      less: 'Shorter O',
+      more: 'Taller O',
       turn: null,
       show: (v) => v * 100,
       axis: [-2, 5, 1],
@@ -120,14 +133,15 @@
         const p = v * 100;
         if (Math.abs(p) < 0.15) return 'You kept the O as the ruler drew it, within 0.15% of the H’s height.';
         if (p > 0)
-          return `Your O rises <b>${fmt(p, 1)}%</b> of the cap height above the H and sinks as far below it: it is <b>${fmt(2 * p, 1)}%</b> taller than the H. By the ruler that is too tall. To your eye it is equal.`;
-        return `You made the O <b>${fmt(-2 * p, 1)}%</b> shorter than the H. That is the unusual direction: most eyes, and every typeface measured here, ask for more.`;
+          return `Your O rises <b>${fmt(p, 1)}%</b> of the cap height above the H and sinks as far below it: it is <b>${fmt(2 * p, 1)}%</b> taller than the H. By the ruler that is too tall. Going by your four tries, it is where the O looks as tall as the H to you, this time.`;
+        return `You made the O <b>${fmt(-2 * p, 1)}%</b> shorter than the H. That is the unusual direction: every typeface measured here makes its O taller.`;
       },
       facesLine() {
         const v = this.faces.map((f) => f.v);
-        return `The eight sans serifs measured here let their O overshoot by ${fmt(Math.min(...v))}% to ${fmt(Math.max(...v))}% a side (median ${fmt(median(v))}%).`;
+        const sides = sans.flatMap((f) => [f.roundTop * 100, f.roundBottom * 100]);
+        return `The eight sans serifs measured here (four designs, each in two weights) let their O overshoot by ${pctRange(v)} of the cap height, averaged over top and bottom (median ${fmt(median(v))}%; single sides ${pctRange(sides, 2)}).`;
       },
-      why: 'A flat letter sits on the line along its whole width. A round one touches it at a single point, has little ink near it, and seems to stop short.',
+      why: 'A flat letter sits on the line along its whole width. A round one touches it at a single point, has little ink near it, and seems to stop short. Only the O’s height changes here; its width stays put.',
     },
     {
       key: 'point',
@@ -136,10 +150,6 @@
       ask: 'Make the point of the A reach the top line and the point of the V reach the baseline, to your eye.',
       less: 'Shorter points',
       more: 'Longer points',
-      span: [-0.04, 0.11],
-      high: [0.06, 0.09],
-      low: [-0.035, -0.015],
-      nudge: 0.0007,
       turn: null,
       show: (v) => v * 100,
       axis: [-2, 8, 2],
@@ -153,16 +163,16 @@
         else if (p > 0)
           s = `Your A’s point rises <b>${fmt(p, 1)}%</b> of the cap height above the top line, and your V’s sinks as far below the baseline.`;
         else s = `You pulled the points <b>${fmt(-p, 1)}%</b> inside the lines. That is the unusual direction.`;
-        const r = state.tests.round;
-        if (r && r.tries.length === 2 && p > 0.15) {
-          const ro = ((r.tries[0] + r.tries[1]) / 2) * 100;
+        const r = resultOf('round');
+        if (r && r.ok && p > 0.15) {
+          const ro = r.value * 100;
           if (ro > 0.15) s += ` That is ${fmt(p / ro, 1)} times your overshoot for the O.`;
         }
         return s;
       },
       facesLine() {
         const v = this.faces.map((f) => f.v);
-        return `None of the eight sans serifs has a pointed A or V; they cut their points flat, which needs no overshoot. The serif faces Liberation Serif and FreeSerif end their V nearly in a point, and sink it ${fmt(Math.min(...v))}% to ${fmt(Math.max(...v))}% below the baseline.`;
+        return `None of the eight sans serifs has a pointed A or V; they cut their points flat, which needs no overshoot. Four serif faces (Liberation Serif and FreeSerif, regular and bold) end their V in a narrow vertex, and sink it ${pctRange(v)} below the baseline.`;
       },
       why: 'A point touches the line at a single point and has almost no ink near it, so it can seem to stop shorter still than a curve. Type designers’ own accounts give points more overshoot than rounds.',
     },
@@ -173,18 +183,14 @@
       ask: 'Make the horizontal strokes look exactly as heavy as the upright ones.',
       less: 'Thinner horizontals',
       more: 'Thicker horizontals',
-      span: [0.62, 1.22],
-      high: [1.1, 1.18],
-      low: [0.66, 0.74],
-      nudge: 0.005,
       turn: 'sideways',
       show: (v) => (1 / v - 1) * 100,
       axis: [-10, 50, 10],
       unit: '%: how much thicker the uprights are than the horizontals',
       faces: sans.map((f) => ({ label: faceLabel(f), v: (1 / f.bar - 1) * 100 })),
       lab: [
-        { label: 'Lab: de Waard et al. 2019, experiment 1', v: 5.4 },
-        { label: 'Lab: experiment 2', v: 2.6 },
+        { label: 'Lab: de Waard et al. 2019, experiment 1, average of 28 people', v: 5.4 },
+        { label: 'Lab: experiment 2, average', v: 2.6 },
       ],
       verdict(v) {
         const thinner = (1 - v) * 100;
@@ -195,7 +201,7 @@
       },
       facesLine() {
         const v = this.faces.map((f) => f.v);
-        return `With plain lines in a lab, people needed the upright 5.4% thicker (2.6% in a second experiment). The eight sans serifs make their H’s uprights ${fmt(Math.min(...v), 0)}% to ${fmt(Math.max(...v), 0)}% thicker than its bar: type thins its horizontals by more than the bare illusion asks, as the lab’s authors noted of Futura and Avenir.`;
+        return `In a lab, with single lines rather than letters and a same-or-different task rather than a slider, an upright had to be 5.4% thicker on average to look as thick as a horizontal (2.6% in a second experiment), and people differed. The eight sans serifs make their H’s uprights ${pctRange(v, 0)} thicker than its bar: type thins its horizontals by more than the bare illusion asks, as the lab’s authors noted of Futura and Avenir. Your four tries are one person at one size, so beside either of these only their direction means much.`;
       },
       why: 'Turn the letters on their side. Your thinned horizontals become uprights, and now they look thin: nothing changed but the direction.',
     },
@@ -206,10 +212,6 @@
       ask: 'Put the crossbar of the H, and the middle arm of the E, exactly halfway up.',
       less: 'Lower',
       more: 'Higher',
-      span: [0.42, 0.6],
-      high: [0.56, 0.585],
-      low: [0.425, 0.445],
-      nudge: 0.001,
       turn: 'over',
       show: (v) => (v - 0.5) * 100,
       axis: [-4, 8, 2],
@@ -225,9 +227,9 @@
       },
       facesLine() {
         const v = this.faces.map((f) => f.v);
-        return `All eight sans serifs raise the centre of the H’s bar, by ${fmt(Math.min(...v))}% to ${fmt(Math.max(...v))}% of the cap height.`;
+        return `All eight sans serifs raise the centre of the H’s bar, by ${pctRange(v)} of the cap height.`;
       },
-      why: 'Turn it over: the bar you raised is now below the middle, and it looks low. Asked to mark the middle of an upright line, most people mark it a little too high.',
+      why: 'Turn it over: the bar you raised is now below the middle, and it looks low. Asked to mark the middle of an upright line, people on average mark it a little too high, by an amount that varies from person to person.',
     },
     {
       key: 'halves',
@@ -236,10 +238,6 @@
       ask: 'Make the top and bottom storeys of B, 8 and S look exactly the same size.',
       less: 'Smaller top',
       more: 'Bigger top',
-      span: [0.4, 0.56],
-      high: [0.53, 0.55],
-      low: [0.415, 0.435],
-      nudge: 0.001,
       turn: 'over',
       show: (v) => (1 - v / (1 - v)) * 100,
       axis: [-10, 25, 5],
@@ -254,11 +252,28 @@
       },
       facesLine() {
         const v = this.faces.map((f) => f.v);
-        return `All eight sans serifs make the top of the 8 smaller, by ${fmt(Math.min(...v))}% to ${fmt(Math.max(...v))}%.`;
+        return `All eight sans serifs make the top of the 8 smaller, by ${pctRange(v)}.`;
       },
-      why: 'Turn it over: the bigger storey is now on top and the letters look ready to topple. The top of a shape tends to look bigger than an equal bottom, which is why every 8 measured here has the smaller top.',
+      why: 'Turn it over: the bigger storey is now on top and the letters look ready to topple. The top of a shape tends to look bigger than an equal bottom; that is the usual reason given for the smaller top of every 8 measured here.',
     },
   ];
+
+  // What the fit says about how the reader adjusted, and why there may be no result.
+  function fitNote(res) {
+    if (!res) return '';
+    const closed = (1 - res.left) * 100;
+    if (res.ok) {
+      if (Math.abs(res.left) < 0.05) return 'From four tries. Each one went very nearly all the way to your setting.';
+      if (res.left > 0) return `From four tries. On average each try closed ${fmt(closed, 0)}% of the distance from where it started to your setting, and stopped short of the rest; the result allows for that.`;
+      return `From four tries. On average each try went ${fmt(-res.left * 100, 0)}% past your setting; the result allows for that.`;
+    }
+    if (res.why === 'anchored')
+      return `<b>No setting can be read off these four tries.</b> Where you stopped followed where you started: on average each try closed only ${fmt(closed, 0)}% of the distance (the page needs at least half), so the stops say more about the starting points than about the letters. Do it again, and keep adjusting until the letters look equal.`;
+    if (res.why === 'overshot')
+      return '<b>No setting can be read off these four tries.</b> Starting higher made you stop much lower, by more than half as much, so the stops depend on the starts in a way the page cannot correct. Do it again.';
+    if (res.why === 'outside') return '<b>No setting can be read off these four tries:</b> they do not settle inside the range this test can reach. Do it again.';
+    return '<b>No setting can be read off these four tries.</b> Do it again.';
+  }
 
   // ---------- drawing a word on a stage ----------
   const TRACK = 40;
@@ -352,23 +367,31 @@
           : sv('rect', { class: 'lab', x: x - 3.6, y: y - 3.6, width: 7.2, height: 7.2, transform: `rotate(45 ${x} ${y})` }, svg);
       sv('title', { text: `${m.label}: ${fmt(m.v)}%` }, node);
     }
-    const res = state.tests[t.key];
-    if (res && res.tries.length === 2) {
-      for (const v of res.tries) sv('circle', { class: 'try', cx: X(t.show(v)), cy: axisY + 14, r: 4.5 }, svg);
-      const mean = (res.tries[0] + res.tries[1]) / 2;
-      const xm = X(t.show(mean));
+    const r = state.tests[t.key];
+    const res = resultOf(t.key);
+    if (!res) return;
+    for (const q of r.tries) sv('circle', { class: 'try', cx: X(t.show(q.stop)), cy: axisY + 14, r: 4.5 }, svg);
+    const xs = r.tries.map((q) => X(t.show(q.stop)));
+    if (res.ok) {
+      const xm = X(t.show(res.value));
       const dot = sv('circle', { class: 'you', cx: xm, cy: axisY + 14, r: 6 }, svg);
-      sv('title', { text: `You: ${fmt(t.show(mean))}%` }, dot);
-      // Label beside the outermost of the three marks, on whichever side has room.
-      const xs = res.tries.map((v) => X(t.show(v))).concat(xm);
-      const right = Math.max(...xs) < w - 50;
-      const lx = right ? Math.max(...xs) + 9 : Math.min(...xs) - 9;
-      sv('text', { class: 'lbl', x: lx, y: axisY + 18, 'text-anchor': right ? 'start' : 'end', text: 'you' }, svg);
+      sv('title', { text: `You: ${fmt(t.show(res.value))}%` }, dot);
+      xs.push(xm);
     }
+    // Label beside the outermost mark, on whichever side has room; none if neither side has
+    // (the note above the strip says the same thing in words).
+    const label = res.ok ? 'you' : 'no setting';
+    const room = res.ok ? 32 : 72;
+    const xMax = Math.max(...xs);
+    const xMin = Math.min(...xs);
+    if (xMax + 9 + room <= w) sv('text', { class: 'lbl', x: xMax + 9, y: axisY + 18, 'text-anchor': 'start', text: label }, svg);
+    else if (xMin - 9 - room >= 0) sv('text', { class: 'lbl', x: xMin - 9, y: axisY + 18, 'text-anchor': 'end', text: label }, svg);
   }
 
   // ---------- one test card ----------
   function buildTest(t, i, list) {
+    const plan = M.PLAN[t.key];
+    const perPx = M.perPx(t.key);
     const li = el('li', { class: 'test', id: `test-${t.key}` }, list);
     const head = el('div', { class: 'test-head' }, li);
     el('span', { class: 'test-num', text: String(i + 1) }, head);
@@ -381,7 +404,15 @@
     const adjust = el('div', { class: 'adjust' }, li);
     const controls = el('div', { class: 'controls' }, adjust);
     const minus = el('button', { type: 'button', class: 'nudge', 'aria-label': t.less, text: '−' }, controls);
-    const range = el('input', { type: 'range', min: '0', max: '1000', step: '1', 'aria-label': t.ask }, controls);
+    // A strip with no ends and no middle: dragging it changes the setting by how far you drag,
+    // and nothing on it shows where any value lies.
+    // It is announced as a spin button with no minimum or maximum: a slider's aria-valuemin and
+    // aria-valuemax would tell a screen reader where the test's range, and so the ruler at its
+    // centre, lies.
+    const jog = el('div', { class: 'jog', role: 'spinbutton', tabindex: '0', 'aria-label': `${t.ask} Drag left for ${t.less.toLowerCase()}, right for ${t.more.toLowerCase()}.` }, controls);
+    const word = (s) => s.split(' ')[0].toLowerCase();
+    el('span', { class: 'jog-end', 'aria-hidden': 'true', text: `◂ ${word(t.less)}` }, jog);
+    el('span', { class: 'jog-end', 'aria-hidden': 'true', text: `${word(t.more)} ▸` }, jog);
     const plus = el('button', { type: 'button', class: 'nudge', 'aria-label': t.more, text: '+' }, controls);
     const commitRow = el('div', { class: 'commit-row' }, adjust);
     const trialNote = el('span', { class: 'trial' }, commitRow);
@@ -393,12 +424,13 @@
     const bGhost = el('button', { type: 'button', 'aria-pressed': 'false', text: 'The ruler’s letters' }, toggles);
     const bTurn = t.turn ? el('button', { type: 'button', 'aria-pressed': 'false', text: t.turn === 'over' ? 'Turn it over' : 'Turn it sideways' }, toggles) : null;
     const verdict = el('p', { class: 'verdict' }, reveal);
+    const fit = el('p', { class: 'fit small' }, reveal);
     const legend = el('div', { class: 'legend' }, reveal);
-    el('span', { class: 'k-you', html: '<i></i>you' }, legend);
-    el('span', { class: 'k-try', html: '<i></i>your two tries' }, legend);
+    const keyYou = el('span', { class: 'k-you', html: '<i></i>you' }, legend);
+    el('span', { class: 'k-try', html: '<i></i>your four stops' }, legend);
     el('span', { class: 'k-ruler', html: '<i></i>ruler' }, legend);
     el('span', { class: 'k-face', html: `<i></i>${t.key === 'point' ? 'serif Vs' : 'sans serifs'}, measured` }, legend);
-    if (t.lab.length) el('span', { class: 'k-lab', html: '<i></i>lab study' }, legend);
+    if (t.lab.length) el('span', { class: 'k-lab', html: '<i></i>lab averages' }, legend);
     const strip = sv('svg', { class: 'strip', role: 'img', 'aria-label': `Your setting against the ruler and the typefaces, in ${t.unit}` }, el('div', null, reveal));
     const facesLine = el('p', { class: 'why small' }, reveal);
     el('p', { class: 'why', text: t.why }, reveal);
@@ -406,76 +438,109 @@
     const redo = el('button', { type: 'button', class: 'quiet', text: 'Do it again' }, redoRow);
 
     t.view = { lines: true, ghost: false, turn: false };
-    let lo = 0;
-    let hi = 1;
-    let order = Math.random() < 0.5 ? ['high', 'low'] : ['low', 'high'];
-
-    const lim = L.LIMITS[t.key];
-    const clampV = (v) => Math.min(hi, lim[1], Math.max(lo, lim[0], v));
-    const fromSlider = () => clampV(lo + (hi - lo) * (range.valueAsNumber / 1000));
+    const record = () => state.tests[t.key] || (state.tests[t.key] = { tries: [], sides: [...M.pairOrder(Math.random), ...M.pairOrder(Math.random)] });
+    const clampV = (v) => Math.min(plan.window[1], Math.max(plan.window[0], v));
+    const NOTES = ['Try 1 of 4', 'Try 2 of 4, from the other side', 'Try 3 of 4, starting nearer', 'Try 4 of 4, from the other side'];
+    function syncControl() {
+      const steps = Math.round((t.value - t.start) / plan.nudge);
+      jog.setAttribute('aria-valuenow', String(steps));
+      jog.setAttribute('aria-valuetext', steps === 0 ? 'where this try started' : `${Math.abs(steps)} steps ${steps > 0 ? 'up' : 'down'} from where this try started`);
+      // The ridges move with the drag; their phase says nothing about the value.
+      jog.style.backgroundPosition = `${((((t.value - t.start) / perPx) % 14) + 14) % 14}px 0`;
+      commit.disabled = !t.moved;
+      const n = (state.tests[t.key] || { tries: [] }).tries.length;
+      trialNote.textContent = t.moved ? NOTES[n] : `${NOTES[n]}. It starts deliberately off: move it first.`;
+    }
     function setValue(v) {
-      t.value = clampV(v);
-      range.value = String(Math.round(((t.value - lo) / (hi - lo)) * 1000));
+      const nv = clampV(v);
+      if (nv !== t.value) t.moved = true;
+      t.value = nv;
+      syncControl();
       drawStage(t);
     }
     function setupTrial() {
-      const res = state.tests[t.key] || { tries: [] };
-      const n = res.tries.length;
-      const side = order[n];
-      const [s0, s1] = t.span;
-      const span = s1 - s0;
-      const [a, b] = t[side];
-      const start = a + Math.random() * (b - a);
-      // Shift the slider's range at random so that its middle carries no information.
-      let shift = (Math.random() * 2 - 1) * 0.12 * span;
-      lo = s0 + shift;
-      hi = s1 + shift;
-      if (lo < lim[0]) { hi += lim[0] - lo; lo = lim[0]; }
-      if (hi > lim[1]) { lo -= hi - lim[1]; hi = lim[1]; }
-      const margin = 0.04 * span;
-      if (start < lo + margin) { lo = start - margin; hi = lo + span; }
-      if (start > hi - margin) { hi = start + margin; lo = hi - span; }
+      const r = record();
+      const n = r.tries.length;
+      const s = M.startFor(t.key, n, r.tries, r.sides, Math.random);
+      t.start = s.start;
+      t.side = s.side;
+      t.value = s.start;
+      t.moved = false;
       t.view = { lines: false, ghost: false, turn: false };
-      trialNote.textContent = n === 0 ? 'Try 1 of 2' : 'Try 2 of 2, starting from the other side';
-      setValue(start);
+      syncControl();
+      drawStage(t);
     }
     function showResult() {
-      const res = state.tests[t.key];
+      const res = resultOf(t.key);
       adjust.hidden = true;
       reveal.hidden = false;
-      t.value = (res.tries[0] + res.tries[1]) / 2;
+      t.value = res.ok ? res.value : plan.ruler;
       t.view = { lines: true, ghost: false, turn: false };
       bLines.setAttribute('aria-pressed', 'true');
       bGhost.setAttribute('aria-pressed', 'false');
-      if (bTurn) bTurn.setAttribute('aria-pressed', 'false');
-      verdict.innerHTML = t.verdict(t.value);
+      if (bTurn) {
+        bTurn.setAttribute('aria-pressed', 'false');
+        bTurn.hidden = !res.ok;
+      }
+      bGhost.hidden = !res.ok;
+      keyYou.hidden = !res.ok;
+      verdict.innerHTML = res.ok ? t.verdict(res.value) : 'The letters above are drawn by the ruler.';
+      fit.innerHTML = fitNote(res);
       facesLine.textContent = t.facesLine();
       drawStage(t);
       drawStrip(t, strip);
     }
     function startOver() {
-      state.tests[t.key] = { tries: [] };
+      delete state.tests[t.key];
+      record();
       save();
-      order = Math.random() < 0.5 ? ['high', 'low'] : ['low', 'high'];
       adjust.hidden = false;
       reveal.hidden = true;
       setupTrial();
       refreshAlphabet();
     }
 
-    range.addEventListener('input', () => {
-      t.value = fromSlider();
-      drawStage(t);
+    let drag = null;
+    jog.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      drag = { id: e.pointerId, x: e.clientX };
+      try {
+        jog.setPointerCapture(e.pointerId);
+      } catch (err) {
+        /* capture is a nicety */
+      }
+      jog.classList.add('active');
+      if (e.pointerType === 'mouse') e.preventDefault();
     });
-    minus.addEventListener('click', () => setValue(t.value - t.nudge));
-    plus.addEventListener('click', () => setValue(t.value + t.nudge));
+    jog.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      drag.x = e.clientX;
+      if (dx) setValue(t.value + dx * perPx);
+    });
+    const endDrag = (e) => {
+      if (drag && e.pointerId === drag.id) {
+        drag = null;
+        jog.classList.remove('active');
+      }
+    };
+    jog.addEventListener('pointerup', endDrag);
+    jog.addEventListener('pointercancel', endDrag);
+    jog.addEventListener('keydown', (e) => {
+      const steps = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
+      if (!steps) return;
+      e.preventDefault();
+      setValue(t.value + steps * (e.shiftKey ? 10 : 1) * plan.nudge);
+    });
+    minus.addEventListener('click', () => setValue(t.value - plan.nudge));
+    plus.addEventListener('click', () => setValue(t.value + plan.nudge));
     commit.addEventListener('click', () => {
-      const res = state.tests[t.key] && state.tests[t.key].tries.length < 2 ? state.tests[t.key] : { tries: [] };
-      res.tries.push(+t.value.toFixed(5));
-      res.order = order;
-      state.tests[t.key] = res;
+      if (!t.moved) return;
+      const r = record();
+      if (r.tries.length >= M.TRIES) return;
+      r.tries.push({ start: +t.start.toFixed(5), stop: +t.value.toFixed(5), side: t.side, moved: true });
       save();
-      if (res.tries.length < 2) setupTrial();
+      if (r.tries.length < M.TRIES) setupTrial();
       else {
         showResult();
         refreshAlphabet();
@@ -505,12 +570,8 @@
     };
     t.reset = startOver;
 
-    const res = state.tests[t.key];
-    if (res && res.tries && res.tries.length === 2) showResult();
-    else {
-      if (res && res.tries && res.tries.length === 1 && Array.isArray(res.order)) order = res.order;
-      setupTrial();
-    }
+    if (resultOf(t.key)) showResult();
+    else setupTrial();
   }
 
   // ---------- title and alphabet ----------
@@ -585,14 +646,16 @@
 
   function refreshAlphabet(animate) {
     const eye = eyeParams();
-    const n = doneCount();
+    const n = reliable().length;
+    const failed = finished().length - n;
     const status = document.getElementById('alphabet-status');
     status.textContent =
-      n === 5
+      (n === 5
         ? 'All five corrections are yours. The same letters, drawn twice: once by the ruler, once by your eye.'
         : n === 0
           ? 'No corrections measured yet, so for now both rows are the ruler’s. Each test you finish changes the lower row (and the title).'
-          : `${n} of 5 corrections measured; the others are still the ruler’s. The same letters, drawn twice: once by the ruler, once by your eye.`;
+          : `${n} of 5 corrections measured; the others are still the ruler’s. The same letters, drawn twice: once by the ruler, once by your eye.`) +
+      (failed ? ` ${failed === 1 ? 'One test' : `${failed} tests`} gave no setting that could be read, so the ruler stands in there too.` : '');
     const text = view.all ? ALL : specText.value || ' ';
     const wpx = document.getElementById('alphabet').clientWidth || 700;
     const capPx = wpx < 520 ? 26 : 36;
@@ -621,13 +684,12 @@
     for (const t of TESTS) {
       const tr = el('tr', null, tb);
       el('td', { text: t.title }, tr);
-      const r = state.tests[t.key];
-      const done = r && r.tries.length === 2;
-      el('td', { class: 'num', text: done ? `${fmt(t.show((r.tries[0] + r.tries[1]) / 2))}%` : 'not yet' }, tr);
+      const res = resultOf(t.key);
+      el('td', { class: 'num', text: !res ? 'not yet' : res.ok ? `${fmt(t.show(res.value))}%` : 'no setting; do it again' }, tr);
       const v = t.faces.map((f) => f.v);
       el('td', { class: 'num', text: t.key === 'point' ? `none pointed; serif Vs ${fmt(Math.min(...v))} to ${fmt(Math.max(...v))}%` : `${fmt(Math.min(...v))} to ${fmt(Math.max(...v))}%` }, tr);
     }
-    el('p', { class: 'small', text: 'Units: overshoots in % of the cap height per side; weights as how much thicker the uprights are; the middle as % of the cap height above it; the halves as how much smaller the top storey is. The ruler is 0 in every row.' }, box);
+    el('p', { class: 'small', text: 'Units: overshoots in % of the cap height per side (for the typefaces, the mean of top and bottom); weights as how much thicker the uprights are; the middle as % of the cap height above it; the halves as how much smaller the top storey is. The ruler is 0 in every row. Your column is one person, at one size, four tries a test; the typefaces are design decisions, partly correction and partly style. Only the directions are worth comparing.' }, box);
   }
 
   function drawMeasuredBack(eye) {
@@ -661,12 +723,12 @@
   function drawFacesTable() {
     const table = document.getElementById('faces');
     const hr = el('tr', null, el('thead', null, table));
-    for (const h of ['Face', 'O overshoot', 'Uprights thicker', 'Bar above middle', '8: top smaller']) el('th', { text: h }, hr);
+    for (const h of ['Face', 'O overshoot (top / bottom)', 'Uprights thicker', 'Bar above middle', '8: top smaller']) el('th', { text: h }, hr);
     const tb = el('tbody', null, table);
     for (const f of FACES.sans) {
       const tr = el('tr', null, tb);
       el('td', { text: faceLabel(f) }, tr);
-      el('td', { class: 'num', text: `${fmt(f.round * 100)}%` }, tr);
+      el('td', { class: 'num', text: `${fmt(f.round * 100)}% (${fmt(f.roundTop * 100)} / ${fmt(f.roundBottom * 100)})` }, tr);
       el('td', { class: 'num', text: `${fmt((1 / f.bar - 1) * 100)}%` }, tr);
       el('td', { class: 'num', text: `${fmt((f.middle - 0.5) * 100)}%` }, tr);
       el('td', { class: 'num', text: `${fmt((1 - f.halves8 / (1 - f.halves8)) * 100)}%` }, tr);

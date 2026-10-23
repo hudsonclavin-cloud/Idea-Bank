@@ -581,20 +581,357 @@ test('the lab numbers on the page match the cited paper', () => {
   const source = { exp1: 5.4, exp2: 2.6, showed: 27, of: 28 };
   const app = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
   const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
-  assert.match(app, /de Waard et al\. 2019, experiment 1', v: 5\.4 \}/);
-  assert.match(app, /experiment 2', v: 2\.6 \}/);
+  assert.match(app, /de Waard et al\. 2019, experiment 1, average of 28 people', v: 5\.4 \}/);
+  assert.match(app, /experiment 2, average', v: 2\.6 \}/);
   assert.ok(html.includes(`${source.exp1}% thicker`) && html.includes(`${source.exp2}% in a second experiment`));
   assert.ok(html.includes(`${source.showed} of ${source.of} people`));
+  // Experiment 1: "The mean PSE was -0.05 deg ... SD = 0.03 deg": the spread between people is more
+  // than half the mean, which the page and README now say. The correlation with the length
+  // illusion was r = -0.321 with the horizontal frame only (r = -0.089, n.s., with the vertical).
+  assert.ok(0.03 / 0.05 > 0.5);
+  assert.match(html, /spread between individuals was more than half the average/);
+  assert.match(html, /correlated only weakly, and in only one of their two conditions/);
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.match(readme, /SD 0\.03°\) was more than half the mean \(0\.05°\)/);
+  assert.match(readme, /r = −0\.32\) and only in one of their two conditions/);
 });
 
 test('the page loads only local classic scripts and no font files', () => {
   const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
   const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(scripts, ['letters.js', 'typefaces.js', 'app.js']);
+  assert.deepEqual(scripts, ['letters.js', 'typefaces.js', 'method.js', 'app.js']);
   assert.doesNotMatch(html, /https?:\/\//);
   assert.doesNotMatch(html, /type="module"/);
   const files = fs.readdirSync(DIR);
   assert.ok(!files.some((f) => /\.(woff2?|ttf|otf|eot)$/i.test(f)), 'no font files in the folder');
   const css = fs.readFileSync(path.join(DIR, 'style.css'), 'utf8');
   assert.doesNotMatch(css, /@font-face|url\(/);
+});
+
+// ---------- the method: where tries start, and how four tries become a setting ----------
+// These pin the fix for the independent review's main finding. The first version started its two
+// tries in bands centred on the typefaces' corrections (below, from app.js as first deposited) and
+// reported the mean of the two stops, so a reader who stops short was pulled toward the typefaces.
+
+const MTH = require('./method.js');
+const KEYS = ['round', 'point', 'bar', 'middle', 'halves'];
+const FIRST_BANDS = {
+  round: { high: [0.035, 0.055], low: [-0.025, -0.012] },
+  point: { high: [0.06, 0.09], low: [-0.035, -0.015] },
+  bar: { high: [1.1, 1.18], low: [0.66, 0.74] },
+  middle: { high: [0.56, 0.585], low: [0.425, 0.445] },
+  halves: { high: [0.53, 0.55], low: [0.415, 0.435] },
+};
+// The typefaces' corrections in each test's parameter units (written out here, not imported).
+const faceValues = {
+  round: FACES.sans.map((f) => f.round),
+  point: FACES.pointed.map((f) => f.pointBottom),
+  bar: FACES.sans.map((f) => f.bar),
+  middle: FACES.sans.map((f) => f.middle),
+  halves: FACES.sans.map((f) => f.halves8),
+};
+const med = (a) => {
+  const s = [...a].sort((x, y) => x - y);
+  return s.length % 2 ? s[s.length >> 1] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+};
+// One standard deviation of a reader's scatter, in parameter units.
+const SCATTER = { round: 0.003, point: 0.004, bar: 0.02, middle: 0.003, halves: 0.004 };
+function normal(r) {
+  let u = 0;
+  while (!u) u = r();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r());
+}
+// A simulated reader, written here rather than imported: from a start s it closes a share f of the
+// distance to T, stopping `zone` short on whichever side it came from, plus scatter.
+function reader(o, s, r) {
+  const side = s >= o.T ? 1 : -1;
+  return s + o.f * (o.T + side * o.zone - s) + (o.noise ? o.noise * normal(r) : 0);
+}
+function runPage(key, o, r) {
+  const sides = [...MTH.pairOrder(r), ...MTH.pairOrder(r)];
+  const tries = [];
+  for (let n = 0; n < 4; n++) {
+    const { start, side } = MTH.startFor(key, n, tries, sides, r);
+    tries.push({ start, stop: reader(o, start, r), side, moved: o.f !== 0 });
+  }
+  return { tries, res: MTH.estimate(key, tries) };
+}
+function runFirst(key, o, r) {
+  const b = FIRST_BANDS[key];
+  const draw = (band) => band[0] + r() * (band[1] - band[0]);
+  return (reader(o, draw(b.high), r) + reader(o, draw(b.low), r)) / 2;
+}
+
+test('method: every start band and window is symmetric about the ruler, and the far starts lie beyond every typeface', () => {
+  assert.deepEqual(Object.keys(MTH.PLAN), KEYS);
+  for (const k of KEYS) {
+    const p = MTH.PLAN[k];
+    assert.equal(p.ruler, L.RULER[k]);
+    // The control's window is the alphabet's allowed range, centred on the ruler.
+    assert.deepEqual([...p.window], [...L.LIMITS[k]], `${k}: window and LIMITS`);
+    assert.ok(Math.abs(p.window[0] + p.window[1] - 2 * p.ruler) < 1e-12, `${k}: window not centred on the ruler`);
+    assert.ok(p.far[0] > p.near[1] && p.near[0] > 0, `${k}: bands`);
+    // Further off than any measured typeface, so the first two starts bracket every typeface's value.
+    const furthest = Math.max(...faceValues[k].map((v) => Math.abs(v - p.ruler)));
+    assert.ok(p.far[0] > furthest, `${k}: far band starts at ${p.far[0]}, a typeface is ${furthest} off`);
+    assert.ok(p.ruler + p.far[1] <= p.window[1] && p.ruler - p.far[1] >= p.window[0]);
+  }
+  // The first two starts are one above and one below the ruler, at distances drawn from the same
+  // band, so over many readers their centre is the ruler, not the typefaces.
+  const r = rng(1);
+  for (const k of KEYS) {
+    const p = MTH.PLAN[k];
+    let sum = 0;
+    const N = 4000;
+    for (let i = 0; i < N; i++) {
+      const sides = [...MTH.pairOrder(r), ...MTH.pairOrder(r)];
+      assert.equal(sides[0] + sides[1], 0);
+      assert.equal(sides[2] + sides[3], 0);
+      const a = MTH.startFor(k, 0, [], sides, r);
+      const b = MTH.startFor(k, 1, [], sides, r);
+      assert.equal(Math.sign(a.start - p.ruler), sides[0]);
+      assert.equal(Math.sign(b.start - p.ruler), sides[1]);
+      for (const q of [a, b]) {
+        const d = Math.abs(q.start - p.ruler);
+        assert.ok(d >= p.far[0] - 1e-12 && d <= p.far[1] + 1e-12);
+      }
+      sum += a.start + b.start - 2 * p.ruler;
+    }
+    const spread = p.far[1] - p.far[0];
+    assert.ok(Math.abs(sum / (2 * N)) < 0.02 * spread + 1e-9, `${k}: first starts centred at ${sum / (2 * N)} from the ruler`);
+    // The near starts sit on either side of the mean of the first two stops.
+    const tries = [{ start: 0, stop: p.ruler + 0.3 * p.far[0], side: 1 }, { start: 0, stop: p.ruler + 0.1 * p.far[0], side: -1 }];
+    const c = p.ruler + 0.2 * p.far[0];
+    const up = MTH.startFor(k, 2, tries, [1, -1, 1, -1], r);
+    const down = MTH.startFor(k, 3, tries, [1, -1, 1, -1], r);
+    assert.ok(Math.abs(up.centre - c) < 1e-12 && up.start - c >= p.near[0] - 1e-12 && up.start - c <= p.near[1] + 1e-12);
+    assert.ok(c - down.start >= p.near[0] - 1e-12 && c - down.start <= p.near[1] + 1e-12);
+  }
+});
+
+test('method: with no scatter, four tries give back a stop-short, can’t-tell-band or overshooting reader’s setting exactly', () => {
+  const r = rng(2);
+  for (const k of KEYS) {
+    const R = MTH.PLAN[k].ruler;
+    const typ = med(faceValues[k]);
+    for (const T of [R, typ, 2 * R - typ, R + 0.5 * (typ - R)]) {
+      for (const f of [0.55, 0.65, 0.75, 0.9, 1, 1.2, 1.4]) {
+        for (const zone of [0, SCATTER[k]]) {
+          for (let rep = 0; rep < 3; rep++) {
+            const { tries, res } = runPage(k, { T, f, zone, noise: 0 }, r);
+            for (const q of tries) assert.ok(q.stop >= MTH.PLAN[k].window[0] && q.stop <= MTH.PLAN[k].window[1], 'stop inside the window');
+            assert.ok(res.ok, `${k} T=${T} f=${f} zone=${zone}: ${res.why}`);
+            assert.ok(Math.abs(res.value - T) < 1e-9, `${k} T=${T} f=${f} zone=${zone}: got ${res.value}`);
+            assert.ok(Math.abs(res.left - (1 - f)) < 1e-9, 'b is the share of the error left in place');
+          }
+        }
+      }
+    }
+  }
+});
+
+test('method: the first version pulled a reader who stops short toward the typefaces; the new one does not', () => {
+  for (const k of KEYS) {
+    const R = MTH.PLAN[k].ruler;
+    const typ = med(faceValues[k]);
+    const dir = Math.sign(typ - R); // the typefaces' direction
+    const b = FIRST_BANDS[k];
+    const firstCentre = (b.high[0] + b.high[1] + b.low[0] + b.low[1]) / 4;
+    // The first version's start bands were centred on the typefaces' side of the ruler.
+    assert.equal(Math.sign(firstCentre - R), dir, `${k}: first start centre`);
+    // A reader whose eye agrees with the ruler and who closes three quarters of the distance.
+    const o = { T: R, f: 0.75, zone: 0, noise: SCATTER[k] };
+    const r = rng(3);
+    const firstErr = [];
+    const newErr = [];
+    let none = 0;
+    for (let i = 0; i < 1500; i++) {
+      firstErr.push(runFirst(k, o, r) - R);
+      const { res } = runPage(k, o, r);
+      if (res.ok) newErr.push(res.value - R);
+      else none++;
+    }
+    // First version: pulled a quarter of the way to its start centre, i.e. toward the typefaces.
+    const pull = 0.25 * (firstCentre - R);
+    assert.ok(Math.abs(med(firstErr) - pull) < 0.15 * Math.abs(pull), `${k}: first version's pull ${med(firstErr)} vs ${pull}`);
+    // New: no pull worth the name (a few per cent of the scatter), and nearly always a result.
+    assert.ok(Math.abs(med(newErr)) < 0.06 * SCATTER[k], `${k}: new method's median error ${med(newErr)}`);
+    assert.ok(none / 1500 < 0.03, `${k}: no result in ${none} of 1500`);
+    // A reader who never moves: the first version reported its start centre; now no result at all.
+    const still = { T: R, f: 0, zone: 0, noise: 0 };
+    const rr = rng(4);
+    const firstStill = med(Array.from({ length: 400 }, () => runFirst(k, still, rr)));
+    assert.equal(Math.sign(firstStill - R), dir, `${k}: the unmoved reader got a typeface-like answer before`);
+    assert.equal(runPage(k, still, rr).res.why, 'unmoved');
+    // A reader who nudges once and commits leaves nearly all the starting error: no result.
+    const nudger = { T: R, f: 0.02, zone: 0, noise: 0 };
+    assert.equal(runPage(k, nudger, rr).res.why, 'anchored');
+  }
+});
+
+test('method: an unsteady reader who stops well short is pulled toward the ruler, never away from it', () => {
+  for (const k of KEYS) {
+    const R = MTH.PLAN[k].ruler;
+    const typ = med(faceValues[k]);
+    const dir = Math.sign(typ - R);
+    for (const T of [R, typ, 2 * R - typ]) {
+      const o = { T, f: 0.55, zone: 0, noise: 2 * SCATTER[k] };
+      const r = rng(5);
+      const errs = [];
+      for (let i = 0; i < 3000; i++) {
+        const { res } = runPage(k, o, r);
+        if (res.ok) errs.push(res.value - T);
+      }
+      const m = med(errs);
+      // Toward the ruler from T is the sign of (R - T); at T = R, no pull beyond Monte Carlo noise.
+      if (T === R) assert.ok(Math.abs(m) < 0.1 * SCATTER[k], `${k} at the ruler: ${m}`);
+      else assert.ok(Math.sign(m) === Math.sign(R - T) || Math.abs(m) < 0.05 * SCATTER[k], `${k} T=${T}: median error ${m} points away from the ruler`);
+      assert.ok(Math.abs(m) < 0.6 * Math.abs(T - R) + 0.1 * SCATTER[k], `${k}: pulled ${m}`);
+    }
+    void dir;
+  }
+});
+
+test('method: the README’s simulation tables are what simulate.mjs prints', async () => {
+  const sim = await import('./simulate.mjs');
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  for (const row of [...sim.readmeRows(), ...sim.hardRows()]) assert.ok(readme.includes(row), `README is missing the row\n${row}`);
+});
+
+test('the page takes settings through method.js, with no slider track and no reading without four moved tries', () => {
+  const app = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  // No range input and none of the first version's start bands or random track shift.
+  assert.doesNotMatch(app, /type: 'range'/);
+  assert.doesNotMatch(app, /high: \[|low: \[|span: \[|0\.12 \* span/);
+  assert.match(app, /M\.startFor\(t\.key, n, r\.tries, r\.sides, Math\.random\)/);
+  assert.match(app, /M\.estimate\(key, r\.tries\)/);
+  // The control does not announce a minimum or maximum, which would locate the ruler.
+  assert.doesNotMatch(app, /setAttribute\('aria-value(min|max)'|'aria-value(min|max)':/);
+  assert.match(app, /role: 'spinbutton'/);
+  // "Looks equal" stays disabled until the control has moved.
+  assert.match(app, /commit\.disabled = !t\.moved/);
+  // The verdict no longer tells an unmoved reader that the typeface-like answer is their eye.
+  assert.doesNotMatch(app + html, /To your eye it is equal/);
+  assert.doesNotMatch(html, /its middle means nothing|carries no information/);
+  // Old results, taken by the first method, are not read.
+  assert.match(app, /const STORE = 'by-eye-v2'/);
+  assert.equal(MTH.TRIES, 4);
+});
+
+// ---------- smaller fixes from the review ----------
+
+test('the round test changes the O’s height only: O, C, G, Q and 0 keep their width', () => {
+  for (const ch of 'OCGQ0') {
+    const widths = [-0.05, 0, 0.02, 0.05].map((round) => {
+      const g = L.glyph(ch, { ...L.RULER, round });
+      const b = box(parse(g.d));
+      return { adv: g.advance, w: ch === 'Q' ? null : b.xMax - b.xMin, h: b.yMax };
+    });
+    for (const w of widths) {
+      assert.equal(w.adv, widths[1].adv, `${ch}: advance changes with the overshoot`);
+      if (w.w !== null) assert.ok(Math.abs(w.w - widths[1].w) < 0.01, `${ch}: width changes with the overshoot`);
+    }
+    assert.ok(widths[2].h > widths[1].h + 13.9, `${ch}: no taller`);
+  }
+  assert.equal(L.glyph('O', { ...L.RULER, round: 0.02 }).advance, 790);
+});
+
+test('the 2’s diagonal is 99.7 thick at the ruler, as the README says, not 100', () => {
+  const t2 = strokeThickness(polysOf('2'), 'h', 150, 230, (rs) => rs[0], -10, 600);
+  assert.ok(Math.abs(t2 - 99.68) < 0.05, `2 diagonal ${t2}`);
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.match(readme, /except the 2's diagonal, which continues its elliptical bowl along the bowl's mid-line and is 99\.7 thick/);
+});
+
+// Ink runs along the vertical line x, from exact edge crossings and nonzero winding.
+function columnRuns(polys, x) {
+  const ev = [];
+  for (const p of polys) {
+    for (let i = 0; i < p.length; i++) {
+      const [x0, y0] = p[i];
+      const [x1, y1] = p[(i + 1) % p.length];
+      if ((x0 <= x && x1 > x) || (x1 <= x && x0 > x)) ev.push([y0 + ((x - x0) / (x1 - x0)) * (y1 - y0), x1 > x0 ? -1 : 1]);
+    }
+  }
+  ev.sort((a, b) => a[0] - b[0]);
+  const out = [];
+  let w = 0;
+  let from = 0;
+  for (const [y, d] of ev) {
+    const was = w !== 0;
+    w += d;
+    if (!was && w !== 0) from = y;
+    if (was && w === 0) out.push([from, y]);
+  }
+  return out;
+}
+// The smaller of a two-storey glyph's two counters, each at its tallest (columns with three runs).
+function smallerCounter(ch, p) {
+  const g = L.glyph(ch, p);
+  const polys = parse(g.d, 24);
+  let lo = 0;
+  let hi = 0;
+  for (let x = 0.5; x < g.advance; x += 1) {
+    const rs = columnRuns(polys, x);
+    if (rs.length === 3) {
+      lo = Math.max(lo, rs[1][0] - rs[0][1]);
+      hi = Math.max(hi, rs[2][0] - rs[1][1]);
+    }
+  }
+  return Math.min(lo, hi);
+}
+
+test('counters: at least 135 units wherever the corrections go the typefaces’ way; slits only at unusual extremes', () => {
+  // The allowed range is what the tests can reach (the review found slit counters at corners of a
+  // wider range that no test could reach).
+  for (const k of KEYS) assert.deepEqual([...L.LIMITS[k]], [...MTH.PLAN[k].window]);
+  let worst = Infinity;
+  for (const round of [0, 0.035, 0.07]) {
+    for (const bar of [0.6, 0.8, 1]) {
+      for (const halves of [0.42, 0.5, 0.58]) {
+        for (const ch of 'B38S') worst = Math.min(worst, smallerCounter(ch, { ...L.RULER, round, bar, halves }));
+      }
+    }
+  }
+  assert.ok(worst >= 135 && worst < 137, `smallest counter in the typefaces' direction: ${worst}`);
+  const corner = { ...L.RULER, round: -0.07, bar: 1.4, halves: 0.42 };
+  for (const ch of '38') assert.ok(Math.abs(smallerCounter(ch, corner) - 32) < 1, `${ch} at the unusual corner`);
+  assert.ok(Math.abs(smallerCounter('B', corner) - 73) < 1);
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  assert.match(readme, /at least 135 units tall/);
+  assert.match(readme, /smaller counters of 3 and 8 close to about 32 units, 4\.5% of the cap height/);
+  assert.doesNotMatch(readme, /none breaks across the allowed parameter range/);
+});
+
+test('the wording the review corrected stays corrected', () => {
+  const app = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  const readme = fs.readFileSync(path.join(DIR, 'README.md'), 'utf8');
+  // The pointed comparison is four serif faces' Vs, narrow rather than pointed.
+  assert.equal(FACES.pointed.length, 4);
+  assert.doesNotMatch(html, /two serif faces|nearly to a point/);
+  assert.match(html, /V of four serif faces \(Liberation Serif and FreeSerif, regular and bold\), whose Vs end in a narrow vertex/);
+  const pc = (v, d) => (v * 100).toFixed(d);
+  const vw = FACES.pointed.map((f) => f.vWidth);
+  const sw = FACES.sans.map((f) => f.vWidth);
+  assert.ok(Math.max(...vw) < Math.min(...sw), 'every serif V is narrower near its vertex than every sans V');
+  assert.ok(readme.includes(`${pc(Math.min(...vw), 1)}% to ${pc(Math.max(...vw), 2)}% of the cap height wide, against ${pc(Math.min(...sw), 1)}% to ${pc(Math.max(...sw), 1)}%`));
+  // The O range is per face, averaged over top and bottom; single sides run wider.
+  const sides = FACES.sans.flatMap((f) => [f.roundTop, f.roundBottom]);
+  for (const f of FACES.sans) assert.ok(Math.abs((f.roundTop + f.roundBottom) / 2 - f.round) < 1e-4, `${f.name} ${f.style}: round is the mean of top and bottom`);
+  assert.ok(readme.includes(`Single sides run from ${pc(Math.min(...sides), 2)}% to ${pc(Math.max(...sides), 2)}%`));
+  assert.match(readme, /averaged over top and bottom \(median 1\.7%\)/);
+  const designs = new Map();
+  for (const f of FACES.sans) designs.set(f.name, [...(designs.get(f.name) || []), f.round]);
+  assert.equal(designs.size, 4);
+  assert.equal([...designs.values()].filter((v) => v.length === 2 && v[0] === v[1]).length, 3);
+  assert.match(readme, /in three of the four the regular and bold O overshoot by exactly the same amount/);
+  // The vertical-bisection bias is an average that varies between people, not "most people".
+  assert.doesNotMatch(html + app, /most people/);
+  assert.match(html, /people on average mark it slightly too high; the bias is small and varies from person to person/);
+  assert.match(app, /people on average mark it a little too high, by an amount that varies from person to person/);
+  // The smaller top storey: "the usual reason given", not a stated cause.
+  assert.doesNotMatch(app, /which is why every 8/);
+  assert.match(app, /that is the usual reason given for the smaller top of every 8 measured here/);
 });

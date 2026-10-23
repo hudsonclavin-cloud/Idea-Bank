@@ -17,8 +17,8 @@
 <main>
   <section class="intro">
     <p>Type designers break the ruler on purpose. An O drawn exactly as tall as an H looks too small; a crossbar at exactly half height looks low; a horizontal stroke as thick as an upright one looks heavier. So they draw the O a little bigger, the bar a little higher, the horizontal a little thinner, until the letters <em>look</em> right.</p>
-    <p>Below are five of those corrections. Each test draws its letters from rules that make them provably equal, puts one dimension on a slider, and knocks it off at random. Drag until the letters look equal to you, tap <b>Looks equal</b>, and do it once more from the other side. Then the page shows what you did, measures it against real typefaces, and shows you how to see through it.</p>
-    <p class="small">About two minutes. Nothing leaves this browser.</p>
+    <p>Below are five of those corrections. Each test draws its letters from rules that make them provably equal, puts one dimension on a strip you drag, and starts it deliberately off. Drag until the letters look equal to you and tap <b>Looks equal</b>; each test takes four tries, from different starting points. Then the page shows what you did, sets it beside real typefaces, and shows you how to see through it.</p>
+    <p class="small">About four minutes. Nothing leaves this browser.</p>
   </section>
 
   <ol class="tests" id="tests"></ol>
@@ -62,22 +62,23 @@
 
     <details>
       <summary>The tests: how your settings are taken</summary>
-      <p>Each test is a <em>method of adjustment</em>, one of the classical methods of psychophysics: you change one thing until two things look equal. Two things can bias it. Where you start can pull on where you stop, so each test runs twice, once starting too big and once too small, and your setting is the average of the two. And the middle of a slider can act as an anchor, so the slider's range is shifted at random on every try and its middle means nothing. No number is shown until you have committed both tries.</p>
-      <p>Your settings live only in this browser's storage. They are one person, on one screen, at one size, on one day: an anecdote, not data. What the page can show is the <em>direction</em> of your corrections, and whether it agrees with the typefaces.</p>
+      <p>Each test is a <em>method of adjustment</em>, one of the classical methods of psychophysics: you change one thing until two things look equal. Where you start can pull on where you stop, because people often stop a little short. Averaging a try from above with one from below cancels that only if the two starts sit evenly around your own setting, which nobody knows in advance. So each test takes four tries. The first two start far off on either side of the ruler's value, further off than any typeface goes; the last two start nearer, on either side of your first answer. The page then fits a straight line to where each try started and where it stopped, and reports the setting from which you would not have moved at all.</p>
+      <p>For a steady reader who stops the same fraction short every time, or who stops as soon as the difference becomes too small to see, that is exactly their setting. A reader who wavers from try to try gets a rougher answer, and if they also stop well short it leans toward the ruler's value, that is, toward a smaller correction than their own. The tests check this against simulated readers, and show that the first version of this page, whose starts were centred on the typefaces' answers, pulled a reader who stops short toward the typefaces. If your stops follow your starts too closely (each try closing less than half the distance), the page says it cannot read a setting rather than guess one. A slider's track can also act as an anchor, so there is none: the strip you drag has no ends and no middle, and nothing on the screen shows where the ruler's value lies. No number is shown until you have committed all four tries.</p>
+      <p>Your settings live only in this browser's storage. They are one person, on one screen, at one size, on one day: an anecdote, not data. The page cannot tell how much of your number is noise. What it can show with some confidence is the <em>direction</em> of a clear correction. The typefaces are design decisions, partly correction and partly style, so agreeing with them does not validate your eye and disagreeing is not an error; the lab's figures are averages over many people, on single lines rather than letters.</p>
     </details>
 
     <details>
       <summary>The typefaces: measured, not quoted</summary>
       <p>The grey dots are eight openly licensed sans serifs, measured by <code>measure.mjs</code>: a small TrueType reader that flattens each face's H, O, A, V, 8 and B and scans them with the same code that measures your alphabet. Only these numbers are kept; no outline is copied.</p>
       <div class="table-wrap"><table class="mini" id="faces"></table></div>
-      <p class="small">None of the eight has a pointed A or V: all cut their apexes flat (the flat top of each A is 15–31% of the cap height wide, 1% below the top), so a flat cut needs no overshoot. For the pointed test the comparison is the V of two serif faces whose V comes nearly to a point.</p>
+      <p class="small">The eight are four designs, each in a regular and a bold weight; in three of the four the O's overshoot is the same in both weights. The O column is the mean of the overshoot above the top line and below the baseline; FreeSans's O sinks almost twice as far below as it rises above. None of the eight has a pointed A or V: all cut their apexes flat (the flat top of each A is 15–31% of the cap height wide, 1% below the top), so a flat cut needs no overshoot. For the pointed test the comparison is the V of four serif faces (Liberation Serif and FreeSerif, regular and bold), whose Vs end in a narrow vertex that sinks below the baseline.</p>
     </details>
 
     <details>
       <summary>Why the eye does this (what is known)</summary>
-      <p><b>Thick horizontals.</b> In 2019 de Waard, Van der Burg and Olivers showed people one horizontal and one vertical line. On average the vertical had to be 5.4% thicker before the two looked equally thick (2.6% in a second experiment), and the bias showed in 27 of 28 people. They found it related to the older illusion in which vertical lengths look longer than horizontal ones. Before their paper, they wrote, the illusion was widely accepted among type designers but untested.</p>
-      <p><b>High middles.</b> Asked to mark the middle of a vertical line, most people mark it slightly too high; the effect is small and consistent (Shelton, Bowers and Heilman 1990, and later work). A mark that looks central is above the centre, so a bar placed at the true centre looks low, and the upper of two equal halves looks larger. That is one plausible reason for both the raised crossbar and the smaller top storey; it is not a settled account of either.</p>
-      <p><b>Overshoot.</b> A round or pointed shape touches a guideline at a single point, while a flat one sits on it along its whole width, so the round shape seems to stop short. How much to add is craft knowledge rather than a measured law. The eight faces here add 1.1% to 2.4% of the cap height to their O, and type designers' own accounts give points more than rounds.</p>
+      <p><b>Thick horizontals.</b> In 2019 de Waard, Van der Burg and Olivers showed people one horizontal and one vertical line and asked whether they looked equally thick. On average the vertical had to be 5.4% thicker before the two looked equal (2.6% in a second experiment), and the bias showed in 27 of 28 people. People differed, though: the spread between individuals was more than half the average. The authors linked it to the older illusion in which vertical lengths look longer than horizontal ones; the two correlated only weakly, and in only one of their two conditions. Before their paper, they wrote, the illusion was widely accepted among type designers but untested. Their figures are group averages for single lines; one reader's four tries on letters can be set beside them only for direction.</p>
+      <p><b>High middles.</b> Asked to mark the middle of a vertical line, people on average mark it slightly too high; the bias is small and varies from person to person (Shelton, Bowers and Heilman 1990; Chieffi et al. 2018; Drakul et al. 2016). A mark that looks central is above the centre, so a bar placed at the true centre looks low, and the upper of two equal halves looks larger. That is one plausible reason for both the raised crossbar and the smaller top storey; it is not a settled account of either.</p>
+      <p><b>Overshoot.</b> A round or pointed shape touches a guideline at a single point, while a flat one sits on it along its whole width, so the round shape seems to stop short. How much to add is craft knowledge rather than a measured law. The eight faces here add 1.1% to 2.4% of the cap height to their O (the mean of top and bottom), and type designers' own accounts give points more than rounds.</p>
       <p class="small">Sources are listed in the README.</p>
     </details>
   </section>
@@ -89,6 +90,7 @@
 
 <script src="letters.js"></script>
 <script src="typefaces.js"></script>
+<script src="method.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

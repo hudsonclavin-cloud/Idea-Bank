@@ -24,8 +24,9 @@ export const FACES = [
   { name: 'FreeSans', style: 'Regular', file: '/usr/share/fonts/truetype/freefont/FreeSans.ttf' },
   { name: 'FreeSans', style: 'Bold', file: '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf' },
 ];
-// Serif faces whose V ends in a point (or nearly: 3-11% of the cap height wide, 1% above its
-// lowest point). None of the sans faces above has a pointed V or A, so these stand in for them.
+// Serif faces whose V ends in a narrow vertex that sinks below the baseline (3-11% of the cap
+// height wide, 1% above its lowest point; the sans Vs above are 13-31% wide there and stop flat on
+// the baseline). None of the sans faces has a pointed V or A, so these stand in for them.
 export const POINTED = [
   { name: 'Liberation Serif', style: 'Regular', file: '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf' },
   { name: 'Liberation Serif', style: 'Bold', file: '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf' },
@@ -283,7 +284,8 @@ export function measureAll() {
     list.filter((f) => fs.existsSync(f.file)).map((f) => ({ name: f.name, style: f.style, ...pick(measureFont(f.file)) }));
   return {
     sans: rows(FACES, (m) => ({
-      capHeight: m.capHeight, round: m.round, point: m.point, apexWidth: m.apexWidth,
+      capHeight: m.capHeight, round: m.round, roundTop: m.roundTop, roundBottom: m.roundBottom,
+      point: m.point, apexWidth: m.apexWidth, vWidth: m.vWidth,
       bar: m.bar, middle: m.middle, halves8: m.halves8, halvesB: m.halvesB,
     })),
     pointed: rows(POINTED, (m) => ({ capHeight: m.capHeight, pointBottom: m.pointBottom, vWidth: m.vWidth, pointTop: m.pointTop })),

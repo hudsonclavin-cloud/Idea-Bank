@@ -9,8 +9,9 @@
  * Five parameters decide the drawing. With the RULER values the alphabet is exactly what a ruler
  * says is even: every letter and figure stands between the baseline and the cap height, every
  * straight stroke and every circular ring is 100 units thick measured across the stroke
- * (elliptical rings: exactly 100 at their extremes, 98-100 between), crossbars sit at exactly half
- * height and two-storey shapes have two equal storeys. The page asks a reader's eye for the rest.
+ * (elliptical rings: exactly 100 at their extremes, 98-100 between; the 2's diagonal, which
+ * continues its elliptical bowl, is 99.7), crossbars sit at exactly half height and two-storey
+ * shapes have two equal storeys. The page asks a reader's eye for the rest.
  *
  *   round   how far round shapes (O C G Q S U J and the round figures) reach beyond the baseline
  *           and cap height, per side, as a fraction of the cap height
@@ -34,12 +35,14 @@
   const CAP = 700;
   const STEM = 100;
   const RULER = Object.freeze({ round: 0, point: 0, bar: 1, middle: 0.5, halves: 0.5 });
+  // The allowed range of each setting: exactly what the page's control can reach in each test
+  // (method.js PLAN windows), symmetric about the ruler's value.
   const LIMITS = Object.freeze({
-    round: [-0.06, 0.1],
-    point: [-0.06, 0.14],
-    bar: [0.5, 1.4],
-    middle: [0.38, 0.62],
-    halves: [0.38, 0.6],
+    round: [-0.07, 0.07],
+    point: [-0.1, 0.1],
+    bar: [0.6, 1.4],
+    middle: [0.41, 0.59],
+    halves: [0.42, 0.58],
   });
   const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const FIGURES = '0123456789';
@@ -379,9 +382,11 @@
 
   // --- round letters ---
   const RO = 350; // outer radius of the ruler O
+  // An overshoot makes the ring taller only: its width stays put, so the round test changes the
+  // O's height and nothing else, like the height-only overshoot measured in the typefaces.
   function ringO(k) {
     const ry = CAP / 2 + k.o;
-    const rx = RO * (ry / (CAP / 2));
+    const rx = RO;
     return { cx: rx, cy: CAP / 2, rx, ry, ix: rx - k.s, iy: ry - k.t };
   }
   B.O = (k) => {
@@ -544,7 +549,7 @@
   // --- figures ---
   B['0'] = (k) => {
     const ry = CAP / 2 + k.o;
-    const rx = 255 * (ry / (CAP / 2));
+    const rx = 255;
     return { w: 2 * rx, lsb: 45, rsb: 45, solids: [ellipse(rx, CAP / 2, rx, ry)], holes: [ellipse(rx, CAP / 2, rx - k.s, ry - k.t)] };
   };
   B['1'] = (k) => {
