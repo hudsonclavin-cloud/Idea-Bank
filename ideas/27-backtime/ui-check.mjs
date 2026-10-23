@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // End-to-end check of the Backtime page in headless Chromium, mostly at phone size.
 // Does the real job through the UI: edit a dish, add dishes, tick jobs, reload with and without
-// storage, save and load a file, share a link, print, dark mode, reduced motion, file:// loading.
+// storage, save and load a file, share a link, print, dark mode, reduced motion, file:// loading,
+// °C and °F, last week's ticks, the size limits, and the "serve later" nudge.
 //
 // Run from the repo root: node ideas/27-backtime/ui-check.mjs [--shots DIR]
 // Needs the globally installed Playwright that tools/smoke.mjs uses.
@@ -87,11 +88,11 @@ async function main() {
     await page.fill('#serveAt', '19:00');
     await page.waitForTimeout(150);
     let rows = await rowsText(page);
-    check('example loads with 13 timeline rows', rows.length === 13, rows.length);
-    check('first job is the oven going on', /Oven on, 200°C/.test(rows[0]), rows[0]);
-    check('last row is Serve at 19:00', /19:00.*Serve/.test(rows[12]), rows[12]);
-    check('the Yorkshires row notes the oven going up', /oven to 220°C/.test(rows.join(' ')));
-    check('summary counts 6 dishes and 13 jobs', /6 dishes, 13 jobs/.test(await page.innerText('#summary')));
+    check('example loads with 15 timeline rows', rows.length === 15, rows.length);
+    check('first job is the oven going on (en-GB: °C)', /Oven on, 200°C/.test(rows[0]), rows[0]);
+    check('last row is Serve at 19:00', /19:00.*Serve/.test(rows[14]), rows[14]);
+    check('the oven goes up to 220°C at 18:18, before the tin goes in at 18:23', /18:18.*Oven up to 220°C for Yorkshire puddings/.test(rows[5]) && /18:23.*Yorkshire puddings: Tin with fat into the oven/.test(rows[6]), [rows[5], rows[6]]);
+    check('summary counts 6 dishes and 15 jobs', /6 dishes, 15 jobs/.test(await page.innerText('#summary')));
     check('no clashes in the example', (await page.$$('#flags .flag')).length === 0);
     check('serve input shows 19:00', (await page.inputValue('#serveAt')) === '19:00' && (await planOf(page)).serveAt === 1140);
     check('no horizontal overflow on the phone', (await overflow(page)) <= 0, await overflow(page));
@@ -127,11 +128,19 @@ async function main() {
 
     // ---- 4. an oven clash appears when it should ----
     await page.locator('.dish-head', { hasText: 'Yorkshire' }).tap();
-    await page.locator('.dish.open .steprow').nth(1).locator('.temp').fill('250');
+    const yBake = page.locator('.dish.open .steprow').nth(2).locator('.temp');
+    await yBake.fill('250');
     await page.waitForTimeout(100);
     let flags = await page.$$eval('#flags .flag', (f) => f.map((x) => x.innerText));
     check('250° Yorkshires beside 200° potatoes is an oven clash', flags.some((f) => /Oven clash/.test(f) && /200°C and 250°C/.test(f)), flags);
-    await page.locator('.dish.open .steprow').nth(1).locator('.temp').fill('220');
+    await yBake.fill('225');
+    await page.waitForTimeout(100);
+    check('°C tolerance edge: 225° beside 200° (25° apart) is not a clash', (await page.$$('#flags .flag')).length === 0, await page.$$eval('#flags .flag', (f) => f.map((x) => x.innerText)));
+    await yBake.fill('226');
+    await page.waitForTimeout(100);
+    flags = await page.$$eval('#flags .flag', (f) => f.map((x) => x.innerText));
+    check('°C tolerance edge: 226° beside 200° (26° apart) is a clash', flags.some((f) => /200°C and 226°C/.test(f)), flags);
+    await yBake.fill('220');
     await page.waitForTimeout(100);
     check('back at 220° the clash goes away', (await page.$$('#flags .flag')).length === 0);
 
@@ -319,13 +328,92 @@ async function main() {
     await us.page.fill('#serveAt', '19:00');
     await us.page.waitForTimeout(150);
     const usRows = await rowsText(us.page);
-    check('a US locale gets a 12-hour clock automatically', /4:55 pm/.test(usRows[0]) && /7:00 pm/.test(usRows[12]), [usRows[0], usRows[12]]);
+    check('a US locale gets a 12-hour clock automatically', /4:55 pm/.test(usRows[0]) && /7:00 pm/.test(usRows[14]), [usRows[0], usRows[14]]);
     check('12-hour times do not overflow', (await overflow(us.page)) <= 0);
     await us.page.locator('details.settings summary').tap();
     await us.page.selectOption('#clock', '24');
     await us.page.waitForTimeout(100);
     check('the clock can be forced to 24-hour', /16:55/.test((await rowsText(us.page))[0]));
     await us.context.close();
+
+    // ---- 13b. °F: the default in the US, real conversions, presets, the tolerance ----
+    const usF = await newPage(browser, origin, { context: Object.assign({}, PHONE, { locale: 'en-US', timezoneId: 'America/New_York' }) });
+    const fp = usF.page;
+    await fp.fill('#serveAt', '19:00');
+    await fp.waitForTimeout(150);
+    let fRows = await rowsText(fp);
+    check('en-US defaults to °F: the example says "Oven on, 400°F", not 200', /Oven on, 400°F/.test(fRows[0]), fRows[0]);
+    check('en-US: the Yorkshires are at the cookbook 425°F', /Oven up to 425°F/.test(fRows[5]) && /425°F/.test(fRows[6]), [fRows[5], fRows[6]]);
+    await fp.locator('details.settings summary').tap();
+    check('Settings shows "auto (°F)" and a 45 °F clash tolerance', (await fp.inputValue('#tempUnit')) === 'auto' && /°F/.test(await fp.$eval('#tempUnit option[value="auto"]', (o) => o.textContent)) && (await fp.inputValue('#tolerance')) === '45' && (await fp.innerText('#tolUnit')) === '°F');
+    const storedF = (await planOf(fp)).dishes.map((d) => d.steps.map((x) => x.temp));
+    await fp.selectOption('#tempUnit', 'C');
+    await fp.waitForTimeout(100);
+    fRows = await rowsText(fp);
+    check('switching to °C converts what is shown (400°F → 204°C) and the tolerance (45 → 25)', /Oven on, 204°C/.test(fRows[0]) && (await fp.inputValue('#tolerance')) === '25' && (await fp.innerText('#tolUnit')) === '°C', [fRows[0], await fp.inputValue('#tolerance')]);
+    check('switching units changes nothing stored', JSON.stringify((await planOf(fp)).dishes.map((d) => d.steps.map((x) => x.temp))) === JSON.stringify(storedF));
+    await fp.selectOption('#tempUnit', 'F');
+    await fp.waitForTimeout(100);
+    check('and back to °F reads 400°F again', /Oven on, 400°F/.test((await rowsText(fp))[0]));
+    // Type a temperature in °F, round-trip it through °C.
+    await fp.locator('.dish-head', { hasText: 'Roast chicken' }).tap();
+    const chickenTemp = fp.locator('.dish.open .steprow').nth(0).locator('.temp');
+    check('the step editor shows °F', (await chickenTemp.inputValue()) === '400' && /°F/.test(await fp.locator('.dish.open .steprow').nth(0).locator('.unit').innerText()));
+    await chickenTemp.fill('425');
+    await fp.waitForTimeout(100);
+    check('425 typed in °F is stored as 218.33 °C', (await planOf(fp)).dishes[0].steps[0].temp === 218.33, (await planOf(fp)).dishes[0].steps[0].temp);
+    // The open editor is redrawn in the new unit (the dish stays open).
+    await fp.selectOption('#tempUnit', 'C');
+    await fp.waitForTimeout(100);
+    const cVal = await chickenTemp.inputValue();
+    const cUnit = await fp.locator('.dish.open .steprow').nth(0).locator('.unit').innerText();
+    await fp.selectOption('#tempUnit', 'F');
+    await fp.waitForTimeout(100);
+    check('…shows as 218 °C in °C and 425 again in °F', cVal === '218' && /°C/.test(cUnit) && (await chickenTemp.inputValue()) === '425', [cVal, cUnit]);
+    await chickenTemp.fill('400');
+    await fp.waitForTimeout(100);
+    // A preset added in °F mode.
+    await fp.selectOption('#preset', { label: 'Roast turkey (4 kg)' });
+    await fp.waitForTimeout(150);
+    const turkey = (await planOf(fp)).dishes.find((d) => /turkey/.test(d.name));
+    fRows = await rowsText(fp);
+    check('a preset added in °F is 350°F (176.67 °C stored), not "180°F"', turkey.steps[0].temp === 176.67 && fRows.some((r) => /Roast turkey \(4 kg\): In the oven 350°F/.test(r)), [turkey.steps[0].temp, fRows.find((r) => /turkey/.test(r))]);
+    await fp.evaluate(() => {
+      const p = window.backtime.plan;
+      p.dishes = p.dishes.filter((d) => !/turkey/.test(d.name));
+      window.backtime.plan = p;
+    });
+    // The clash tolerance at its edge in °F: potatoes 400°F, Yorkshires 445 (45 apart) and 446.
+    await fp.locator('.dish-head', { hasText: 'Yorkshire' }).tap();
+    for (const n of [0, 2]) await fp.locator('.dish.open .steprow').nth(n).locator('.temp').fill('445');
+    await fp.waitForTimeout(100);
+    check('°F tolerance edge: 445°F beside 400°F (45 °F apart) is not a clash', (await fp.$$('#flags .flag')).length === 0, await fp.$$eval('#flags .flag', (f) => f.map((x) => x.innerText)));
+    for (const n of [0, 2]) await fp.locator('.dish.open .steprow').nth(n).locator('.temp').fill('446');
+    await fp.waitForTimeout(100);
+    let fFlags = await fp.$$eval('#flags .flag', (f) => f.map((x) => x.innerText));
+    check('°F tolerance edge: 446°F beside 400°F (46 °F apart) is a clash, worded in °F', fFlags.some((f) => /400°F and 446°F/.test(f)), fFlags);
+    await fp.fill('#tolerance', '50');
+    await fp.dispatchEvent('#tolerance', 'change');
+    await fp.waitForTimeout(100);
+    check('a 50 °F tolerance (27.78 °C stored) clears it', (await fp.$$('#flags .flag')).length === 0 && (await planOf(fp)).ovenTolerance === 27.78, (await planOf(fp)).ovenTolerance);
+    check('no console errors in °F', usF.errors.length === 0, usF.errors);
+    await usF.context.close();
+
+    // ---- 13c. a plan saved by version 1 in °F mode is migrated, and says so ----
+    const legacy = await newPage(browser, origin, { context: { locale: 'en-US' } });
+    await legacy.page.evaluate(() => {
+      localStorage.setItem('backtime.plan.v1', JSON.stringify({ version: 1, serveAt: 1140, tempUnit: 'F', dishes: [
+        { id: 'c', name: 'Chicken', readyBefore: 0, steps: [{ id: 's1', label: 'In', minutes: 80, kind: 'oven', temp: 200 }] },
+        { id: 'p', name: 'Potatoes', readyBefore: 0, steps: [{ id: 's1', label: 'In', minutes: 55, kind: 'oven', temp: 400 }] },
+      ], done: {} }));
+    });
+    await legacy.page.reload({ waitUntil: 'load' });
+    await legacy.page.waitForTimeout(300);
+    const lp = await planOf(legacy.page);
+    const lRows = (await rowsText(legacy.page)).join(' | ');
+    check('v1 °F plan: the preset-looking 200 stays 200 °C (392°F), the typed 400 is read as 400°F', lp.version === 2 && lp.dishes[0].steps[0].temp === 200 && lp.dishes[1].steps[0].temp === 204.44 && /392°F/.test(lRows) && /Potatoes: In 400°F/.test(lRows), [lp.dishes.map((d) => d.steps[0].temp), lRows]);
+    check('…and the page tells the cook to check the temperatures', /older Backtime.*check the oven temperatures/.test(await legacy.page.innerText('#toast')), await legacy.page.innerText('#toast'));
+    await legacy.context.close();
 
     // ---- 14. desktop, and file:// (double-clicking index.html) ----
     const desk = await newPage(browser, origin, { context: { viewport: { width: 1280, height: 800 } } });
@@ -334,8 +422,112 @@ async function main() {
     await desk.context.close();
     const fileUrl = 'file://' + path.join(HERE, 'index.html');
     const local = await newPage(browser, origin, { url: fileUrl });
-    check('opens from file:// with the example and no errors', (await rowsText(local.page)).length === 13 && local.errors.length === 0, local.errors);
+    check('opens from file:// with the example and no errors', (await rowsText(local.page)).length === 15 && local.errors.length === 0, local.errors);
     await local.context.close();
+
+    // ---- 15. last week's ticks do not leak into this week's cook (controlled clock) ----
+    const wk = await browser.newContext(Object.assign({}, PHONE, { locale: 'en-GB', timezoneId: 'Europe/London' }));
+    const wp = await wk.newPage();
+    const wErrors = [];
+    wp.on('pageerror', (e) => wErrors.push(e.message));
+    await wp.clock.install({ time: new Date('2026-11-01T10:50:00') });
+    await wp.goto(`${origin}/index.html`, { waitUntil: 'load' });
+    await wp.waitForTimeout(300);
+    await wp.fill('#serveAt', '13:00');
+    await wp.waitForTimeout(100);
+    for (const k of ['preheat:0', 'chicken/s1', 'potatoes/s1']) await wp.locator(`#timeline .item[data-key="${k}"] input`).tap();
+    await wp.waitForTimeout(100);
+    let wPlan = await planOf(wp);
+    check('ticking records which dinner the ticks are for (Sun 1 Nov 13:00)', wPlan.doneFor === new Date('2026-11-01T13:00:00Z').getTime(), wPlan.doneFor);
+    await wp.clock.setFixedTime(new Date('2026-11-01T11:40:00'));
+    await wp.reload({ waitUntil: 'load' });
+    await wp.waitForTimeout(300);
+    check('a reload mid-cook keeps the ticks', Object.keys((await planOf(wp)).done).length === 3 && /Drain, shake/.test(await wp.innerText('#next')), await wp.innerText('#next'));
+    await wp.clock.setFixedTime(new Date('2026-11-08T10:50:00'));
+    await wp.reload({ waitUntil: 'load' });
+    await wp.waitForTimeout(300);
+    check('a week later the ticks are cleared and "Next up" is the oven again, not a skipped job', Object.keys((await planOf(wp)).done).length === 0 && /Oven on/.test(await wp.innerText('#next')), await wp.innerText('#next'));
+    check('…with a toast that says so and offers to keep them', /Cleared the ticks from the last cook/.test(await wp.innerText('#toast')) && (await wp.locator('#toast button').innerText()) === 'Keep them', await wp.innerText('#toast'));
+    await wp.locator('#toast button').tap();
+    await wp.waitForTimeout(100);
+    wPlan = await planOf(wp);
+    check('"Keep them" restores the ticks for today\'s cook, and they stay', Object.keys(wPlan.done).length === 3 && wPlan.doneFor === new Date('2026-11-08T13:00:00Z').getTime(), wPlan.doneFor);
+    await wp.clock.runFor(3000);
+    check('…even after the page has ticked over a few seconds', Object.keys((await planOf(wp)).done).length === 3);
+    // A tab left open overnight clears them on its own.
+    await wp.clock.setFixedTime(new Date('2026-11-08T19:30:00'));
+    await wp.clock.runFor(2000);
+    check('a tab left open past the 6 h window clears them too', Object.keys((await planOf(wp)).done).length === 0);
+
+    // ---- 16. "Serve 5 min later" only when it helps ----
+    await wp.clock.setFixedTime(new Date('2026-11-08T16:57:00'));
+    await wp.evaluate(() => {
+      const p = window.backtime.plan;
+      p.serveAt = 19 * 60;
+      p.done = {};
+      window.backtime.plan = p;
+    });
+    await wp.waitForTimeout(100);
+    check('2 min behind: no nudge button yet', /2 min behind/.test(await wp.innerText('#next')) && !(await wp.isVisible('#next .hint button')), await wp.innerText('#next'));
+    await wp.clock.setFixedTime(new Date('2026-11-08T17:01:00'));
+    await wp.clock.runFor(1500);
+    check('6 min behind: "Serve 5 min later" is offered', /6 min behind/.test(await wp.innerText('#next')) && /Serve 5 min later/.test(await wp.innerText('#next .hint')), await wp.innerText('#next'));
+    await wp.evaluate(() => {
+      window.backtime.plan = { serveAt: 60, dishes: [{ name: 'Brisket', steps: [{ label: 'Brine', minutes: 2880, kind: 'rest' }, { label: 'Smoke', minutes: 60, kind: 'oven', temp: 110 }] }] };
+    });
+    await wp.clock.setFixedTime(new Date('2026-11-08T20:00:00'));
+    await wp.clock.runFor(1500);
+    check('a brine two days out shows its clock time and no "serve later" button', /2 days before/.test(await wp.innerText('#next .big')) && !(await wp.isVisible('#next .hint button')), await wp.innerText('#next'));
+    check('no page errors with the clock moving', wErrors.length === 0, wErrors);
+    await wk.close();
+
+    // ---- 17. the size limits are enforced in the page, not by silent trimming on reload ----
+    const lim = await newPage(browser, origin, { context: { locale: 'en-GB' } });
+    const lpg = lim.page;
+    await lpg.locator('.dish-head', { hasText: 'Carrots' }).tap();
+    const addStepBtn = lpg.locator('.dish.open button', { hasText: '+ Add step' });
+    for (let i = 1; i < 30; i++) await addStepBtn.click();
+    check('+ Add step is disabled at 30 steps', (await addStepBtn.isDisabled()) && (await planOf(lpg)).dishes[3].steps.length === 30);
+    await lpg.locator('.dish.open .steprow').nth(29).locator('.remove').click();
+    check('removing one enables it again', !(await addStepBtn.isDisabled()));
+    await lpg.locator('#toast button').click();
+    check('and Undo of that removal disables it again', await addStepBtn.isDisabled());
+    for (let i = 6; i < 40; i++) await lpg.locator('#addDish').click();
+    check('+ Add a dish and the preset menu are disabled at 40 dishes', (await lpg.locator('#addDish').isDisabled()) && (await lpg.locator('#preset').isDisabled()) && (await planOf(lpg)).dishes.length === 40);
+    await lpg.reload({ waitUntil: 'load' });
+    await lpg.waitForTimeout(300);
+    const lpPlan = await planOf(lpg);
+    check('after reload nothing was lost: 40 dishes, 30 steps', lpPlan.dishes.length === 40 && lpPlan.dishes[3].steps.length === 30);
+    await lpg.evaluate(() => {
+      const p = JSON.parse(localStorage.getItem('backtime.plan.v1'));
+      p.dishes.push({ id: 'extra', name: 'One too many', steps: [] });
+      localStorage.setItem('backtime.plan.v1', JSON.stringify(p));
+    });
+    await lpg.reload({ waitUntil: 'load' });
+    await lpg.waitForTimeout(300);
+    check('a stored plan over the limit is tidied with a message, not silently', /needed tidying: kept the first 40 of 41 dishes/.test(await lpg.innerText('#toast')), await lpg.innerText('#toast'));
+    await lim.context.close();
+
+    // ---- 18. a file whose dishes are all junk does not wipe the dinner; a good one can be undone ----
+    const imp = await newPage(browser, origin, { context: { locale: 'en-GB' } });
+    const junkDishes = path.join(SHOTS, 'junk-dishes.json');
+    fs.writeFileSync(junkDishes, '{"dishes":[1,"x",null]}');
+    await imp.page.setInputFiles('#file', junkDishes);
+    await imp.page.waitForTimeout(300);
+    check('{"dishes":[1,"x",null]} is refused and the 6 dishes stay', (await planOf(imp.page)).dishes.length === 6 && /no dishes in it/.test(await imp.page.innerText('#toast')), await imp.page.innerText('#toast'));
+    fs.writeFileSync(junkDishes, '{"name":"Shopping list","dishes":[]}');
+    await imp.page.setInputFiles('#file', junkDishes);
+    await imp.page.waitForTimeout(300);
+    check('an empty "dinner" is refused too', (await planOf(imp.page)).dishes.length === 6);
+    fs.writeFileSync(junkDishes, JSON.stringify({ version: 2, serveAt: 1200, dishes: [{ name: 'Soup', steps: [{ kind: 'hob', minutes: 20 }] }] }));
+    await imp.page.setInputFiles('#file', junkDishes);
+    await imp.page.waitForTimeout(300);
+    check('a real one-dish file replaces the dinner, with Undo', (await planOf(imp.page)).dishes.length === 1 && (await imp.page.locator('#toast button').innerText()) === 'Undo');
+    await imp.page.locator('#toast button').tap();
+    await imp.page.waitForTimeout(100);
+    check('Undo brings the 6-dish dinner back', (await planOf(imp.page)).dishes.length === 6);
+    check('no console errors in the limits and import checks', lim.errors.length === 0 && imp.errors.length === 0, [lim.errors, imp.errors]);
+    await imp.context.close();
   } finally {
     await browser.close();
     server.close();

@@ -8,12 +8,13 @@
   const DISH_COLOURS = 8;
 
   // Starting points for common dishes. Timings are editable defaults, not food-safety advice.
+  // Temperatures are °C; in °F they are added as the cookbook equivalent (B.niceTemp: 200 °C → 400 °F).
   const PRESETS = [
     ['Roast chicken (1.5 kg)', 0, [['In the oven', 80, 'oven', 200], ['Out to rest, loosely covered', 25, 'rest'], ['Carve', 5, 'hands']]],
     ['Roast beef (1.5 kg, medium)', 0, [['Sear all over', 6, 'hands'], ['In the oven', 55, 'oven', 190], ['Out to rest', 25, 'rest'], ['Carve', 5, 'hands']]],
     ['Roast turkey (4 kg)', 0, [['In the oven', 180, 'oven', 180], ['Out to rest, tented', 35, 'rest'], ['Carve', 10, 'hands']]],
     ['Roast potatoes', 0, [['Parboil', 12, 'hob'], ['Drain, shake, into hot fat', 3, 'hands'], ['In the oven', 55, 'oven', 200]]],
-    ['Yorkshire puddings', 3, [['Batter into the smoking-hot tin', 2, 'hands'], ['In the oven, no peeking', 22, 'oven', 220]]],
+    ['Yorkshire puddings', 3, [['Tin with fat into the oven, until smoking', 10, 'oven', 220], ['Batter into the hot tin', 2, 'hands'], ['In the oven, no peeking', 22, 'oven', 220]]],
     ['Gravy', 0, [['In the roasting tin', 10, 'hob']]],
     ['Mashed potatoes', 0, [['Boil', 20, 'hob'], ['Mash with butter', 5, 'hands']]],
     ['Carrots', 0, [['Simmer', 15, 'hob']]],
@@ -62,6 +63,7 @@
   let audio = null;
   let toastTimer = null;
   let loadNote = '';
+  let booted = false;
   const autoHour12 = (() => {
     try {
       const o = new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions();
@@ -71,7 +73,17 @@
     }
   })();
   const hour12 = () => (plan.hour12 == null ? autoHour12 : plan.hour12);
-  const unit = () => plan.tempUnit;
+  // °F where ovens are set in °F (en-US and a few others), °C everywhere else, unless the cook chose.
+  const autoUnit = (() => {
+    try {
+      // The same locale the automatic 12/24-hour clock follows.
+      const tag = new Intl.DateTimeFormat().resolvedOptions().locale || navigator.language;
+      return B.unitForLocale(tag);
+    } catch (e) {
+      return 'C';
+    }
+  })();
+  const unit = () => plan.tempUnit || autoUnit;
 
   function nowMinute() {
     const d = new Date();
@@ -99,11 +111,11 @@
   function load() {
     const hash = location.hash.replace(/^#/, '');
     if (hash.startsWith('plan=')) {
-      const p = B.decodePlan(hash.slice(5));
-      if (p) {
+      const v = B.readLink(hash.slice(5));
+      if (v) {
         dropHash();
-        loadNote = 'Loaded the dinner from the link.';
-        return p;
+        loadNote = v.migrated ? migrationNote(v.migrated) : 'Loaded the dinner from the link.';
+        return v.plan;
       }
       loadNote = 'That link did not hold a readable dinner, so here is the example.';
     }
@@ -111,15 +123,23 @@
     if (raw) {
       try {
         const v = B.validatePlan(JSON.parse(raw));
-        if (v.ok) return v.plan;
+        if (v.ok) {
+          if (v.migrated) loadNote = migrationNote(v.migrated);
+          else if (v.problems.length) loadNote = `Your saved dinner needed tidying: ${v.problems.slice(0, 2).join('; ')}.`;
+          return v.plan;
+        }
       } catch (e) {
         /* fall through to the example */
       }
     }
     // First visit: the example, set to serve two and a half hours from now so the live view is live.
-    const p = B.examplePlan();
+    const p = B.examplePlan(autoUnit);
     p.serveAt = (Math.ceil((nowMinute() + 150) / 5) * 5) % B.DAY;
     return p;
+  }
+
+  function migrationNote(m) {
+    return `This dinner was saved by an older Backtime that put a °F label on °C numbers. ${m.asF} temperature${m.asF === 1 ? ' was' : 's were'} read as °F and ${m.asC} as °C: check the oven temperatures.`;
   }
 
   function save() {
@@ -169,6 +189,8 @@
     switch (item.type) {
       case 'preheat':
         return { main: [el('span', { class: 'up' }, item.temp != null ? `Oven on, ${fmtTemp(item.temp)}` : 'Oven on')], meta: item.minutes ? `${B.formatDuration(item.minutes)} to come up to heat` : '' };
+      case 'ovenUp':
+        return { main: [el('span', { class: 'up' }, `Oven up to ${fmtTemp(item.temp)}`), ' for ', el('span', { class: 'dn' }, item.dishName)], meta: item.minutes ? `${B.formatDuration(item.minutes)} to come up` : '' };
       case 'ovenOff':
         return { main: ['Oven is free'], meta: 'switch it off, or warm the plates' };
       case 'ready':
@@ -336,7 +358,8 @@
     } else {
       hint.push(el('span', { class: 'num' }, `at ${fmtAt(nx.at)}`));
     }
-    if (delta < -4 && nx.item.type !== 'serve') {
+    // Pushing dinner back 5 min only helps with a job that is due today, not with a brine two days out.
+    if (delta < -4 && nx.item.type !== 'serve' && nx.at >= -LIVE_WINDOW && nx.at <= 360) {
       hint.push(el('button', { class: 'small', onclick: () => nudgeServe(5) }, 'Serve 5 min later'));
     }
     box.replaceChildren(
@@ -355,6 +378,7 @@
       document.title = 'Backtime';
       return;
     }
+    if (booted && dropStaleTicks()) return; // it re-rendered everything, and called tick again
     const now = nowOff();
     const list = $('#timeline');
     const rows = Array.from(list.querySelectorAll('.ev'));
@@ -440,6 +464,22 @@
     $('.starts', card).textContent = dishStart(d) ? `starts ${dishStart(d)}` : 'no steps';
     $('.sum', card).textContent = B.summarizeDish(d, unit());
     $('.dish-head', card).setAttribute('aria-label', `${d.name || 'Dish'}: close`);
+    syncAddStep(card, d);
+  }
+
+  // A plan holds at most 40 dishes of 30 steps (validatePlan would cut the rest on the next load).
+  function syncAddStep(card, d) {
+    const b = $('.add-step', card);
+    if (!b) return;
+    const full = d.steps.length >= B.LIMITS.steps;
+    b.disabled = full;
+    b.title = full ? `${B.LIMITS.steps} steps is the most a dish can hold` : '';
+  }
+  function syncAddDish() {
+    const full = plan.dishes.length >= B.LIMITS.dishes;
+    $('#addDish').disabled = full;
+    $('#preset').disabled = full;
+    $('#addDish').title = full ? `${B.LIMITS.dishes} dishes is the most a dinner can hold` : '';
   }
 
   function renderEditor(d, card) {
@@ -466,10 +506,12 @@
     const addStep = el(
       'button',
       {
-        class: 'small',
+        class: 'small add-step',
+        disabled: d.steps.length >= B.LIMITS.steps,
         onclick: () => {
+          if (d.steps.length >= B.LIMITS.steps) return;
           const last = d.steps[d.steps.length - 1];
-          d.steps.push({ id: uid('s', d.steps), label: '', minutes: 10, kind: last ? last.kind : 'oven', temp: last && last.kind === 'oven' ? last.temp : 180 });
+          d.steps.push({ id: uid('s', d.steps), label: '', minutes: 10, kind: last ? last.kind : 'oven', temp: last && last.kind === 'oven' ? last.temp : B.niceTemp(180, unit()) });
           commit({ dishes: false });
           const row = renderStep(d, d.steps[d.steps.length - 1], d.steps.length - 1, card);
           steps.append(row);
@@ -545,7 +587,10 @@
         'aria-label': 'Kind of step',
         onchange: () => {
           s.kind = kind.value;
-          if (s.kind === 'oven' && s.temp == null) s.temp = 180;
+          if (s.kind === 'oven' && s.temp == null) {
+            s.temp = B.niceTemp(180, unit());
+            temp.value = String(B.displayTemp(s.temp, unit()));
+          }
           commit({ dishes: false });
           tempWrap.hidden = s.kind !== 'oven';
           refreshHead(card, d);
@@ -609,20 +654,23 @@
         },
         n > 0 ? `+${n}` : String(n),
       );
+    // The box shows and takes the cook's unit; the plan keeps °C.
     const temp = el('input', {
       type: 'number',
       class: 'temp num',
-      min: String(B.LIMITS.temp[0]),
-      max: String(B.LIMITS.temp[1]),
+      min: '0',
+      max: String(B.displayTemp(B.LIMITS.temp[1], unit())),
       step: '5',
-      value: s.temp == null ? '' : String(s.temp),
+      value: s.temp == null ? '' : String(B.displayTemp(s.temp, unit())),
       placeholder: '°',
-      'aria-label': 'Oven temperature',
+      'aria-label': `Oven temperature in °${unit()}`,
       oninput: () => {
-        const v = temp.value.trim() === '' ? null : Number(temp.value);
-        s.temp = v == null || !Number.isFinite(v) ? null : Math.max(B.LIMITS.temp[0], Math.min(B.LIMITS.temp[1], Math.round(v)));
+        s.temp = B.tempFromDisplay(temp.value, unit());
         commit({ dishes: false });
         refreshHead(card, d);
+      },
+      onchange: () => {
+        if (s.temp != null) temp.value = String(B.displayTemp(s.temp, unit()));
       },
     });
     const tempWrap = el('span', { class: 'tempwrap', hidden: s.kind !== 'oven' }, temp, el('span', { class: 'unit' }, `°${unit()}`));
@@ -695,11 +743,21 @@
     if (o.timeline) renderTimeline();
     if (o.dishes) renderDishes();
     renderServe();
+    syncAddDish();
+  }
+
+  function atOf(key) {
+    for (const g of sched.events) for (const i of g.items) if (i.key === key) return g.at;
+    return nowOff();
   }
 
   function setDone(key, value) {
-    if (value) plan.done[key] = true;
-    else delete plan.done[key];
+    if (value) {
+      plan.done[key] = true;
+      // Remember which dinner these ticks are for, so next week's cook starts clean (see dropStaleTicks).
+      plan.doneFor = B.cookOccasion(plan.serveAt, atOf(key), Date.now());
+    } else delete plan.done[key];
+    if (!Object.keys(plan.done).length) plan.doneFor = null;
     save();
     const item = $(`#timeline .item[data-key="${CSS.escape(key)}"]`);
     if (item) {
@@ -712,23 +770,63 @@
 
   function startOver() {
     plan.done = {};
+    plan.doneFor = null;
     commit({ dishes: false });
     toast('Ticks cleared. Same plan, fresh start.');
   }
 
+  // Ticks belong to one cook. Once that dinner is more than 6 h past, they would only make "Next up"
+  // skip jobs you have not done this time, so they go, with a way to keep them.
+  function dropStaleTicks() {
+    if (!B.ticksStale(plan, sched ? sched.endAt : 0, Date.now())) return false;
+    const old = plan.done;
+    const when = new Date(plan.doneFor);
+    let day = '';
+    try {
+      day = when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    } catch (e) {
+      day = when.toDateString();
+    }
+    plan.done = {};
+    plan.doneFor = null;
+    commit({ dishes: false });
+    toast(`Cleared the ticks from the last cook (${day}). Fresh start.`, 'Keep them', () => {
+      plan.done = old;
+      plan.doneFor = B.cookOccasion(plan.serveAt, nowOff(), Date.now()); // they are for this cook, then
+      commit({ dishes: false });
+    });
+    return true;
+  }
+
+  // Ticks saved before ticks carried a date cannot be placed, so they are taken to be for the dinner
+  // the clock is on now (the same rule as the live view). Only plans saved before this revision have them.
+  function stampUndatedTicks(p) {
+    if (Object.keys(p.done).length && !p.doneFor) p.doneFor = B.cookOccasion(p.serveAt, B.nowOffset(p.serveAt, nowMinute()), Date.now());
+  }
+
+  // Moving the serve time moves the dinner the ticks belong to.
+  function setServe(minute) {
+    plan.serveAt = minute;
+    if (plan.doneFor) plan.doneFor = B.nearestClock(minute, plan.doneFor);
+  }
+
   function nudgeServe(n) {
-    plan.serveAt = (((plan.serveAt + n) % B.DAY) + B.DAY) % B.DAY;
+    setServe((((plan.serveAt + n) % B.DAY) + B.DAY) % B.DAY);
     commit();
   }
 
   function addDish(preset) {
+    if (plan.dishes.length >= B.LIMITS.dishes) {
+      toast(`${B.LIMITS.dishes} dishes is the most a dinner can hold.`);
+      return;
+    }
     const d = { id: uid('d', plan.dishes), name: '', readyBefore: 0, steps: [] };
     if (preset) {
       d.name = preset[0];
       d.readyBefore = preset[1];
-      d.steps = preset[2].map((s, i) => ({ id: `s${i + 1}`, label: s[0], minutes: s[1], kind: s[2], temp: s[3] == null ? null : s[3] }));
+      d.steps = preset[2].map((s, i) => ({ id: `s${i + 1}`, label: s[0], minutes: s[1], kind: s[2], temp: s[3] == null ? null : B.niceTemp(s[3], unit()) }));
     } else {
-      d.steps = [{ id: 's1', label: '', minutes: 20, kind: 'oven', temp: 180 }];
+      d.steps = [{ id: 's1', label: '', minutes: 20, kind: 'oven', temp: B.niceTemp(180, unit()) }];
     }
     plan.dishes.push(d);
     openDish = d.id;
@@ -769,13 +867,39 @@
         toast('That file is not a Backtime dinner, so nothing changed.');
         return;
       }
-      plan = v.plan;
-      openDish = null;
-      commit();
-      toast(v.problems.length ? `Loaded, with ${v.problems.length} thing${v.problems.length === 1 ? '' : 's'} tidied up.` : `Loaded ${plan.dishes.length} dish${plan.dishes.length === 1 ? '' : 'es'}.`);
+      if (!v.plan.dishes.length) {
+        toast('That file has no dishes in it, so nothing changed.');
+        return;
+      }
+      const n = v.plan.dishes.length;
+      const msg = v.migrated
+        ? migrationNote(v.migrated)
+        : v.problems.length
+          ? `Loaded ${n} dish${n === 1 ? '' : 'es'}, with ${v.problems.length} thing${v.problems.length === 1 ? '' : 's'} tidied up.`
+          : `Loaded ${n} dish${n === 1 ? '' : 'es'}.`;
+      replacePlan(v.plan, msg);
     };
     reader.onerror = () => toast('Could not read that file.');
     reader.readAsText(file);
+  }
+
+  // Swaps in a whole new plan (a file or a link) with a way back, because the old one is not saved anywhere else.
+  function replacePlan(p, msg) {
+    const before = plan;
+    if (B.ticksStale(p, B.schedule(p).endAt, Date.now())) {
+      p.done = {};
+      p.doneFor = null;
+      msg += ' Its ticks were from a finished cook, so they were cleared.';
+    }
+    stampUndatedTicks(p);
+    plan = p;
+    openDish = null;
+    commit();
+    toast(msg, before.dishes.length ? 'Undo' : null, () => {
+      plan = before;
+      openDish = null;
+      commit();
+    });
   }
 
   function copyLink() {
@@ -797,7 +921,8 @@
 
   function resetExample() {
     if (plan.dishes.length && !confirm('Replace your dishes with the example roast dinner?')) return;
-    plan = B.examplePlan();
+    const keep = { tempUnit: plan.tempUnit, hour12: plan.hour12, sound: plan.sound };
+    plan = Object.assign(B.examplePlan(unit()), keep);
     openDish = null;
     commit();
     toast('Back to the roast dinner.');
@@ -863,8 +988,11 @@
   function renderSettings() {
     $('#preheat').value = String(plan.preheat);
     $('#hobRings').value = String(plan.hobRings);
-    $('#tolerance').value = String(plan.ovenTolerance);
-    $('#tempUnit').value = plan.tempUnit;
+    $('#tolerance').value = String(B.displayDelta(plan.ovenTolerance, unit()));
+    $('#tolerance').max = String(B.displayDelta(B.LIMITS.tolerance[1], unit()));
+    $('#tolUnit').textContent = `°${unit()}`;
+    $('#tempUnit').value = plan.tempUnit || 'auto';
+    $('#tempUnit option[value="auto"]').textContent = `auto (°${autoUnit})`;
     $('#clock').value = plan.hour12 == null ? 'auto' : plan.hour12 ? '12' : '24';
     $('#sound').checked = plan.sound;
     $('#theme').value = storageGet(THEME_KEY) || 'auto';
@@ -879,14 +1007,14 @@
     $('#serveAt').addEventListener('change', (e) => {
       const v = B.parseTime(e.target.value);
       if (v == null) return;
-      plan.serveAt = v;
+      setServe(v);
       commit();
     });
     document.querySelectorAll('.nudge button').forEach((b) => b.addEventListener('click', () => nudgeServe(Number(b.dataset.nudge))));
     $('#startNow').addEventListener('click', () => {
       const v = Number($('#startNow').dataset.serve);
       if (!Number.isFinite(v)) return;
-      plan.serveAt = v;
+      setServe(v);
       commit();
       const wait = sched.startAt - nowOff();
       toast(`Serving at ${fmtClock(v)}. First job ${wait < 0.5 ? 'right now' : `in ${relative(wait)}`}.`);
@@ -910,9 +1038,19 @@
       });
     num('#preheat', 'preheat', B.LIMITS.preheat[0], B.LIMITS.preheat[1]);
     num('#hobRings', 'hobRings', B.LIMITS.hobRings[0], B.LIMITS.hobRings[1]);
-    num('#tolerance', 'ovenTolerance', B.LIMITS.tolerance[0], B.LIMITS.tolerance[1]);
+    // The tolerance is a temperature difference: shown in the cook's unit, kept in °C.
+    $('#tolerance').addEventListener('change', (e) => {
+      const v = B.deltaFromDisplay(e.target.value, unit());
+      if (v == null) return;
+      plan.ovenTolerance = v;
+      e.target.value = String(B.displayDelta(v, unit()));
+      commit();
+    });
+    // Changing the unit changes only how temperatures are shown and typed; the plan stays in °C.
     $('#tempUnit').addEventListener('change', (e) => {
-      plan.tempUnit = e.target.value === 'F' ? 'F' : 'C';
+      const v = e.target.value;
+      plan.tempUnit = v === 'F' || v === 'C' ? v : null;
+      renderSettings();
       commit();
     });
     $('#clock').addEventListener('change', (e) => {
@@ -944,13 +1082,10 @@
     window.addEventListener('hashchange', () => {
       const hash = location.hash.replace(/^#/, '');
       if (!hash.startsWith('plan=')) return;
-      const p = B.decodePlan(hash.slice(5));
+      const v = B.readLink(hash.slice(5));
       dropHash();
-      if (!p) return toast('That link did not hold a readable dinner.');
-      plan = p;
-      openDish = null;
-      commit();
-      toast('Loaded the dinner from the link.');
+      if (!v) return toast('That link did not hold a readable dinner.');
+      replacePlan(v.plan, v.migrated ? migrationNote(v.migrated) : 'Loaded the dinner from the link.');
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) tick(true);
@@ -961,10 +1096,13 @@
 
   applyTheme(storageGet(THEME_KEY) || 'auto');
   plan = load();
+  stampUndatedTicks(plan);
   wire();
   renderSettings();
   commit();
+  booted = true;
   if (loadNote) toast(loadNote);
+  dropStaleTicks();
   setInterval(() => tick(false), 1000);
 
   // For poking around in the console and for the UI tests.
@@ -974,6 +1112,7 @@
     },
     set plan(p) {
       plan = B.validatePlan(p).plan;
+      stampUndatedTicks(plan);
       openDish = null;
       commit();
     },

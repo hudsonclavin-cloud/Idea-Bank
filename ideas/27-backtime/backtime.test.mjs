@@ -113,14 +113,42 @@ test('a slow oven (long preheat) widens the keep-on gap so off never follows pre
   assert.ok(at(u, 'ovenoff:0') <= at(u, 'preheat:1'));
 });
 
-test('the dial follows whatever went in last; a change is noted on that step', () => {
+test('turning the dial UP gets its own job, a lead time before the hotter step goes in', () => {
   const s = B.schedule(plan([dish('a', 'Chicken', [['In', 80, 'oven', 190]]), dish('b', 'Yorkshires', [['In', 20, 'oven', 220]])], { ovenTolerance: 40 }));
+  // 15 min preheat to reach 220 from 20 °C; a 30° rise is 15 × 30/200 = 2.25 min, rounded up to 5.
+  assert.equal(at(s, 'ovenup:b/s1'), -25, 'the oven goes up 5 min before the Yorkshires, not as they go in');
+  const up = s.events.find((g) => g.at === -25).items.find((i) => i.key === 'ovenup:b/s1');
+  assert.deepEqual([up.type, up.temp, up.minutes, up.dishName], ['ovenUp', 220, 5, 'Yorkshires']);
   const yorks = s.events.find((g) => g.at === -20).items.find((i) => i.key === 'b/s1');
-  assert.equal(yorks.ovenTo, 220);
+  assert.equal(yorks.ovenTo, null, 'the step itself carries no late "oven to" note any more');
   const chicken = s.events.find((g) => g.at === -80).items.find((i) => i.key === 'a/s1');
   assert.equal(chicken.ovenTo, null, 'the first step is covered by the preheat');
   const same = B.schedule(plan([dish('a', 'A', [['In', 80, 'oven', 200]]), dish('b', 'B', [['In', 20, 'oven', 200]])]));
   assert.equal(same.events.find((g) => g.at === -20).items[0].ovenTo, null, 'same temperature, no note');
+  assert.equal(at(same, 'ovenup:b/s1'), undefined);
+});
+
+test('turning the dial DOWN is noted on the step; a rise during the preheat just preheats hotter', () => {
+  const down = B.schedule(plan([dish('a', 'Bread', [['Bake', 40, 'oven', 220]]), dish('b', 'Crumble', [['Bake', 20, 'oven', 180]])], { ovenTolerance: 50 }));
+  assert.equal(down.events.find((g) => g.at === -20).items.find((i) => i.key === 'b/s1').ovenTo, 180);
+  assert.equal(down.events.flatMap((g) => g.items).filter((i) => i.type === 'ovenUp').length, 0);
+  // B wants 220 two minutes after A (200) goes in: its lead would start before anything is in.
+  const fold = B.schedule(plan([dish('a', 'A', [['In', 60, 'oven', 200]]), dish('b', 'B', [['In', 58, 'oven', 220]])]));
+  assert.equal(fold.events[0].items[0].type, 'preheat');
+  assert.equal(fold.events[0].items[0].temp, 220, 'preheat straight to the hotter setting');
+  assert.equal(fold.events.flatMap((g) => g.items).filter((i) => i.type === 'ovenUp').length, 0);
+  // With no preheat time there is no lead: the "up" job lands on the step's own minute, listed first.
+  const zero = B.schedule(plan([dish('a', 'A', [['In', 80, 'oven', 190]]), dish('b', 'B', [['In', 20, 'oven', 220]])], { preheat: 0, ovenTolerance: 40 }));
+  assert.deepEqual(zero.events.find((g) => g.at === -20).items.map((i) => i.type), ['ovenUp', 'step']);
+});
+
+test('riseLead scales a preheat by the share of the climb, rounds up to 5 min, never exceeds the preheat', () => {
+  assert.equal(B.riseLead(15, 200, 220), 5);
+  assert.equal(B.riseLead(15, 120, 220), 10); // 15 × 100/200 = 7.5
+  assert.equal(B.riseLead(15, 20, 220), 15); // a full preheat
+  assert.equal(B.riseLead(3, 200, 220), 3, 'capped at the preheat');
+  assert.equal(B.riseLead(0, 200, 250), 0);
+  assert.equal(B.riseLead(15, 220, 200), 0, 'going down needs no lead');
 });
 
 test('oven steps without a temperature are fine and never clash', () => {
@@ -133,7 +161,8 @@ test('oven clash: overlapping steps whose temperatures differ by more than the t
   const p = plan([dish('a', 'Chicken', [['In', 80, 'oven', 190]]), dish('b', 'Yorkshires', [['In', 20, 'oven', 220]])], { ovenTolerance: 25 });
   const s = B.schedule(p);
   assert.equal(s.conflicts.length, 1);
-  assert.deepEqual(s.conflicts[0], { type: 'oven', from: -20, to: 0, low: 190, high: 220, dishes: ['Chicken', 'Yorkshires'] });
+  // From -25, not -20: the oven is climbing to 220 for the 5 min before the Yorkshires go in.
+  assert.deepEqual(s.conflicts[0], { type: 'oven', from: -25, to: 0, low: 190, high: 220, dishes: ['Chicken', 'Yorkshires'] });
   p.ovenTolerance = 30;
   assert.deepEqual(B.schedule(p).conflicts, [], 'inside the tolerance is not a clash');
   p.ovenTolerance = 0;
@@ -153,9 +182,19 @@ test('consecutive clashing segments merge into one flag with the widest temperat
   assert.deepEqual(oven[0].dishes, ['A', 'B', 'C']);
 });
 
-test('touching but not overlapping oven steps never clash', () => {
-  const s = B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', 160]], 30), dish('b', 'B', [['In', 30, 'oven', 240]])]));
-  assert.deepEqual(s.conflicts, []);
+test('touching oven steps clash only while the oven climbs for the hotter one', () => {
+  // Hot then cool: the dial goes down as B goes in. No clash.
+  const down = B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', 240]], 30), dish('b', 'B', [['In', 30, 'oven', 160]])]));
+  assert.deepEqual(down.conflicts, []);
+  // Cool then hot: the oven has to climb 80° (10 min) while A is still in, so those 10 min clash...
+  const up = B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', 160]], 30), dish('b', 'B', [['In', 30, 'oven', 240]])]));
+  assert.deepEqual(up.conflicts, [{ type: 'oven', from: -40, to: -30, low: 160, high: 240, dishes: ['A', 'B'] }]);
+  // ...and leaving 10 min between them, as the flag suggests, clears it.
+  const gap = B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', 160]], 40), dish('b', 'B', [['In', 30, 'oven', 240]])]));
+  assert.deepEqual(gap.conflicts, []);
+  // A small rise inside the tolerance never clashes.
+  const small = B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', 200]], 30), dish('b', 'B', [['In', 30, 'oven', 220]])]));
+  assert.deepEqual(small.conflicts, []);
 });
 
 // ---------- hob and hands ----------
@@ -178,7 +217,9 @@ test('hands: two hands-on jobs at once is a gentle flag; sequential ones are not
   assert.equal(s.conflicts[0].type, 'hands');
   assert.deepEqual(s.conflicts[0].dishes, ['Chicken', 'Mash']);
   const t = B.schedule(plan([dish('a', 'Chicken', [['Carve', 5, 'hands']], 5), dish('b', 'Mash', [['Mash', 5, 'hands']])]));
-  assert.deepEqual(t.conflicts, []);
+  assert.deepEqual(t.conflicts, [], 'end-to-start touching is not flagged');
+  const o = B.schedule(plan([dish('a', 'Chicken', [['Carve', 5, 'hands']], 4), dish('b', 'Mash', [['Mash', 5, 'hands']])]));
+  assert.deepEqual(o.conflicts.map((c) => [c.type, c.from, c.to]), [['hands', -5, -4]], 'a one-minute overlap is');
 });
 
 // ---------- the example ----------
@@ -191,24 +232,42 @@ test('the worked example has no clashes and reads as intended', () => {
   assert.deepEqual(v.plan, p, 'the example survives validation unchanged');
   const s = B.schedule(p);
   assert.deepEqual(s.conflicts, []);
-  assert.deepEqual(times(s, p.serveAt), [
+  const rows = [
     '16:55 preheat:0',
     '17:10 chicken/s1',
     '17:50 potatoes/s1',
     '18:02 potatoes/s2',
     '18:05 potatoes/s3',
+    '18:18 ovenup:yorkshires/s1',
+    '18:23 yorkshires/s1',
     '18:30 chicken/s2',
-    '18:33 yorkshires/s1',
-    '18:35 yorkshires/s2',
+    '18:33 yorkshires/s2',
+    '18:35 yorkshires/s3',
     '18:45 carrots/s1',
     '18:50 gravy/s1',
     '18:55 chicken/s3+greens/s1',
     '18:57 yorkshires/ready',
     '19:00 serve',
-  ]);
-  const yorks = s.events.find((g) => g.at === -25).items[0];
-  assert.equal(yorks.ovenTo, 220, 'the oven goes up for the Yorkshires once the chicken is out');
+  ];
+  assert.deepEqual(times(s, p.serveAt), rows);
+  // The oven goes up to 220 five minutes BEFORE the tin goes in to heat, and the batter goes into a tin
+  // that has had 10 min in a 220° oven: no Yorkshire is poured into a tin that was never heated.
+  const up = s.events.find((g) => g.at === -42).items[0];
+  assert.deepEqual([up.type, up.temp, up.minutes], ['ovenUp', 220, 5]);
+  const tin = s.events.find((g) => g.at === -37).items[0];
+  assert.equal(tin.title, 'Tin with fat into the oven, until smoking');
+  assert.equal(tin.kind, 'oven');
+  assert.equal(s.events.find((g) => g.at === -25).items[0].ovenTo, null, 'already at 220 when the batter goes in');
   assert.equal(s.span, 125);
+  assert.equal(s.jobCount, 15);
+  // The same dinner in °F: cookbook temperatures, the same times, still no clash.
+  const f = B.examplePlan('F');
+  const sf = B.schedule(f);
+  assert.deepEqual(sf.conflicts, []);
+  assert.deepEqual(times(sf, f.serveAt), rows);
+  assert.equal(B.formatTemp(sf.events[0].items[0].temp, 'F'), '400°F');
+  assert.equal(B.formatTemp(sf.events.find((g) => g.at === -42).items[0].temp, 'F'), '425°F');
+  assert.deepEqual(B.validatePlan(f).plan, f, 'the °F example survives validation unchanged');
 });
 
 // ---------- midnight and long leads ----------
@@ -337,7 +396,7 @@ test('validatePlan coerces, clamps and tidies', () => {
   assert.equal(p.preheat, 0);
   assert.equal(p.hobRings, 12);
   assert.equal(p.ovenTolerance, 25);
-  assert.equal(p.tempUnit, 'C');
+  assert.equal(p.tempUnit, null, 'an unknown unit means "follow the locale"');
   assert.equal(p.hour12, null);
   assert.equal(p.sound, false);
   assert.equal(p.extra, undefined);
@@ -359,15 +418,25 @@ test('validatePlan coerces, clamps and tidies', () => {
   assert.doesNotThrow(() => B.schedule(p));
 });
 
-test('validatePlan keeps unicode names whole and strips control characters', () => {
-  const name = '🍗 Poulet rôti — 鸡 ' + '👩‍🍳'.repeat(40);
+test('validatePlan cuts names by grapheme, so no emoji is split, and strips control characters', () => {
+  const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const count = (t) => Array.from(seg.segment(t)).length;
+  const name = '🍗 Poulet rôti — 鸡 ' + '👩‍🍳'.repeat(80);
   const v = B.validatePlan({ dishes: [{ name, steps: [{ label: 'x\u0000y\u001Fz', minutes: 5, kind: 'hands' }] }] });
   const kept = v.plan.dishes[0].name;
-  assert.equal(Array.from(kept).length, B.LIMITS.name);
+  assert.equal(count(kept), B.LIMITS.name);
   assert.ok(kept.startsWith('🍗 Poulet rôti — 鸡 '));
-  assert.ok(!/[\uD800-\uDBFF]$/.test(kept), 'never ends in half a surrogate pair');
+  assert.ok(kept.endsWith('👩‍🍳'), 'the last cook emoji is whole, ZWJ and all');
   assert.equal(v.plan.dishes[0].steps[0].label, 'xyz');
-  assert.equal(v.plan.dishes[0].name, kept);
+  const cut = (t) => B.validatePlan({ dishes: [{ name: t, steps: [] }] }).plan.dishes[0].name;
+  // The reviewer's three cases, which the code-point cut used to break:
+  const family = '👨‍👩‍👧‍👦';
+  assert.equal(cut('a'.repeat(78) + family), 'a'.repeat(78) + family, 'a ZWJ family is one character');
+  assert.equal(cut('a'.repeat(79) + '🇬🇧'), 'a'.repeat(79) + '🇬🇧', 'a flag is one character');
+  assert.equal(cut('a'.repeat(80) + '🇬🇧'), 'a'.repeat(80), 'and is dropped whole, not left as a lone 🇬');
+  assert.equal(cut('a'.repeat(79) + '👍🏽b'), 'a'.repeat(79) + '👍🏽', 'the skin tone stays on the thumb');
+  // One "character" made of 1000 combining marks cannot smuggle in a huge name.
+  assert.ok(Array.from(cut('Stew' + 'e\u0301'.repeat(10) + '\u0301'.repeat(1000))).length <= B.LIMITS.name * 4);
 });
 
 test('validatePlan caps the size of a plan', () => {
@@ -396,7 +465,167 @@ test('encodePlan / decodePlan round-trip, drop ticks, and reject junk', () => {
 
 test('summarizeDish and stepTitle fill in sensible defaults', () => {
   assert.equal(B.summarizeDish({ steps: [] }), 'no steps yet');
-  assert.equal(B.summarizeDish(dish('a', 'A', [['', 80, 'oven', 200], ['', 25, 'rest'], ['Carve', 5, 'hands']]), 'F'), 'into the oven 200°F 1 h 20 min → rest 25 min → Carve 5 min');
+  // 200 °C is shown as 392 °F. (Before this revision it said "200°F": the label changed, the number did not.)
+  assert.equal(B.summarizeDish(dish('a', 'A', [['', 80, 'oven', 200], ['', 25, 'rest'], ['Carve', 5, 'hands']]), 'F'), 'into the oven 392°F 1 h 20 min → rest 25 min → Carve 5 min');
+  assert.equal(B.summarizeDish(dish('a', 'A', [['', 80, 'oven', 200]]), 'C'), 'into the oven 200°C 1 h 20 min');
   assert.equal(B.stepTitle({ kind: 'hob', label: '' }), 'onto the hob');
   assert.equal(B.stepTitle({ kind: 'hands', label: 'Mash' }), 'Mash');
+});
+
+// ---------- temperatures: stored in °C, shown and typed in either unit ----------
+
+test('°C ↔ °F: every whole degree a cook can type comes back as typed, in both units', () => {
+  for (let f = 100; f <= 550; f++) {
+    const c = B.tempFromDisplay(f, 'F');
+    assert.equal(B.displayTemp(c, 'F'), f, `${f}°F`);
+    assert.equal(B.tempFromDisplay(String(B.displayTemp(c, 'F')), 'F'), c, `${f}°F typed twice stores the same °C`);
+  }
+  for (let c = 0; c <= 300; c++) {
+    assert.equal(B.tempFromDisplay(c, 'C'), c, 'whole °C are stored exactly');
+    assert.equal(B.displayTemp(c, 'C'), c);
+    // Switching to °F and back changes nothing stored, so °C survives any number of switches.
+    assert.equal(B.displayTemp(B.tempFromDisplay(B.displayTemp(c, 'C'), 'C'), 'C'), c);
+  }
+  assert.deepEqual([0, 100, 180, 200, 220].map((c) => B.formatTemp(c, 'F')), ['32°F', '212°F', '356°F', '392°F', '428°F']);
+  assert.equal(B.formatTemp(200, 'C'), '200°C');
+  assert.equal(B.tempFromDisplay(350, 'F'), 176.67);
+  assert.equal(B.tempFromDisplay('', 'F'), null);
+  assert.equal(B.tempFromDisplay('hot', 'C'), null);
+  assert.equal(B.tempFromDisplay(5000, 'F'), B.LIMITS.temp[1], 'clamped to the limits in °C');
+});
+
+test('the clash tolerance is a temperature difference: 25 °C is 45 °F, and it converts both ways', () => {
+  assert.equal(B.displayDelta(25, 'F'), 45);
+  assert.equal(B.displayDelta(25, 'C'), 25);
+  assert.equal(B.deltaFromDisplay(45, 'F'), 25);
+  assert.equal(B.deltaFromDisplay('40', 'F'), 22.22);
+  assert.equal(B.displayDelta(B.deltaFromDisplay(40, 'F'), 'F'), 40);
+  assert.equal(B.deltaFromDisplay('x', 'F'), null);
+});
+
+test('presets in °F are the cookbook equivalents, stored as °C', () => {
+  assert.deepEqual([180, 190, 200, 220].map((c) => B.displayTemp(B.niceTemp(c, 'F'), 'F')), [350, 375, 400, 425]);
+  assert.equal(B.niceTemp(200, 'C'), 200);
+  assert.equal(B.niceTemp(null, 'F'), null);
+  // A roast turkey preset added while the page shows °F: 350 °F, which is 176.67 °C, not "180°F".
+  const turkey = dish('t', 'Roast turkey', [['In the oven', 180, 'oven', B.niceTemp(180, 'F')]]);
+  assert.equal(turkey.steps[0].temp, 176.67);
+  const s = B.schedule(plan([turkey]));
+  assert.equal(B.formatTemp(s.events[0].items[0].temp, 'F'), '350°F');
+  assert.equal(B.formatTemp(s.events[0].items[0].temp, 'C'), '177°C');
+  assert.equal(B.summarizeDish(turkey, 'F'), 'In the oven 350°F 3 h');
+});
+
+test('an oven clash at the edge of the tolerance, in both units', () => {
+  const two = (t1, t2, tol) => B.schedule(plan([dish('a', 'A', [['In', 30, 'oven', t1]]), dish('b', 'B', [['In', 30, 'oven', t2]])], { ovenTolerance: tol })).conflicts.length;
+  // °C: 25° apart is fine, 26° is a clash.
+  assert.equal(two(200, 225, 25), 0);
+  assert.equal(two(200, 226, 25), 1);
+  // °F, typed as °F: 45 °F apart at the default tolerance (25 °C = 45 °F) is fine, 46 is a clash.
+  const F = (f) => B.tempFromDisplay(f, 'F');
+  assert.equal(two(F(400), F(445), 25), 0);
+  assert.equal(two(F(400), F(446), 25), 1);
+  // A tolerance typed as 40 °F: 40 apart is fine, 41 is a clash, despite 0.01° storage rounding.
+  const tol = B.deltaFromDisplay(40, 'F');
+  assert.equal(two(F(400), F(440), tol), 0);
+  assert.equal(two(F(400), F(441), tol), 1);
+  assert.equal(two(F(350), F(390), tol), 0);
+  // Before the fix a °F cook's numbers were compared raw against "25", so 400 and 440 °F clashed.
+  assert.equal(two(F(400), F(440), 25), 0, '40 °F apart is inside the default 45 °F');
+});
+
+test('the default unit follows the locale: °F for en-US, °C for en-GB', () => {
+  assert.equal(B.unitForLocale('en-US'), 'F');
+  assert.equal(B.unitForLocale('en'), 'F', 'plain "en" is taken to mean the US, as browsers do');
+  assert.equal(B.unitForLocale('es-US'), 'F');
+  assert.equal(B.unitForLocale('en-LR'), 'F');
+  assert.equal(B.unitForLocale('en_US.UTF-8'), 'F', 'POSIX-style tags are read too');
+  assert.equal(B.unitForLocale('en-US@posix'), 'F');
+  assert.equal(B.unitForLocale('en_GB'), 'C');
+  for (const tag of ['en-GB', 'en-AU', 'en-CA', 'en-IE', 'fr-FR', 'de', 'ja-JP', 'es-MX']) assert.equal(B.unitForLocale(tag), 'C', tag);
+  for (const bad of [undefined, null, '', 'not a locale!!', 42]) assert.equal(B.unitForLocale(bad), 'C', String(bad));
+  assert.equal(B.emptyPlan().tempUnit, null, 'a new plan follows the locale until the cook picks a unit');
+});
+
+test('version-1 plans migrate safely: °C plans are untouched, °F plans keep what can only be °F', () => {
+  // A v1 plan in °C (the default): numbers are °C, and the unit is left to the locale.
+  const c = B.validatePlan({ version: 1, tempUnit: 'C', dishes: [{ name: 'Chicken', steps: [{ kind: 'oven', minutes: 80, temp: 200 }] }] });
+  assert.equal(c.plan.dishes[0].steps[0].temp, 200);
+  assert.equal(c.plan.tempUnit, null);
+  assert.equal(c.migrated, null);
+  assert.equal(c.plan.version, 2);
+  // A v1 plan saved in °F mode: a preset added there kept its °C number (200), while a cook who saw the
+  // °F label typed real °F numbers (400). No home oven reaches 400 °C, so 400 must be °F.
+  const f = B.validatePlan({ version: 1, tempUnit: 'F', ovenTolerance: 25, dishes: [
+    { name: 'Chicken', steps: [{ kind: 'oven', minutes: 80, temp: 200 }] },
+    { name: 'Potatoes', steps: [{ kind: 'oven', minutes: 55, temp: 400 }] },
+    { name: 'Pizza', steps: [{ kind: 'oven', minutes: 10, temp: 261 }] },
+  ] });
+  assert.deepEqual(f.plan.dishes.map((d) => d.steps[0].temp), [200, 204.44, 127.22]);
+  assert.deepEqual(f.migrated, { from: 1, asF: 2, asC: 1 });
+  assert.equal(f.plan.tempUnit, 'F', 'the cook chose °F, so it stays');
+  assert.equal(f.plan.ovenTolerance, 25);
+  assert.ok(f.problems.some((p) => /labelled °F/.test(p)));
+  assert.deepEqual(f.plan.dishes.map((d) => B.formatTemp(d.steps[0].temp, 'F')), ['392°F', '400°F', '261°F']);
+  // Once migrated it is version 2: validating again changes nothing.
+  const again = B.validatePlan(JSON.parse(JSON.stringify(f.plan)));
+  assert.deepEqual(again.plan, f.plan);
+  assert.equal(again.migrated, null);
+  // A version-2 plan in °F is never converted again.
+  const v2 = B.validatePlan({ version: 2, tempUnit: 'F', dishes: [{ name: 'Potatoes', steps: [{ kind: 'oven', minutes: 55, temp: 204.44 }] }] });
+  assert.equal(v2.plan.dishes[0].steps[0].temp, 204.44);
+  assert.equal(v2.migrated, null);
+  // An old link (version 1, °F) reports the same migration.
+  const link = Buffer.from(JSON.stringify({ version: 1, tempUnit: 'F', dishes: [{ name: 'P', steps: [{ kind: 'oven', minutes: 5, temp: 425 }] }] })).toString('base64url');
+  const r = B.readLink(link);
+  assert.deepEqual(r.migrated, { from: 1, asF: 1, asC: 0 });
+  assert.equal(B.decodePlan(link).dishes[0].steps[0].temp, 218.33);
+});
+
+// ---------- ticks belong to one cook ----------
+
+test('ticks remember which dinner they were for, and go stale once it is over', () => {
+  const p = B.examplePlan();
+  p.serveAt = 13 * H;
+  const s = B.schedule(p);
+  const sunday = new Date(2026, 10, 1, 10, 55).getTime(); // Sun 1 Nov, 10:55, oven on (13:00 − 125 min)
+  p.done = { 'preheat:0': true, 'chicken/s1': true, 'potatoes/s1': true };
+  p.doneFor = B.cookOccasion(p.serveAt, -125, sunday);
+  assert.equal(p.doneFor, new Date(2026, 10, 1, 13, 0).getTime());
+  assert.equal(B.ticksStale(p, s.endAt, new Date(2026, 10, 1, 12, 0).getTime()), false, 'mid-cook');
+  assert.equal(B.ticksStale(p, s.endAt, new Date(2026, 10, 1, 18, 59).getTime()), false, 'up to 6 h after serving');
+  assert.equal(B.ticksStale(p, s.endAt, new Date(2026, 10, 1, 19, 1).getTime()), true);
+  assert.equal(B.ticksStale(p, s.endAt, new Date(2026, 10, 8, 10, 50).getTime()), true, 'the next Sunday starts clean');
+  // A tick made late (or early) still lands on the right dinner: up to 12 h either way.
+  assert.equal(B.cookOccasion(13 * H, -125, new Date(2026, 10, 1, 14, 30).getTime()), p.doneFor);
+  // A brine ticked on Friday evening belongs to Sunday's dinner, and is not stale on Sunday morning.
+  const brine = { done: { 'b/s1': true }, doneFor: B.cookOccasion(19 * H, -(48 * H + 60), new Date(2026, 10, 6, 18, 0).getTime()) };
+  assert.equal(brine.doneFor, new Date(2026, 10, 8, 19, 0).getTime());
+  assert.equal(B.ticksStale(brine, 0, new Date(2026, 10, 8, 10, 0).getTime()), false);
+  // Dessert two hours after serving keeps the ticks an hour past its end if that is later than 6 h.
+  assert.equal(B.ticksStale(brine, 7 * H, new Date(2026, 10, 9, 2, 30).getTime()), false);
+  assert.equal(B.ticksStale(brine, 7 * H, new Date(2026, 10, 9, 3, 1).getTime()), true);
+  // No ticks, or no date: nothing to clear.
+  assert.equal(B.ticksStale({ done: {}, doneFor: 1 }, 0, Date.now()), false);
+  assert.equal(B.ticksStale({ done: { a: true }, doneFor: null }, 0, Date.now()), false);
+});
+
+test('moving the serve time moves the dinner the ticks belong to', () => {
+  const sun13 = new Date(2026, 10, 1, 13, 0).getTime();
+  assert.equal(B.nearestClock(13 * H + 5, sun13), new Date(2026, 10, 1, 13, 5).getTime());
+  assert.equal(B.nearestClock(12 * H, sun13), new Date(2026, 10, 1, 12, 0).getTime());
+  assert.equal(B.nearestClock(30, new Date(2026, 10, 1, 23, 50).getTime()), new Date(2026, 10, 2, 0, 30).getTime(), 'across midnight');
+});
+
+test('doneFor survives validation only alongside ticks, and never travels in a link', () => {
+  const when = new Date(2026, 10, 1, 13, 0).getTime();
+  assert.equal(B.validatePlan({ dishes: [], done: { a: true }, doneFor: when }).plan.doneFor, when);
+  assert.equal(B.validatePlan({ dishes: [], done: {}, doneFor: when }).plan.doneFor, null);
+  for (const bad of ['soon', -5, NaN, Infinity, 1e20, {}]) assert.equal(B.validatePlan({ dishes: [], done: { a: true }, doneFor: bad }).plan.doneFor, null, String(bad));
+  const p = B.examplePlan();
+  p.done = { 'preheat:0': true };
+  p.doneFor = when;
+  const back = B.decodePlan(B.encodePlan(p));
+  assert.equal(back.doneFor, null);
+  assert.deepEqual(back.done, {});
 });

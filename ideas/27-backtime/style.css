@@ -156,6 +156,11 @@ button.small {
 button.danger {
   color: var(--bad);
 }
+button:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 input[type='text'],
 input[type='number'],
 input[type='time'],
