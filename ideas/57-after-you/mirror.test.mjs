@@ -1,9 +1,11 @@
 // Tests for After You. Run from the repo root: node --test ideas/57-after-you/mirror.test.mjs
 //
-// Three groups: the trace measurement (driven with synthetic leaders and followers whose true
-// lag is known), the scoring and dealing (enumerated exhaustively where the space is finite), and
-// the state machine (every reachable state found by breadth-first search, checked for dead ends
-// and for hidden information leaking into what the screen may show).
+// Four groups: the trace measurement (driven with synthetic leaders and followers whose true
+// lag is known, including followers who sit off to one side), the scoring and dealing
+// (enumerated exhaustively where the space is finite), the incentives (why a standoff is a game
+// of chicken under the glass rule, and was not under the old shared point), and the state
+// machine (every reachable state found by breadth-first search, checked for dead ends and for
+// hidden information leaking into what the screen may show).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -114,6 +116,102 @@ function still(r, n, x = 195, y = 210, jitter = 1) {
   }
   return { xs, ys };
 }
+// A steady circle of radius R px and period P s; dir is the sense of rotation (+1 or -1).
+function circlePath(n, R, P, dir = 1, ph = 0, cx = 195, cy = 210) {
+  const xs = [];
+  const ys = [];
+  for (let i = 0; i < n; i++) {
+    const th = dir * ((2 * Math.PI * i * C.DT) / 1000 / P) + ph;
+    xs.push(cx + R * Math.cos(th));
+    ys.push(cy + R * Math.sin(th));
+  }
+  return { xs, ys };
+}
+// Straight legs at a constant `speed` px/s, a new random heading every 0.8 to 2.5 s, bouncing off
+// the edges of a 390 x 420 half: locally straight motion, the worst case for telling an offset from a lag.
+function zigzag(r, n, speed) {
+  const xs = [];
+  const ys = [];
+  let x = 195;
+  let y = 210;
+  let th = 0;
+  let left = 0;
+  const step = (speed * C.DT) / 1000;
+  for (let i = 0; i < n; i++) {
+    if (left-- <= 0) {
+      th = 2 * Math.PI * r();
+      left = 40 + Math.floor(85 * r());
+    }
+    x += step * Math.cos(th);
+    y += step * Math.sin(th);
+    if (x < 40 || x > 350) (th = Math.PI - th), (x = Math.min(350, Math.max(40, x)));
+    if (y < 40 || y > 380) (th = -th), (y = Math.min(380, Math.max(40, y)));
+    xs.push(x);
+    ys.push(y);
+  }
+  return { xs, ys };
+}
+// A random walk whose velocity wanders with a 1 s memory (Ornstein-Uhlenbeck), about `speed` px/s:
+// meandering motion with no regular pattern.
+function ouWalk(r, n, speed) {
+  const xs = [];
+  const ys = [];
+  let x = 195;
+  let y = 210;
+  let vx = 0;
+  let vy = 0;
+  const dt = C.DT / 1000;
+  for (let i = 0; i < n; i++) {
+    vx += -vx * dt + speed * Math.sqrt(dt) * gauss(r);
+    vy += -vy * dt + speed * Math.sqrt(dt) * gauss(r);
+    x += vx * dt;
+    y += vy * dt;
+    if (x < 40 || x > 350) (vx = -vx), (x = Math.min(350, Math.max(40, x)));
+    if (y < 40 || y > 380) (vy = -vy), (y = Math.min(380, Math.max(40, y)));
+    xs.push(x);
+    ys.push(y);
+  }
+  return { xs, ys };
+}
+const shifted = (p, dx, dy) => ({ xs: p.xs.map((v) => v + dx), ys: p.ys.map((v) => v + dy) });
+// Both hands rest on their marks until `atS` seconds, then `p` plays from its start.
+const startingAt = (p, atS) => resample(p, p.xs.length, (i) => i - (atS * 1000) / C.DT);
+// Long straight legs at a constant `speed` px/s, each to a new random point in a 390 x 420 half.
+function legsTo(r, n, speed) {
+  const xs = [];
+  const ys = [];
+  let x = 60 + 270 * r();
+  let y = 60 + 300 * r();
+  let tx = x;
+  let ty = y;
+  const step = (speed * C.DT) / 1000;
+  for (let i = 0; i < n; i++) {
+    let d = Math.hypot(tx - x, ty - y);
+    while (d < step) {
+      tx = 40 + 310 * r();
+      ty = 40 + 340 * r();
+      d = Math.hypot(tx - x, ty - y);
+    }
+    x += (step * (tx - x)) / d;
+    y += (step * (ty - y)) / d;
+    xs.push(x);
+    ys.push(y);
+  }
+  return { xs, ys };
+}
+// A leader who gives way: goes their own way (`own`) until `atS` seconds, then blends over 1 s
+// into `follow`, a path that copies the partner.
+function givesWay(own, follow, atS) {
+  const xs = [];
+  const ys = [];
+  for (let i = 0; i < own.xs.length; i++) {
+    const w = Math.min(1, Math.max(0, (i * C.DT) / 1000 - atS));
+    xs.push(own.xs[i] * (1 - w) + follow.xs[i] * w);
+    ys.push(own.ys[i] * (1 - w) + follow.ys[i] * w);
+  }
+  return { xs, ys };
+}
+
 function trace(a, b, scale = 390) {
   const tr = Y.emptyTrace(scale);
   for (let i = 0; i < a.xs.length; i++) Y.pushSample(tr, { x: a.xs[i], y: a.ys[i] }, { x: b.xs[i], y: b.ys[i] });
@@ -187,6 +285,25 @@ test('two people ignoring each other in the same space rarely produce a leader (
   assert.ok(leaders / rounds < 0.05, `false leaders ${leaders}/${rounds}`);
   if (process.env.AFTER_YOU_VERBOSE) console.log(`independent motion: ${leaders}/${rounds} rounds with a leader, mean coupled ${coupled / rounds} ms`);
   assert.ok(coupled / rounds < 2000, `mean coupled time ${coupled / rounds} ms`);
+});
+
+test('two people each drawing their own circle find a leader far more often: a phase difference looks like a lag', () => {
+  // Not a worst case the measurement can fix: two steady circles at the same tempo, a fraction of
+  // a turn apart, are exactly a time-shifted copy of each other for as long as the tempos agree.
+  let any = 0;
+  let same = 0;
+  const rounds = 150;
+  for (let seed = 0; seed < rounds; seed++) {
+    const r = rng(61000 + seed);
+    const c = () => circlePath(N, 40 + 100 * r(), 2.5 + 4 * r(), r() < 0.5 ? 1 : -1, 2 * Math.PI * r(), 175 + 40 * r(), 190 + 40 * r());
+    if (Y.analyse(trace(c(), c())).leader) any++;
+    const dir = r() < 0.5 ? 1 : -1;
+    const d = () => circlePath(N, 40 + 100 * r(), 3 + 2 * r(), dir, 2 * Math.PI * r(), 175 + 40 * r(), 190 + 40 * r());
+    if (Y.analyse(trace(d(), d())).leader) same++;
+  }
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`independent circles: ${any}/${rounds} with a leader; same sense, 3-5 s periods: ${same}/${rounds}`);
+  assert.ok(any / rounds > 0.04 && any / rounds < 0.15, `any circles: ${any}/${rounds}`);
+  assert.ok(same / rounds > 0.12 && same / rounds < 0.35, `same-sense circles: ${same}/${rounds}`);
 });
 
 test('the trace measures timing, not intent: running ahead of a predictable partner counts as leading', () => {
@@ -310,6 +427,219 @@ test('moving both dots together, or zooming the whole picture, does not change a
   }
 });
 
+test('a steady offset is not mistaken for leading: a follower who sits to one side of the ring is still behind, moment by moment', () => {
+  // Over straight motion, a dot that sits d px along the path from the ring looks exactly like a
+  // dot d / v seconds early. Before the steady offset was taken off, a zigzag copied 150 ms late
+  // with the copy 25 px to the side showed the copier "ahead" for several seconds of the strip.
+  const families = {
+    zigzag: (r) => zigzag(r, N, 70),
+    walk: (r) => ouWalk(r, N, 60),
+    wander: (r) => wander(r, N, 70),
+    circle: (r) => circlePath(N, 80, 4, r() < 0.5 ? 1 : -1, 2 * Math.PI * r()),
+  };
+  for (const [name, make] of Object.entries(families)) {
+    for (const off of [15, 25, 35]) {
+      for (let seed = 0; seed < 4; seed++) {
+        const r = rng(8800 + 100 * off + seed + name.length * 7);
+        const a = make(r);
+        const th = 2 * Math.PI * r();
+        const b = shifted(delayed(a, 150, r), off * Math.cos(th), off * Math.sin(th));
+        const an = Y.analyse(trace(a, b));
+        assert.equal(an.leader, 'A', `${name} ${off} px seed ${seed}`);
+        assert.equal(an.time.B, 0, `${name} ${off} px seed ${seed}: the copier is shown ahead for ${an.time.B} ms`);
+        assert.ok(Math.hypot(an.offset.x + off * Math.cos(th), an.offset.y + off * Math.sin(th)) < 3, `${name}: offset found ${JSON.stringify(an.offset)}`);
+      }
+    }
+  }
+});
+
+test('the steady offset is found from the moving part of the round, so a long standoff does not hide it', () => {
+  for (const atS of [0, 8, 17]) {
+    for (let seed = 0; seed < 4; seed++) {
+      const r = rng(9100 + 10 * atS + seed);
+      const a = startingAt(zigzag(r, N, 70), atS);
+      const b = shifted(delayed(a, 200, r), 0, 25);
+      const an = Y.analyse(trace(a, b));
+      assert.equal(an.time.B, 0, `standoff ${atS} s seed ${seed}: copier ahead ${an.time.B} ms`);
+      assert.equal(an.leader, 'A');
+    }
+  }
+});
+
+test('a tug resolved late: 13 to 17 s of two leaders going their own ways do not skew the offset, and the one who gave way is never named leader', () => {
+  // The first version of the steady offset was a median over every moving sample of the round. When
+  // two leaders went their own ways for 13 to 17 s before one gave way, most of those samples were
+  // unrelated motion, the offset came out tens of px wrong, and taking it off made a correct copy
+  // look early: in this test it was out by 10 px or more in 66 of the 154 glass-whole rounds (77 px
+  // at worst), the one who gave way was shown ahead for 0.8 s on average, two rounds had no leader,
+  // and in the case pinned below the one who gave way was named leader. Now the offset comes only
+  // from the stretches where somebody is copying somebody.
+  const families = {
+    legs: (r) => legsTo(r, N, 60 + 20 * r()),
+    zigzag: (r) => zigzag(r, N, 70),
+    wander: (r) => wander(r, N, 70),
+  };
+  // Each follower: the path it copies with, and the steady offset it sits at (the last sits 20 px off the ring).
+  const followers = [
+    (a, r) => [delayed(a, 150, r), 0, 0],
+    (a, r) => [delayed(a, 250, r), 0, 0],
+    (a, r) => [steering(a, 150, 60, r), 0, 0],
+    (a, r) => [shifted(delayed(a, 200, r), 12, -16), -12, 16],
+  ];
+  let whole = 0;
+  let giverAhead = 0;
+  for (const [name, make] of Object.entries(families))
+    for (const atS of [13, 15, 17])
+      for (const [fi, follow] of followers.entries())
+        for (let seed = 0; seed < 6; seed++) {
+          const r = rng(12000 + 1000 * name.length + 100 * atS + 10 * fi + seed);
+          const a = make(r);
+          const own = make(r);
+          const [path, ox, oy] = follow(a, r);
+          const an = Y.analyse(trace(a, givesWay(own, path, atS)));
+          if (an.heldFraction < C.HELD_POINT) continue; // the glass broke: no order point is at stake
+          whole++;
+          const at = `${name}, gives way at ${atS} s, follower ${fi}, seed ${seed}`;
+          assert.equal(an.leader, 'A', `${at}: leader ${an.leader}`);
+          assert.ok(Math.hypot(an.offset.x - ox, an.offset.y - oy) < 10, `${at}: offset ${JSON.stringify(an.offset)}, true (${ox}, ${oy})`);
+          giverAhead += an.time.B;
+        }
+  assert.ok(whole >= 150, `glass-whole rounds ${whole}`);
+  assert.ok(giverAhead / whole < 400, `the one who gave way is shown ahead for ${giverAhead / whole} ms on average`);
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`late tugs: ${whole} glass-whole rounds, giver ahead ${(giverAhead / whole / 1000).toFixed(2)} s on average`);
+  // One concrete case: straight legs, Blue gives way at 17 s and copies 150 ms late, exactly.
+  const r = rng(12000 + 4000 + 1700 + 11);
+  const a = legsTo(r, N, 60 + 20 * r());
+  const an = Y.analyse(trace(a, givesWay(legsTo(r, N, 60 + 20 * r()), delayed(a, 150, r), 17)));
+  assert.ok(an.heldFraction >= C.HELD_POINT);
+  assert.equal(an.leader, 'A', `leader ${an.leader}: A ahead ${an.time.A} ms, B ahead ${an.time.B} ms`);
+  assert.deepEqual(Y.score(['lead', 'lead'], ['lead', 'lead'], an).kept, [true, false], 'Orange kept LEAD; Blue gave way');
+});
+
+test('for a follower on or near the ring, adding a constant offset changes no verdict and no leader; past the closeness limit it is apart', () => {
+  // Not bit for bit: the offset is estimated from the stretches judged coupled on the real positions,
+  // and one near the closeness limit can drop out, moving the estimate by a fraction of a pixel and a
+  // lag by a few ms. For a follower on the ring or 10 px off it, no half-second's verdict and no leader
+  // changes. That is all it can promise: closeness (step 1) is judged on the real positions, offset
+  // and all, so an offset that carries the dots past COUPLE_TOL turns those stretches to apart. The
+  // second revision of the README said "a constant offset of up to 20 px changes no verdict" without
+  // that limit; the last part of this test is a case where it changes every verdict.
+  const lagMoves = [];
+  let rounds = 0;
+  for (let seed = 0; seed < 16; seed++) {
+    const r = rng(9300 + seed);
+    const a = seed < 8 ? wander(r, N, 50 + 50 * r()) : zigzag(r, N, 70);
+    const b0 = seed % 2 ? steering(a, 150, 60, r) : delayed(a, 100 + 40 * (seed % 8), r, 2);
+    for (const sits of [0, 10]) {
+      // A follower who already sits `sits` px off the ring in direction (ux, uy), pushed 20 px further.
+      const th = 2 * Math.PI * r();
+      const ux = Math.cos(th);
+      const uy = Math.sin(th);
+      const b = shifted(b0, sits * ux, sits * uy);
+      const base = Y.analyse(trace(a, b));
+      const pushes = sits === 0 ? [[20, 0], [0, -20], [-12.5, 12.5]] : [[20 * ux, 20 * uy], [-20 * uy, 20 * ux], [-20 * ux, -20 * uy]];
+      for (const [dx, dy] of pushes) {
+        const moved = Y.analyse(trace(a, shifted(b, dx, dy)));
+        rounds++;
+        assert.deepEqual(
+          moved.segments.map((sg) => sg.cls),
+          base.segments.map((sg) => sg.cls),
+          `seed ${seed}, ${sits} px off, pushed ${dx.toFixed(1)},${dy.toFixed(1)}`,
+        );
+        moved.segments.forEach((sg, i) => {
+          if (sg.lagMs !== null) lagMoves.push(Math.abs(sg.lagMs - base.segments[i].lagMs));
+        });
+        assert.equal(moved.leader, base.leader);
+        assert.ok(Math.hypot(moved.offset.x + dx - base.offset.x, moved.offset.y + dy - base.offset.y) < 1, `seed ${seed}`);
+      }
+    }
+  }
+  lagMoves.sort((p, q) => p - q);
+  const at = (f) => lagMoves[Math.floor(f * (lagMoves.length - 1))];
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`constant offset: ${rounds} pushes, lags moved by median ${at(0.5).toFixed(3)} ms, 99th percentile ${at(0.99).toFixed(2)} ms, at most ${at(1).toFixed(1)} ms`);
+  assert.ok(at(0.5) < 0.5 && at(0.99) < 10 && at(1) < 60, `${at(0.5)} ${at(0.99)} ${at(1)}`);
+
+  // Past the limit (39 px here): an exact copy 150 ms late on straight legs at 70 px/s is credited to
+  // its leader for the whole round at 20 px off the ring, and is apart for the whole round at 40 px
+  // off, with nobody named leader, while the mirror (HELD_TOL, 47 px) still keeps the glass whole.
+  const heldAt40 = [];
+  for (let seed = 0; seed < 6; seed++) {
+    const r = rng(9400 + seed);
+    const a = legsTo(r, N, 70);
+    const b = delayed(a, 150, r);
+    const th = 2 * Math.PI * r();
+    const near = Y.analyse(trace(a, shifted(b, 20 * Math.cos(th), 20 * Math.sin(th))));
+    const far = Y.analyse(trace(a, shifted(b, 40 * Math.cos(th), 40 * Math.sin(th))));
+    assert.equal(near.leader, 'A', `seed ${seed}`);
+    assert.equal(near.time.A, near.ms, `seed ${seed}: at 20 px off, A ahead ${near.time.A} ms`);
+    assert.ok(far.segments.every((sg) => sg.cls === 'apart'), `seed ${seed}: at 40 px off, ${JSON.stringify(far.time)}`);
+    assert.equal(far.leader, null);
+    assert.ok(far.heldFraction >= C.HELD_POINT, `seed ${seed}: at 40 px off the mirror held only ${far.heldFraction}`);
+    heldAt40.push(far.heldFraction);
+  }
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`40 px off: apart throughout, no leader, mirror held ${heldAt40.map((h) => Math.round(100 * h) + '%').join(' ')}`);
+});
+
+test('a tug has a back door: the one who gives way can keep the glass whole without being seen copying, and then nobody keeps LEAD', () => {
+  // Found in the third review. The mirror's tolerance (HELD_TOL, 12% of the side) is wider than the
+  // distance at which the trace stops calling it copying (COUPLE_TOL, 10%), and copying is judged on
+  // 3 s at a time while the glass needs only 10 s of the 30 in all. So a leader who gives way can save
+  // the glass and still deny the other leader the point: by copying from 42 px off the ring, or by
+  // copying on the ring for 1 s at a time with 1 s excursions 100 px off it. The incentive tests
+  // below assume a player who gives way is seen copying; this test pins that a player need not be
+  // (README, "A second hole"). It is a statement about the rules, not a fix.
+  const families = {
+    legs: (r) => legsTo(r, N, 60 + 20 * r()),
+    zigzag: (r) => zigzag(r, N, 70),
+    wander: (r) => wander(r, N, 70),
+  };
+  // `inS` s on the ring, then `outS` s out at `away` px in direction (ux, uy), with 0.3 s ramps.
+  function excursions(p, inS, outS, away, ux, uy) {
+    const xs = [];
+    const ys = [];
+    for (let i = 0; i < p.xs.length; i++) {
+      const ph = ((i * C.DT) / 1000) % (inS + outS);
+      const o = ph <= inS ? 0 : away * Math.min(1, (ph - inS) / 0.3, (inS + outS - ph) / 0.3);
+      xs.push(p.xs[i] + o * ux);
+      ys.push(p.ys[i] + o * uy);
+    }
+    return { xs, ys };
+  }
+  const ways = {
+    'on the ring': (p) => p,
+    '42 px off the ring': (p, ux, uy) => shifted(p, 42 * ux, 42 * uy),
+    '1 s on, 1 s 100 px off': (p, ux, uy) => excursions(p, 1, 1, 100, ux, uy),
+  };
+  const whole = {};
+  for (const [way, copyHow] of Object.entries(ways)) {
+    whole[way] = 0;
+    for (const [name, make] of Object.entries(families))
+      for (let seed = 0; seed < 8; seed++) {
+        const r = rng(13000 + 1000 * name.length + seed);
+        const a = make(r);
+        const own = make(r);
+        const th = 2 * Math.PI * r();
+        const copy = seed % 2 ? steering(a, 150, 60, r) : delayed(a, 150, r);
+        // Both told to LEAD; Blue goes their own way for 3 s, then gives way.
+        const an = Y.analyse(trace(a, givesWay(own, copyHow(copy, Math.cos(th), Math.sin(th)), 3)));
+        if (an.heldFraction < C.HELD_POINT) continue;
+        whole[way]++;
+        const kept = Y.score(['lead', 'lead'], ['lead', 'lead'], an).kept;
+        const at = `${way}, ${name}, seed ${seed}`;
+        if (way === 'on the ring') {
+          assert.equal(an.leader, 'A', at);
+          assert.deepEqual(kept, [true, false], at);
+        } else {
+          assert.equal(an.leader, null, `${at}: ${JSON.stringify(an.time)}`);
+          assert.deepEqual(kept, [false, false], `${at}: nobody keeps LEAD`);
+        }
+      }
+  }
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`tug back door: glass whole of 24 ${JSON.stringify(whole)}`);
+  assert.equal(whole['on the ring'], 24);
+  assert.ok(whole['42 px off the ring'] >= 12 && whole['1 s on, 1 s 100 px off'] >= 15, JSON.stringify(whole));
+});
+
 test('the mirror holds for a good follower at a walking pace, and not for still or wiggling hands', () => {
   // A follower who sees 120 ms late and steers with a 50 ms spring (about 0.2 s behind in all),
   // behind a leader at 50-90 px/s on a 390 px phone: the mirror holds for most of the round.
@@ -349,6 +679,29 @@ test('one dot circling a still partner never holds the mirror, however close it 
   assert.equal(Y.analyse(trace(a, b)).heldFraction, 0);
 });
 
+test('the travel rule sets a speed floor: a perfect copy slower than about 40 px/s, or a small or fast circle, never keeps the glass whole', () => {
+  // The mirror only counts while each dot has got 15% of the side (58.5 px on a 390 px phone) from
+  // where it was 1.5 s ago: about 39 px/s in a straight line, more on a curve.
+  for (let seed = 0; seed < 6; seed++) {
+    const r = rng(9500 + seed);
+    const slow = zigzag(r, N, 30);
+    assert.ok(Y.analyse(trace(slow, delayed(slow, 150, r))).heldFraction < 0.05, `30 px/s seed ${seed}`);
+    const brisk = zigzag(r, N, 60);
+    assert.ok(Y.analyse(trace(brisk, delayed(brisk, 150, r))).heldFraction >= C.HELD_POINT, `60 px/s seed ${seed}`);
+  }
+  for (const P of [1.5, 3, 6, 12]) {
+    const small = circlePath(N, 25, P);
+    assert.equal(Y.analyse(trace(small, delayed(small, 150, rng(1)))).heldFraction, 0, `radius 25 px, period ${P} s`);
+  }
+  for (const R of [40, 60, 100]) {
+    const fast = circlePath(N, R, 1.5);
+    assert.ok(Y.analyse(trace(fast, delayed(fast, 150, rng(2)))).heldFraction < 0.05, `radius ${R} px, period 1.5 s`);
+  }
+  // ... while a circle of a good size at a moderate tempo holds nearly all the time.
+  const good = circlePath(N, 60, 5);
+  assert.ok(Y.analyse(trace(good, delayed(good, 150, rng(3)))).heldFraction > 0.9);
+});
+
 test('a standoff has a deadline: give way by 8 s and the mirror can still hold for 10 s; wait 20 s and it cannot', () => {
   // Both still until T, then Orange moves off and Blue follows well.
   const heldFrom = (T, seed) => {
@@ -365,6 +718,23 @@ test('a standoff has a deadline: give way by 8 s and the mirror can still hold f
   }
   assert.ok(early >= 34, `gave way at 8 s and still held: ${early}/40`);
   for (let seed = 0; seed < 40; seed++) assert.ok(heldFrom(20, seed).heldFraction < C.HELD_POINT, `seed ${seed}`);
+});
+
+test('the deadline depends on how you move: a steady circle can be saved from 18 s, a slow meander often not from 8 s', () => {
+  let circle18 = 0;
+  let walk8 = 0;
+  for (let seed = 0; seed < 20; seed++) {
+    const r = rng(9700 + seed);
+    const c = startingAt(circlePath(N, 80, 5, 1, 2 * Math.PI * r()), 18);
+    if (Y.analyse(trace(c, delayed(c, 200, r))).heldFraction >= C.HELD_POINT) circle18++;
+    const w = startingAt(ouWalk(r, N, 60), 8);
+    if (Y.analyse(trace(w, delayed(w, 200, r))).heldFraction >= C.HELD_POINT) walk8++;
+    const late = startingAt(circlePath(N, 80, 5), 20);
+    assert.ok(Y.analyse(trace(late, delayed(late, 200, r))).heldFraction < C.HELD_POINT, 'from 20 s nothing can be saved');
+  }
+  if (process.env.AFTER_YOU_VERBOSE) console.log(`deadline: circle from 18 s saved ${circle18}/20; slow walk from 8 s saved ${walk8}/20`);
+  assert.ok(circle18 >= 18, `circle from 18 s: ${circle18}/20`);
+  assert.ok(walk8 <= 10, `slow walk from 8 s: ${walk8}/20`);
 });
 
 test('no held time before the first move: held time never exceeds the time after both have left their marks', () => {
@@ -430,8 +800,11 @@ test('scoring: every combination of orders, guesses, leader and held scores as t
             const read = guesses[p] === orders[1 - p];
             assert.equal(sc.kept[p], kept);
             assert.equal(sc.read[p], read);
-            assert.equal(sc.points[p], (held ? 1 : 0) + (kept ? 1 : 0) + (read ? 1 : 0));
+            // The mirror is not a point: it is the shared stake. Points are only won off each other.
+            assert.equal(sc.points[p], (kept ? 1 : 0) + (read ? 1 : 0));
           }
+          assert.equal(sc.held, held);
+          assert.equal(sc.broke, !held, 'a round in which the mirror did not hold breaks the glass');
           if (orders[0] === orders[1]) assert.ok(!(sc.kept[0] && sc.kept[1]), 'same orders: both cannot keep them');
           else assert.equal(sc.kept[0] && sc.kept[1], leader !== null && orders[li] === 'lead');
           if (leader === null) assert.deepEqual(sc.kept, [false, false]);
@@ -439,6 +812,251 @@ test('scoring: every combination of orders, guesses, leader and held scores as t
           const sw = Y.score([orders[1], orders[0]], [guesses[1], guesses[0]], fakeAnalysis(leader && SWAP[leader], held));
           assert.deepEqual(sw.points, [sc.points[1], sc.points[0]]);
         }
+});
+
+test('the glass: a scored round in which the mirror fails ends the game, and nobody wins whatever the score', () => {
+  let s = Y.act(Y.newGame(), { type: 'practice', rand: [5, 6, 7, 8], now: 0 });
+  s = Y.act(s, { type: 'begin', now: 10 });
+  s = Y.act(s, { type: 'tick', now: 10 + C.COUNTDOWN_MS });
+  s = Y.act(s, { type: 'finish', now: s.phaseAt + C.PRACTICE_MS, trace: STILL[C.PRACTICE_MS / C.DT] });
+  s = Y.act(Y.act(s, { type: 'guess', player: 0, value: 'nobody' }), { type: 'guess', player: 1, value: 'nobody' });
+  assert.equal(s.broken, null, 'practice is not scored: a still practice round breaks nothing');
+  // Round 1 holds and Orange scores; round 2 is a stalemate: the glass breaks and the game ends there.
+  const play = (st, round, tr, guesses) => {
+    st = Y.act(st, { type: 'next', rand: [round & 1, 0, 3, 4], now: st.phaseAt + 10 });
+    for (const p of [0, 1]) st = Y.act(Y.act(st, { type: 'peek', player: p, down: true }), { type: 'peek', player: p, down: false });
+    st = Y.act(st, { type: 'begin', now: st.phaseAt + 10 });
+    st = Y.act(st, { type: 'tick', now: st.phaseAt + C.COUNTDOWN_MS });
+    st = Y.act(st, { type: 'finish', now: st.phaseAt + C.PLAY_MS, trace: tr });
+    return Y.act(Y.act(st, { type: 'guess', player: 0, value: guesses[0] }), { type: 'guess', player: 1, value: guesses[1] });
+  };
+  s = play(s, 1, TRACE[1500], ['follow', 'follow']); // Orange LEAD, Blue FOLLOW: Orange reads Blue, Blue misreads
+  assert.equal(s.broken, null);
+  assert.ok(s.totals[0] > s.totals[1], `Orange ahead after round 1: ${s.totals}`);
+  assert.equal(Y.view(s).last, false);
+  s = play(s, 2, STILL[1500], ['follow', 'follow']);
+  assert.equal(s.history[2].broke, true);
+  assert.equal(s.broken, 2);
+  assert.equal(Y.view(s).last, true, 'the reveal knows it is the last');
+  s = Y.act(s, { type: 'next', rand: [0, 0, 0, 0], now: s.phaseAt + 10 });
+  assert.equal(s.phase, 'summary');
+  const sum = Y.view(s).summary;
+  assert.equal(sum.rounds, 2);
+  assert.equal(sum.broken, 2);
+  assert.equal(sum.winner, null, 'Orange was ahead, but a broken glass means nobody wins');
+  assert.deepEqual(Y.outcome([5, 3], null), { winner: 'A', broken: null });
+  assert.deepEqual(Y.outcome([3, 3], null), { winner: 'level', broken: null });
+  assert.deepEqual(Y.outcome([2, 6], null), { winner: 'B', broken: null });
+});
+
+// ------------------------------------------------------------------ incentives
+//
+// A same-order round (both FOLLOW, or both LEAD) can turn into a standoff. Each player either waits
+// (W) or gives way in time (G): moves off first in a both-follow round, starts copying in a
+// both-lead round. What each pair of choices does to the trace:
+//   (G, W): the one who gave way is measured following (both LEAD) or leading (both FOLLOW); the
+//           mirror holds.
+//   (W, W): nobody goes anywhere (both FOLLOW), or two leaders go their own ways (both LEAD): the
+//           mirror does not hold. ("Hands resting still" and "one hand moving alone" pin both.)
+//   (G, G): both give way at once. Either you fall in together, nobody ahead and the mirror holding,
+//           or neither copies the other and it does not hold. Both are checked.
+// A both-lead round also has a back door (S): give way, but copy out of the trace's sight, so the
+// mirror holds and nobody is named leader ("a tug has a back door" pins that it can be done). Only
+// the last incentive test below uses it; the others assume that a player who gives way is seen.
+// A player trying to win values a game at P(win) + P(level) / 2, and a broken glass at 0. Each
+// guess is a fair coin (the game's own result: no rule that ignores the round does better). Each
+// later round is modelled with fair-coin orders and the glass holding: when the orders differ, both
+// or neither keep, so only the read points move the margin; when they match, one of you, either
+// equally likely, keeps. So a later round moves the margin by -2 to +2, which is exactly what the
+// rules allow (pinned below). That is a model of the future, not a fact about it, but the
+// conclusions below need only that a broken glass is worth nothing, that an extra point is never
+// worth less, and which margins a later round can reach.
+const READS = [[true, true], [true, false], [false, true], [false, false]];
+const gameMemo = new Map();
+function gameValue(margin, roundsLeft) {
+  // margin: Orange minus Blue, after this round; Orange's value under the model above.
+  if (roundsLeft === 0) return margin > 0 ? 1 : margin === 0 ? 0.5 : 0;
+  const key = `${margin} ${roundsLeft}`;
+  if (gameMemo.has(key)) return gameMemo.get(key);
+  let v = 0;
+  for (const [r0, r1] of READS) {
+    const m = margin + (r0 ? 1 : 0) - (r1 ? 1 : 0);
+    v += gameValue(m, roundsLeft - 1) / 8; // different orders: kept points cancel
+    v += gameValue(m + 1, roundsLeft - 1) / 16; // same orders, Orange keeps
+    v += gameValue(m - 1, roundsLeft - 1) / 16; // same orders, Blue keeps
+  }
+  gameMemo.set(key, v);
+  return v;
+}
+function standoff(ord, choice0, choice1, together) {
+  // The analysis the trace would give for these choices, from Orange's (player 0's) side.
+  if ((choice0 === 'S' && choice1 === 'W') || (choice0 === 'W' && choice1 === 'S')) return { leader: null, heldFraction: 0.8 };
+  if (choice0 === 'S' || choice1 === 'S') return standoff(ord, choice0 === 'S' ? 'G' : choice0, choice1 === 'S' ? 'G' : choice1, together);
+  const giver = choice0 === 'G' && choice1 === 'W' ? 0 : choice0 === 'W' && choice1 === 'G' ? 1 : -1;
+  if (giver >= 0) {
+    const leader = ord === 'follow' ? giver : 1 - giver;
+    return { leader: leader === 0 ? 'A' : 'B', heldFraction: 0.8 };
+  }
+  if (choice0 === 'G' && together) return { leader: null, heldFraction: 0.8 };
+  return { leader: null, heldFraction: 0 };
+}
+function valueFor0(ord, c0, c1, together, margin, roundsLeft, scoreFn = Y.score) {
+  let v = 0;
+  for (const [r0, r1] of READS) {
+    const orders = [ord, ord];
+    const other = ord === 'lead' ? 'follow' : 'lead';
+    const guesses = [r0 ? ord : other, r1 ? ord : other];
+    const sc = scoreFn(orders, guesses, standoff(ord, c0, c1, together));
+    if (sc.broke) continue; // a broken glass: nobody wins, worth 0
+    v += gameValue(margin + sc.points[0] - sc.points[1], roundsLeft) / 4;
+  }
+  return v;
+}
+
+test('incentives, the old rules: a shared mirror point never changes who is ahead, so waiting was weakly dominant', () => {
+  // The rules before the review: +1 each when the mirror held, and no shared loss.
+  const oldScore = (orders, guesses, an) => {
+    const sc = Y.score(orders, guesses, an);
+    return { ...sc, broke: false, points: sc.points.map((x) => x + (an.heldFraction >= C.HELD_POINT ? 1 : 0)) };
+  };
+  for (const ord of ['follow', 'lead'])
+    for (let margin = -4; margin <= 4; margin++)
+      for (let left = 0; left <= 3; left++)
+        for (const c1 of ['W', 'G'])
+          for (const together of [true, false]) {
+            const w = valueFor0(ord, 'W', c1, together, margin, left, oldScore);
+            const g = valueFor0(ord, 'G', c1, together, margin, left, oldScore);
+            assert.ok(w >= g - 1e-12, `${ord} m${margin} left${left} vs ${c1}: wait ${w} < give way ${g}`);
+          }
+});
+
+test('incentives, the glass rule: when giving way is seen, a standoff is a game of chicken for a player trying to win, and neither choice is dominant', () => {
+  let strictG = 0;
+  let strictW = 0;
+  for (const ord of ['follow', 'lead'])
+    for (let margin = -6; margin <= 6; margin++)
+      for (let left = 0; left <= 3; left++)
+        for (const together of [true, false]) {
+          const v = (c0, c1) => valueFor0(ord, c0, c1, together, margin, left);
+          // A stalemate breaks the glass: worth nothing to either of you.
+          assert.equal(v('W', 'W'), 0);
+          // Against a partner who waits, giving way is never worse, and strictly better whenever giving
+          // way still leaves you any chance to win or draw. Giving way costs you the order point and at
+          // best you win the read point back, so the margin is unchanged at best, and each later round
+          // can win back at most 2: a chance remains while margin + 2 x rounds left >= 0.
+          assert.ok(v('G', 'W') >= 0);
+          if (margin + 2 * left >= 0) {
+            assert.ok(v('G', 'W') > 0, `${ord} m${margin} left${left}: giving way leaves a chance`);
+            strictG++;
+          } else assert.equal(v('G', 'W'), 0, 'already lost: nothing to gain by giving way');
+          // Against a partner who gives way, waiting is never worse than giving way too.
+          assert.ok(v('W', 'G') >= v('G', 'G'), `${ord} m${margin} left${left}`);
+          if (v('W', 'G') > v('G', 'G')) strictW++;
+        }
+  // So each choice is the strict best reply to the other somewhere: neither is dominant. That is chicken.
+  assert.ok(strictG > 50 && strictW > 50, `${strictG} ${strictW}`);
+  // The hole (README): giving way can no longer win or draw in the last round when behind by one or
+  // more, and in round 3 (one round left) when behind by three or more, but still can when behind by two.
+  for (const ord of ['follow', 'lead']) {
+    assert.equal(valueFor0(ord, 'G', 'W', true, -1, 0), 0);
+    assert.equal(valueFor0(ord, 'G', 'W', true, -3, 1), 0);
+    assert.ok(valueFor0(ord, 'G', 'W', true, -2, 1) > 0);
+    assert.ok(valueFor0(ord, 'G', 'W', true, -4, 2) > 0);
+  }
+});
+
+test('incentives, the back door: in a both-lead tug, giving way out of sight costs nothing, so holding out gains nothing', () => {
+  // Found in the third review: the one who gives way in a tug can save the glass without being named
+  // follower (see "a tug has a back door"). Then nobody keeps LEAD. Compared with giving way in plain
+  // sight it is never worse and often better, and it scores exactly the same whichever of you does it,
+  // so against a partner who knows it, waiting for the other to give way gains nothing. In plain
+  // sight it does: the one who holds out gets the point. That difference is what made it chicken.
+  let better = 0;
+  let plainGain = 0;
+  for (let margin = -6; margin <= 6; margin++)
+    for (let left = 0; left <= 3; left++)
+      for (const together of [true, false]) {
+        const v = (c0, c1) => valueFor0('lead', c0, c1, together, margin, left);
+        assert.ok(v('S', 'W') >= v('G', 'W'), `m${margin} left${left}`);
+        if (v('S', 'W') > v('G', 'W')) better++;
+        assert.equal(v('W', 'S'), v('S', 'W'), `m${margin} left${left}: it scores the same whoever uses it`);
+        assert.ok(v('S', 'W') > v('W', 'W') || margin + 1 + 2 * left < 0, `m${margin} left${left}: better than breaking the glass`);
+        if (v('W', 'G') > v('G', 'W')) plainGain++;
+      }
+  assert.ok(better > 30, `the back door beats giving way in plain sight in ${better} standings`);
+  assert.ok(plainGain > 30, `in plain sight, holding out gains in ${plainGain} standings`);
+  // A concrete standing: level, last round. In plain sight, the one who gives way can at best draw
+  // (worth 1/8) and the one who held out usually wins (7/8); through the back door, the round is left
+  // to the read points alone, as if nobody had led (1/2 each, whoever gave way).
+  assert.equal(valueFor0('lead', 'G', 'W', true, 0, 0), 0.125);
+  assert.equal(valueFor0('lead', 'W', 'G', true, 0, 0), 0.875);
+  assert.equal(valueFor0('lead', 'S', 'W', true, 0, 0), 0.5);
+  assert.equal(valueFor0('lead', 'W', 'S', true, 0, 0), 0.5);
+});
+
+test('incentives: the hole is in the last round when behind at all, and in round 3 when behind by 3 or 4, and nowhere else', () => {
+  // Exact, from the scoring itself, with no model of how anybody plays: every pair of points one round
+  // can give (any orders, guesses and leader, the glass whole), the margins reachable before each
+  // round, and where giving way in a standoff leaves the one behind no way to win or draw.
+  const pairs = new Set();
+  for (const orders of [['lead', 'lead'], ['lead', 'follow'], ['follow', 'lead'], ['follow', 'follow']])
+    for (const g0 of ['lead', 'follow'])
+      for (const g1 of ['lead', 'follow'])
+        for (const leader of ['A', 'B', null]) {
+          const sc = Y.score(orders, [g0, g1], { leader, heldFraction: 1 });
+          pairs.add(sc.points[0] - sc.points[1]);
+        }
+  const swings = [...pairs].sort((p, q) => p - q);
+  assert.deepEqual(swings, [-2, -1, 0, 1, 2], 'one round moves the margin by at most 2 either way');
+  // Giving way in a standoff: the other keeps their order; at best you read and they misread.
+  let best = -Infinity;
+  for (const ord of ['follow', 'lead'])
+    for (const [r0, r1] of READS) {
+      const other = ord === 'lead' ? 'follow' : 'lead';
+      const sc = Y.score([ord, ord], [r0 ? ord : other, r1 ? ord : other], standoff(ord, 'G', 'W', true));
+      best = Math.max(best, sc.points[0] - sc.points[1]);
+    }
+  assert.equal(best, 0, 'giving way leaves your margin unchanged at best');
+  let reach = new Set([0]);
+  const holes = {};
+  for (let round = 1; round <= C.ROUNDS; round++) {
+    const left = C.ROUNDS - round;
+    holes[round] = [...reach].filter((m) => m < 0 && m + best + 2 * left < 0).map((m) => -m).sort((p, q) => p - q);
+    reach = new Set([...reach].flatMap((m) => swings.map((d) => m + d)));
+  }
+  assert.deepEqual(holes, { 1: [], 2: [], 3: [3, 4], 4: [1, 2, 3, 4, 5, 6] });
+  // A way into the round-3 hole. Round 1, both FOLLOW: Blue gives way, Orange reads, Blue misreads: 2-0.
+  // Round 2, Orange LEAD and Blue FOLLOW, both keep, Orange reads, Blue misreads: 4-1. In round 3
+  // Blue gives way and at best it is 5-2; round 4 can bring Blue 2 more at most: 5-4.
+  const r1 = Y.score(['follow', 'follow'], ['follow', 'lead'], { leader: 'B', heldFraction: 1 }).points;
+  const r2 = Y.score(['lead', 'follow'], ['follow', 'follow'], { leader: 'A', heldFraction: 1 }).points;
+  assert.deepEqual([r1[0] + r2[0], r1[1] + r2[1]], [4, 1]);
+});
+
+test('incentives: always holding still breaks the glass, and mirroring instantly never beats copying from behind when you were told to follow', () => {
+  // Never moving: the mirror needs both dots travelling, so it cannot hold whatever the partner does.
+  const r = rng(4242);
+  const st = still(r, N);
+  for (const mover of [wander(r, N, 80), circlePath(N, 80, 4), steering(st, 100, 50, r)]) {
+    assert.equal(Y.analyse(trace(mover, st)).heldFraction, 0);
+    assert.equal(Y.analyse(trace(st, mover)).heldFraction, 0);
+  }
+  // Mirroring instantly ("together": the mirror holds, nobody ahead) against copying from behind.
+  const held = 0.8;
+  for (const guesses of COMBOS) {
+    const margin = (orders, leader) => {
+      const sc = Y.score(orders, guesses, { leader, heldFraction: held });
+      return sc.points[1] - sc.points[0]; // Blue's margin
+    };
+    // Lead/follow, Blue told to follow: falling in together changes nobody's margin (both or neither keep).
+    assert.equal(margin(['lead', 'follow'], null), margin(['lead', 'follow'], 'A'));
+    // Both told to follow, Orange moved first: copying from behind keeps Blue's order; together does not.
+    assert.equal(margin(['follow', 'follow'], 'A'), margin(['follow', 'follow'], null) + 1);
+    // Both told to lead: together beats giving way by a point, but only against a partner predictable
+    // enough to anticipate. Against unpredictable motion even a quick copier is behind (the steering
+    // test), and a partner who wants the point can move unpredictably.
+    assert.equal(margin(['lead', 'lead'], null), margin(['lead', 'lead'], 'A') + 1);
+  }
 });
 
 test('dealing: each player gets an independent fair coin; your own order says nothing about theirs', () => {
@@ -506,6 +1124,8 @@ function cannedTrace(samples, seed) {
   return trace(a, steering(a, 120, 50, r));
 }
 const TRACE = { [C.PLAY_MS / C.DT]: cannedTrace(C.PLAY_MS / C.DT, 1), [C.PRACTICE_MS / C.DT]: cannedTrace(C.PRACTICE_MS / C.DT, 2) };
+// The same lengths with both hands resting still: the mirror never holds, so a scored round breaks the glass.
+const STILL = Object.fromEntries([C.PLAY_MS / C.DT, C.PRACTICE_MS / C.DT].map((n, i) => [n, trace(still(rng(70 + i), n), still(rng(80 + i), n))]));
 const RANDS = [];
 for (let o = 0; o < 4; o++) for (let q = 0; q < 4; q++) RANDS.push([o & 1, (o >> 1) & 1, q & 1, ((q >> 1) & 1) + 2]);
 
@@ -531,6 +1151,7 @@ function actionsFor(s) {
     out.push({ type: 'finish', now: t + s.playMs - 1, trace: tr }); // too early
     out.push({ type: 'finish', now: t + s.playMs, trace: TRACE[C.PLAY_MS / C.DT] === tr ? TRACE[C.PRACTICE_MS / C.DT] : TRACE[C.PLAY_MS / C.DT] }); // wrong length
     out.push({ type: 'finish', now: t + s.playMs, trace: tr });
+    out.push({ type: 'finish', now: t + s.playMs, trace: STILL[s.playMs / C.DT] }); // the mirror never held
   }
   if (s.phase === 'guess') {
     for (const player of [0, 1]) for (const value of ['lead', 'follow', 'me', 'them', 'nobody', 'bogus']) out.push({ type: 'guess', player, value, now: t + 100 });
@@ -543,8 +1164,10 @@ function actionsFor(s) {
   return out;
 }
 // Identity of a state for the search. History and totals are left out: no transition depends on them.
+// Whether the glass has broken does matter (a broken glass ends the game), and so does which trace
+// the round was played on, since it decides whether the glass breaks at the reveal.
 function key(s) {
-  return JSON.stringify([s.phase, s.round, s.practice, s.orders, s.peek, s.options, s.guesses]);
+  return JSON.stringify([s.phase, s.round, s.practice, s.orders, s.peek, s.options, s.guesses, s.broken, s.trace === null ? null : s.trace === STILL[s.trace.n] ? 'still' : 'moving']);
 }
 function explore() {
   const start = Y.newGame();

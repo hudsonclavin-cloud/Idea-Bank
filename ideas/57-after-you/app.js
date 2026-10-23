@@ -568,7 +568,7 @@
         }
         fillCard(slot.firstChild, card);
       } else if (v.phase === 'deal') {
-        text = 'Practice: no orders. Put a finger on your dot. Move so it is always the mirror image of ' + partner + '’s dot (the ring shows where).';
+        text = 'Practice: no orders. Put a finger on your dot. Move so it is always the mirror image of ' + partner + '’s dot (the ring shows where). Slow and smooth, but keep travelling.';
         key = 'practice';
         if (sig[p] !== key) slot.replaceChildren();
       } else if (v.phase === 'countdown') {
@@ -650,7 +650,8 @@
     b.classList.toggle('held', !!card.held);
     if (card.held && card.order) {
       const t = Y.ORDER_TEXT[card.order];
-      b.replaceChildren(el('div', 'word', t.word), el('div', 'line', t.line));
+      // Same structure for both orders: one word, two unwrapped lines, in a card of fixed size.
+      b.replaceChildren(el('div', 'word', t.word), el('div', 'line', t.lines[0]), el('div', 'line', t.lines[1]));
     } else {
       b.replaceChildren(el('div', 'face', card.seen ? 'Read ✓  Hold to read again' : 'Hold to read your order'));
     }
@@ -802,18 +803,18 @@
 <p class="small">Phone or tablet flat on the table between you, or side by side at a laptop. Each of you owns one half of the glass.</p>
 <h2>How to play</h2>
 <ol>
-  <li>Put a finger on your dot and move it so it is always the mirror image of your partner’s dot. A ring in your half shows where that is. Slow is easier.</li>
+  <li>Put a finger on your dot and move it so it is always the mirror image of your partner’s dot. A ring in your half shows where that is. Slow and smooth is easier, but keep travelling: the mirror only counts while both dots are getting somewhere, at least a fingertip’s width every second. Tiny circles and wiggles on the spot don’t count.</li>
   <li>Before each round you each secretly read an order: <b>LEAD</b> or <b>FOLLOW</b>. Each order is its own coin toss, so you may both get the same one.</li>
   <li>No talking while the glass is up: 30 seconds.</li>
   <li>Then each of you secretly guesses the other’s order, and the trace shows who was ahead, moment by moment.</li>
 </ol>
-<h2>Points, each round</h2>
+<h2>The glass, and the points</h2>
+<p><b>The mirror must hold for at least 10 of the 30 seconds, every round:</b> dots within a fingertip of mirror images, both travelling. The line glows while it holds; the glass fogs when it doesn’t. If it fails, the glass breaks, the game ends, and you both lose, whatever the score.</p>
 <table class="points">
-  <tr><td class="n">+1 each</td><td>The mirror held for at least 10 of the 30 seconds: dots within a fingertip of mirror images, both travelling. The line glows while it holds; the glass fogs when it doesn’t.</td></tr>
   <tr><td class="n">+1</td><td>You did as you were told. LEAD: the trace has you ahead for longer than your partner, and for at least 4 seconds. FOLLOW: it has your partner ahead.</td></tr>
   <tr><td class="n">+1</td><td>You guessed your partner’s order.</td></tr>
 </table>
-<p class="small">Four rounds. If you were both told the same thing, at most one of you can keep their order.</p>
+<p class="small">Four rounds; the higher total wins. If you were both told the same thing, at most one of you can keep their order, and somebody has to give way before it is too late to save the glass.</p>
 <div class="settings">
   <div class="setting"><span>Seating</span><div class="seg" role="group" aria-label="Seating">${seg('seat', 'auto', 'Auto')}${seg('seat', 'facing', 'Facing')}${seg('seat', 'side', 'Side by side')}</div></div>
   <div class="setting"><span>Sound</span><div class="seg" role="group" aria-label="Sound">${seg('sound', true, 'On')}${seg('sound', false, 'Off')}</div></div>
@@ -862,10 +863,13 @@
       s = L >= 0 ? `You were both told to lead. ${nameHtml(1 - L)} gave way.` : 'You were both told to lead, and neither of you gave way.';
     }
     const g = res.guesses;
-    if (o[0] === 'follow' && o[1] === 'follow' && g[0] === 'lead' && g[1] === 'lead') s += ' And each of you thought the other was leading.';
-    else if (o[0] === 'lead' && o[1] === 'lead' && g[0] === 'follow' && g[1] === 'follow') s += ' And each of you thought the other was following.';
+    // These lines are about the guesses (what each of you thought the other had been told), not
+    // about who was ahead: they fire on the guesses alone, so they say so.
+    if (o[0] === 'follow' && o[1] === 'follow' && g[0] === 'lead' && g[1] === 'lead') s += ' And each of you guessed the other had been told to lead.';
+    else if (o[0] === 'lead' && o[1] === 'lead' && g[0] === 'follow' && g[1] === 'follow') s += ' And each of you guessed the other had been told to follow.';
     else if (!res.read[0] && !res.read[1]) s += ' You both misread each other.';
     else if (res.read[0] && res.read[1]) s += ' You both read each other right.';
+    if (res.broke) s += ' <b>The mirror held for under 10 seconds, so the glass broke: you both lose.</b>';
     return s;
   }
 
@@ -949,9 +953,9 @@
       const pt = (x) => (x ? '+1' : '0');
       pointsHtml = `
 <h2>Points</h2>
+<p>The mirror held for ${fmtS(an.heldFraction * an.ms)} (${fmtS(C.HELD_POINT * an.ms)} needed): ${res.broke ? '<span class="no">the glass broke, so nobody wins.</span>' : '<span class="yes">the glass is whole.</span>'}</p>
 <table class="points">
   <tr><th></th><th class="n">${nameHtml(0)}</th><th class="n">${nameHtml(1)}</th></tr>
-  ${row(`Mirror held for ${fmtS(an.heldFraction * an.ms)} (${fmtS(C.HELD_POINT * an.ms)} needed)`, pt(res.held), pt(res.held))}
   ${row('Did as told', pt(res.kept[0]), pt(res.kept[1]))}
   ${row('Read your partner', pt(res.read[0]), pt(res.read[1]))}
   ${row('<b>This round</b>', `<b>${res.points[0]}</b>`, `<b>${res.points[1]}</b>`)}
@@ -1078,7 +1082,11 @@ ${pointsHtml}
   function renderSummary() {
     const summary = view.summary;
     const t = summary.totals;
-    const verdict = t[0] === t[1] ? 'Level.' : `${nameHtml(t[0] > t[1] ? 0 : 1)} wins by ${Math.abs(t[0] - t[1])}.`;
+    const verdict = summary.broken
+      ? `The glass broke in round ${summary.broken}. Nobody wins.`
+      : summary.winner === 'level'
+        ? 'Level.'
+        : `${nameHtml(summary.winner === 'A' ? 0 : 1)} wins by ${Math.abs(t[0] - t[1])}.`;
     const rows = summary.lines
       .map((line) => `<tr><td>${line.round}</td><td>${nameHtml(0)} ${line.orders[0]}, ${nameHtml(1)} ${line.orders[1]}</td><td>${whoHtml(line.leader)}</td><td class="n">${line.points[0]}</td><td class="n">${line.points[1]}</td></tr>`)
       .join('');
@@ -1087,7 +1095,7 @@ ${pointsHtml}
     const pct = (x) => ((100 * x) / total).toFixed(2) + '%';
     const longest = summary.longestTogether;
     screenEl.innerHTML = `
-<p class="kicker">After ${summary.rounds} rounds</p>
+<p class="kicker">After ${summary.rounds} round${summary.rounds === 1 ? '' : 's'}</p>
 <h1 style="font-size:clamp(36px,10vw,52px)">${nameHtml(0)} ${t[0]} · ${nameHtml(1)} ${t[1]}</h1>
 <p class="punch">${verdict}</p>
 <table class="points">

@@ -29,12 +29,15 @@
     MIN_CORR: 0.5, // velocity correlation at the best lag below this: "apart"
     VEL_SPAN: 5, // samples either side for the velocity estimate (±100 ms)
     COUPLE_TOL: 0.10, // x scale, RMS distance at the best lag above this: "apart" (nobody is copying anybody)
+    OFFSET_SPEED: 0.05, // x scale per second: samples where both dots move at least this fast, in a stretch where
+    // somebody is copying somebody, set the steady offset ...
+    OFFSET_MIN: 100, // ... and at least this many such samples (2 s) are needed, or the offset is taken as zero
     AMBIGUOUS: 1.25, // another local best within this factor that disagrees: "unclear"
     MIN_EXTENT: 0.03, // x scale, RMS spread of a player's position in a window to count as moving
     HELD_TOL: 0.12, // x scale, the dots must be this close to mirror images
     HELD_TRAVEL: 0.15, // x scale, and each must have travelled this far (net) ...
     HELD_LOOKBACK: 75, // ... over this many samples (1.5 s)
-    HELD_POINT: 1 / 3, // fraction of the round the mirror must hold for the "held" point (10 of 30 s)
+    HELD_POINT: 1 / 3, // fraction of every scored round the mirror must hold (10 of 30 s), or the glass breaks
     LEADER_MIN_MS: 4000, // the measured leader must have been ahead for at least this long
     FIRST_MOVE: 0.06, // x scale, net displacement from the start that counts as a first move
     COUNTDOWN_MS: 3000,
@@ -45,9 +48,11 @@
 
   const PLAYERS = ['A', 'B']; // A is Orange, B is Blue
   const NAMES = ['Orange', 'Blue'];
+  // Each order's card text is a word and exactly two short lines, so the held card has the same
+  // number of lines whichever order it shows (the page also fixes the card's size: see style.css).
   const ORDER_TEXT = Object.freeze({
-    lead: Object.freeze({ word: 'LEAD', line: 'Get there first. Make them copy you.' }),
-    follow: Object.freeze({ word: 'FOLLOW', line: 'Copy them. Never get there first.' }),
+    lead: Object.freeze({ word: 'LEAD', lines: Object.freeze(['Get there first.', 'Make them copy you.']) }),
+    follow: Object.freeze({ word: 'FOLLOW', lines: Object.freeze(['Copy them.', 'Never get there first.']) }),
   });
   const PRACTICE_OPTIONS = ['me', 'them', 'nobody'];
   const PERMS3 = [
@@ -126,9 +131,13 @@
   // whose midpoint t + k/2 lies in the window: 2t + k in [c2 - 2H, c2 + 2H) in doubled sample units.
   // Pairing by midpoint makes everything downstream exactly antisymmetric: swap A and B and every
   // lag changes sign, bit for bit. Lag k > 0 means B is where A was k samples earlier: A is ahead.
-  function lagErrors(tr, c2, H) {
+  // `off` is the pair's steady offset (see steadyOffset), taken off every difference first, so a
+  // follower who sits a little to one side of the ring is timed as if they sat on it.
+  function lagErrors(tr, c2, H, off) {
     const n = tr.n;
     const K = C.MAX_LAG;
+    const ox = off ? off.x : 0;
+    const oy = off ? off.y : 0;
     const e = new Float64Array(2 * K + 1);
     const lo = new Int32Array(2 * K + 1);
     const hi = new Int32Array(2 * K + 1);
@@ -144,8 +153,8 @@
       }
       let q = 0;
       for (let t = tLo; t <= tHi; t++) {
-        const dx = tr.ax[t] - tr.bx[t + k];
-        const dy = tr.ay[t] - tr.by[t + k];
+        const dx = tr.ax[t] - tr.bx[t + k] - ox;
+        const dy = tr.ay[t] - tr.by[t + k] - oy;
         q += dx * dx + dy * dy;
       }
       e[idx] = q / (tHi - tLo + 1);
@@ -180,14 +189,15 @@
     return [Math.max(0, Math.ceil((c2 - 2 * H) / 2)), Math.min(n - 1, Math.ceil((c2 + 2 * H) / 2) - 1)];
   }
 
-  // Judge the half-second segment centred at doubled index c2, in two steps.
-  //  1. Is anybody copying anybody? Judged on 3 s of motion (HALF_WIN), because over shorter
-  //     stretches two people ignoring each other line up by chance too often: both must be moving,
-  //     the best time shift must bring the dots close (COUPLE_TOL), with the same velocities
-  //     (MIN_CORR), and no rival shift may tell a different story (AMBIGUOUS).
-  //  2. If so, who is ahead in this half-second? Judged on the 1 s around it (SHORT_WIN), so that a
-  //     moment of leading is credited for about as long as it lasted, not for the whole 3 s.
-  function judgeWindow(tr, vel, c2) {
+  // Step 1 of judging the half-second segment centred at doubled index c2: is anybody copying
+  // anybody? Judged on 3 s of motion (HALF_WIN), because over shorter stretches two people ignoring
+  // each other line up by chance too often: both must be moving, the best time shift (after taking
+  // off `off`) must bring the dots close (COUPLE_TOL, on the real positions, offset and all), with
+  // the same velocities (MIN_CORR), and no rival shift may tell a different story (AMBIGUOUS).
+  // Returns { cls: 'still' | 'apart' | 'unclear', ... } or, when coupled, { cls: null, b, r, longCls }.
+  // `close` is true whenever the dots were close with matching velocities at the best shift (coupled,
+  // or unclear only because a rival shift fits nearly as well): that is what steadyOffset uses.
+  function coupling(tr, vel, c2, off) {
     const s = tr.scale;
     const K = C.MAX_LAG;
     const [wLo, wHi] = windowSpan(tr.n, c2, C.HALF_WIN);
@@ -197,13 +207,15 @@
     if (!moveA && !moveB) return { cls: 'still' };
     if (!moveA || !moveB) return { cls: 'apart', why: 'alone' };
 
-    const { e, lo, hi } = lagErrors(tr, c2, C.HALF_WIN);
+    const { e, lo, hi } = lagErrors(tr, c2, C.HALF_WIN, off);
     const b = bestLag(e);
     if (!b) return { cls: 'apart', why: 'short' };
     if (b.tie) return { cls: 'unclear', why: 'tie' };
     if (b.edge) return { cls: 'apart', why: 'beyond' };
-    if (!(Math.sqrt(b.best) <= C.COUPLE_TOL * s)) return { cls: 'apart', why: 'far' };
     const ib = b.k + K;
+    let near = 0;
+    for (let t = lo[ib]; t <= hi[ib]; t++) near += (tr.ax[t] - tr.bx[t + b.k]) ** 2 + (tr.ay[t] - tr.by[t + b.k]) ** 2;
+    if (!(Math.sqrt(near / (hi[ib] - lo[ib] + 1)) <= C.COUPLE_TOL * s)) return { cls: 'apart', why: 'far' };
     let sab = 0;
     let saa = 0;
     let sbb = 0;
@@ -226,14 +238,96 @@
       if (!Number.isFinite(e[i]) || !Number.isFinite(e[i - 1]) || !Number.isFinite(e[i + 1])) continue;
       if (!(e[i] <= e[i - 1] && e[i] <= e[i + 1])) continue;
       if (lagClass(k * C.DT) === longCls) continue;
-      if (e[i] <= C.AMBIGUOUS * b.best + eps) return { cls: 'unclear', why: 'rival', r, lagMs: b.lagMs };
+      if (e[i] <= C.AMBIGUOUS * b.best + eps) return { cls: 'unclear', why: 'rival', r, lagMs: b.lagMs, close: true };
     }
+    return { cls: null, b, r, longCls, close: true };
+  }
 
-    // Step 2: coupled. Who is ahead right here?
+  // The pair's steady offset: where B's dot sits, on average, relative to A's once the time shift
+  // is allowed for. Over straight motion a steady sideways or along-the-path offset looks exactly
+  // like a time shift (an offset d at speed v reads as a lag of d / v), so every timing judgement
+  // takes it off first. It is estimated once per round, and only from the stretches where somebody
+  // is plausibly copying somebody: the half-second segments that step 1 calls coupled on the raw
+  // positions, with no offset taken off (a follower within COUPLE_TOL of the ring passes it either
+  // way). Two leaders going their own ways for 15 s before one gives way would otherwise swamp the
+  // estimate with 15 s of unrelated motion, and a wrong offset makes a correct copy look early.
+  // Within those segments, from the samples where both dots are moving: the time shift with the
+  // least scatter in the difference, then the median difference at that shift. A pair (t, t + k)
+  // belongs to the segment holding its midpoint, so swapping the players changes nothing but signs.
+  // An offset that changes during the round is not removed (README).
+  function steadyOffset(tr, vel) {
+    const n = tr.n;
+    const K = C.MAX_LAG;
+    const nSeg = Math.floor(n / C.SEG);
+    const coupled = new Uint8Array(nSeg);
+    let any = 0;
+    for (let j = 0; j < nSeg; j++) {
+      if (coupling(tr, vel, 2 * j * C.SEG + C.SEG, null).close) {
+        coupled[j] = 1;
+        any++;
+      }
+    }
+    if (any * C.SEG < C.OFFSET_MIN) return { x: 0, y: 0, segments: any };
+    const thr = (C.OFFSET_SPEED * tr.scale * C.DT) / 1000;
+    const movA = new Uint8Array(n);
+    const movB = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      movA[i] = Math.hypot(vel.a.vx[i], vel.a.vy[i]) >= thr ? 1 : 0;
+      movB[i] = Math.hypot(vel.b.vx[i], vel.b.vy[i]) >= thr ? 1 : 0;
+    }
+    const use = (t, k) => {
+      if (!movA[t] || !movB[t + k]) return false;
+      const j = Math.floor((2 * t + k) / (2 * C.SEG)); // the segment holding the pair's midpoint
+      return j >= 0 && j < nSeg && coupled[j] === 1;
+    };
+    let bestK = null;
+    let bestV = Infinity;
+    for (let k = -K; k <= K; k++) {
+      let sx = 0;
+      let sy = 0;
+      let q = 0;
+      let m = 0;
+      for (let t = Math.max(0, -k); t < Math.min(n, n - k); t++) {
+        if (!use(t, k)) continue;
+        const dx = tr.ax[t] - tr.bx[t + k];
+        const dy = tr.ay[t] - tr.by[t + k];
+        sx += dx;
+        sy += dy;
+        q += dx * dx + dy * dy;
+        m++;
+      }
+      if (m < C.OFFSET_MIN) continue;
+      const v = q / m - (sx / m) ** 2 - (sy / m) ** 2;
+      if (v < bestV || (v === bestV && Math.abs(k) < Math.abs(bestK))) {
+        bestV = v;
+        bestK = k;
+      }
+    }
+    if (bestK === null) return { x: 0, y: 0, segments: any };
+    const dx = [];
+    const dy = [];
+    for (let t = Math.max(0, -bestK); t < Math.min(n, n - bestK); t++) {
+      if (!use(t, bestK)) continue;
+      dx.push(tr.ax[t] - tr.bx[t + bestK]);
+      dy.push(tr.ay[t] - tr.by[t + bestK]);
+    }
+    return { x: median(dx), y: median(dy), segments: any };
+  }
+
+  // Judge the half-second segment centred at doubled index c2, in two steps, timing everything
+  // after taking off the pair's steady offset `off`.
+  //  1. Is anybody copying anybody? See coupling().
+  //  2. If so, who is ahead in this half-second? Judged on the 1 s around it (SHORT_WIN), so that a
+  //     moment of leading is credited for about as long as it lasted, not for the whole 3 s.
+  function judgeWindow(tr, vel, c2, off) {
+    const s = tr.scale;
+    const w = coupling(tr, vel, c2, off);
+    if (w.cls !== null) return w;
+    const { b, r, longCls } = w;
     const [sLo, sHi] = windowSpan(tr.n, c2, C.SHORT_WIN);
     const quiet = C.MIN_EXTENT * s * C.SHORT_QUIET;
     if (rmsExtent(tr.ax, tr.ay, sLo, sHi) < quiet && rmsExtent(tr.bx, tr.by, sLo, sHi) < quiet) return { cls: 'still', why: 'pause' };
-    const sb = bestLag(lagErrors(tr, c2, C.SHORT_WIN).e);
+    const sb = bestLag(lagErrors(tr, c2, C.SHORT_WIN, off).e);
     if (!sb || sb.tie || sb.edge) return { cls: longCls, lagMs: b.lagMs, r, why: 'long' };
     return { cls: lagClass(sb.lagMs), lagMs: sb.lagMs, r };
   }
@@ -249,6 +343,7 @@
   function analyse(tr) {
     const n = tr.n;
     const vel = { a: velocity(tr.ax, tr.ay, n), b: velocity(tr.bx, tr.by, n) };
+    const off = steadyOffset(tr, vel);
     const nSeg = Math.floor(n / C.SEG);
     const segMs = C.SEG * C.DT;
     const segments = [];
@@ -256,7 +351,7 @@
     const lags = { A: [], B: [] };
     for (let j = 0; j < nSeg; j++) {
       const c2 = 2 * j * C.SEG + C.SEG; // doubled index of the segment's centre
-      const w = judgeWindow(tr, vel, c2);
+      const w = judgeWindow(tr, vel, c2, off);
       let held = 0;
       for (let i = j * C.SEG; i < (j + 1) * C.SEG; i++) if (heldAt(tr, i)) held++;
       segments.push({ cls: w.cls, lagMs: w.lagMs === undefined ? null : w.lagMs, held: held / C.SEG });
@@ -299,6 +394,7 @@
       firstMove,
       typicalLag: { A: median(lags.A), B: median(lags.B) },
       longestTogetherMs: longest * segMs,
+      offset: { x: off.x, y: off.y },
     };
   }
 
@@ -310,13 +406,26 @@
 
   // Points for one scored round. orders: ['lead'|'follow', ...]; guesses: each player's guess of
   // the OTHER player's order; analysis from analyse().
+  //
+  // Points are only ever won off each other: +1 for doing as you were told, +1 for reading your
+  // partner. The mirror itself is not a point (a point that both players get can never change who
+  // is ahead, so it gave a player trying to win no reason to give way). Instead it is a shared
+  // stake: if it fails to hold for 10 of the 30 s, the glass breaks, the game ends, and nobody
+  // wins (`broke`). That is what turns a same-order standoff into a game of chicken; see README.
   function score(orders, guesses, analysis) {
     const held = analysis.heldFraction >= C.HELD_POINT;
     const leaderIdx = analysis.leader === 'A' ? 0 : analysis.leader === 'B' ? 1 : -1;
     const kept = [0, 1].map((p) => (orders[p] === 'lead' ? leaderIdx === p : leaderIdx === other(p)));
     const read = [0, 1].map((p) => guesses[p] === orders[other(p)]);
-    const points = [0, 1].map((p) => (held ? 1 : 0) + (kept[p] ? 1 : 0) + (read[p] ? 1 : 0));
-    return { held, kept, read, points };
+    const points = [0, 1].map((p) => (kept[p] ? 1 : 0) + (read[p] ? 1 : 0));
+    return { held, broke: !held, kept, read, points };
+  }
+
+  // The result of a game: a broken glass means nobody wins, whatever the score; otherwise the
+  // higher total wins. winner is 'A', 'B', 'level', or null when the glass broke.
+  function outcome(totals, brokenRound) {
+    if (brokenRound) return { winner: null, broken: brokenRound };
+    return { winner: totals[0] > totals[1] ? 'A' : totals[1] > totals[0] ? 'B' : 'level', broken: null };
   }
 
   // Practice answers are "who led?" from each player's own point of view. Convert to A/B/none.
@@ -366,6 +475,7 @@
       analysis: null,
       history: [],
       totals: [0, 0],
+      broken: null, // the round in which the glass broke, if it has
     };
   }
 
@@ -456,7 +566,7 @@
       }
       case 'reveal':
         if (a.type === 'next' && validRand(a.rand)) {
-          if (s.round >= s.rounds) return { ...s, phase: 'summary', trace: null };
+          if (s.round >= s.rounds || s.broken) return { ...s, phase: 'summary', trace: null };
           return dealRound(s, s.round + 1, false, a.rand, a.now || 0);
         }
         return s;
@@ -496,10 +606,11 @@
       };
     }
     const totals = [s.totals[0] + entry.points[0], s.totals[1] + entry.points[1]];
-    return { ...s, phase: 'reveal', phaseAt: now, history: s.history.concat([entry]), totals };
+    const broken = s.broken || (entry.broke ? s.round : null);
+    return { ...s, phase: 'reveal', phaseAt: now, history: s.history.concat([entry]), totals, broken };
   }
 
-  function summarise(history, totals) {
+  function summarise(history, totals, brokenRound) {
     const scored = history.filter((h) => !h.practice);
     const time = { A: 0, B: 0, together: 0, apart: 0, unclear: 0, still: 0 };
     let longest = { ms: 0, round: null };
@@ -510,6 +621,7 @@
     return {
       rounds: scored.length,
       totals: totals.slice(),
+      ...outcome(totals, brokenRound || null),
       held: scored.filter((h) => h.held).length,
       kept: [0, 1].map((p) => scored.filter((h) => h.kept[p]).length),
       read: [0, 1].map((p) => scored.filter((h) => h.read[p]).length),
@@ -552,9 +664,9 @@
     if (s.phase === 'reveal') {
       v.result = JSON.parse(JSON.stringify(s.history[s.history.length - 1]));
       v.trace = s.trace;
-      v.last = s.round >= s.rounds;
+      v.last = s.round >= s.rounds || !!s.broken;
     }
-    if (s.phase === 'summary') v.summary = summarise(s.history, s.totals);
+    if (s.phase === 'summary') v.summary = summarise(s.history, s.totals, s.broken);
     return v;
   }
 
@@ -568,9 +680,11 @@
     pushSample,
     heldAt,
     judgeWindow,
+    steadyOffset,
     velocity,
     analyse,
     score,
+    outcome,
     feltLeader,
     dealOrders,
     dealOptions,

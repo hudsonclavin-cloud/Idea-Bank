@@ -11,11 +11,17 @@
 //  3. Desktop, side-by-side seats, keyboard only: a practice round with Orange on W A S D and
 //     Blue copying on the arrow keys 300 ms later; the trace names Orange.
 //  4. Dark scheme and reduced motion load and play without errors; no page ever scrolls sideways.
-//  5. A whole game (practice, four rounds, summary, back to the title) with Playwright's fake
-//     clock jumping over each round, as if the tab had been in the background, without errors.
+//  5. The held card looks the same from outside whichever order it shows: at phone and desktop
+//     sizes (and on a phone forced side by side, the narrowest card), its box, its line boxes and
+//     its wrapping are measured for LEAD and for FOLLOW and must match, nothing may overflow, its
+//     transitions must match, and a screenshot of the whole screen with the card's letters made
+//     transparent must be pixel-identical for the two orders.
+//  6. A whole game (practice, four rounds, summary, back to the title) with Playwright's fake
+//     clock and both players steering on the keyboard, the glass intact; then a game in which
+//     nobody moves, so the glass breaks in round 1 and nobody wins.
 //
 // The harness learns the orders by replacing crypto.getRandomValues before the page loads; the
-// page itself never exposes them. Run: node ideas/57-after-you/check.mjs (about 75 s).
+// page itself never exposes them. Run: node ideas/57-after-you/check.mjs (about 2 minutes).
 // Set AFTER_YOU_SHOTS=/some/dir to keep screenshots.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -124,6 +130,7 @@ async function hiddenDeal(browser) {
     check(h.text.includes(combos[i][0] ? 'LEAD' : 'FOLLOW'), `Orange's card shows Orange's order (${combos[i]})`);
     check(!(await t.page.locator('#half1').innerText()).match(/LEAD|FOLLOW/), "Blue's half never shows an order while Orange holds");
     if (i === 1) await shot(t.page, 'phone-card-held');
+    if (i === 3) await shot(t.page, 'phone-card-held-follow');
     await touch(t, 'touchEnd', []);
   }
   check(held[0] === held[1] && held[2] === held[3] && held[0] !== held[2], 'while Orange holds, the DOM depends on Orange’s order only');
@@ -197,7 +204,9 @@ async function scoredRound(browser) {
   const textB = await tabs[1].page.locator('#screen').innerText();
   check(/Orange led and Blue followed, as ordered\./.test(textA), 'tab A reveal: Orange led, as ordered');
   check(/Somebody had to go first, and it was Orange\./.test(textB), 'tab B reveal: two followers, Orange went first');
-  check(/And each of you thought the other was leading\./.test(textB), 'tab B: two followers who each thought the other led are told so');
+  check(/And each of you guessed the other had been told to lead\./.test(textB), 'tab B: two followers who each guessed the other was told to lead are told so, as a guess');
+  check(!/thought the other was leading/.test(textB), 'tab B: the guesses are not presented as who was leading');
+  check(/the glass is whole/.test(textA) && /the glass is whole/.test(textB), 'the mirror held: the glass is whole');
   check(/You both read each other right\./.test(textA), 'tab A: both read right');
   const pts = async (t) =>
     t.page.evaluate(() => {
@@ -206,9 +215,9 @@ async function scoredRound(browser) {
     });
   const pa = await pts(tabs[0]);
   const pb = await pts(tabs[1]);
-  check(JSON.stringify(pa) === '[3,3]', `tab A points 3/3 (held, kept, read), got ${pa}`);
-  // Tab B: held 1 each; kept: Orange (FOLLOW) no, Blue (FOLLOW, Orange led) yes; read: Orange guessed LEAD (wrong), Blue guessed LEAD (wrong).
-  check(JSON.stringify(pb) === '[1,2]', `tab B points 1/2, got ${pb}`);
+  check(JSON.stringify(pa) === '[2,2]', `tab A points 2/2 (kept, read), got ${pa}`);
+  // Tab B: kept: Orange (FOLLOW) no, Blue (FOLLOW, Orange led) yes; read: Orange guessed LEAD (wrong), Blue guessed LEAD (wrong).
+  check(JSON.stringify(pb) === '[0,1]', `tab B points 0/1, got ${pb}`);
   const heldPct = Number((textA.match(/the mirror held \((\d+)% of the round\)/) || [])[1]);
   check(heldPct >= 50, `the mirror held for a 300 ms follower (${heldPct}%)`);
   const lag = Number((textA.match(/Orange ahead by about ([\d.]+) s/) || [])[1]);
@@ -297,9 +306,104 @@ async function schemes(browser) {
   await t.context.close();
 }
 
+// ------------------------------------------------------------ the held card, from outside
+// Everything about a held card except its letters: the box, each line's box and number of line
+// boxes, overflow, transitions; and the whole screen with the letters made transparent.
+async function cardLooks(t, p, desktop) {
+  const c = await centre(t.page, `#half${p} .card`);
+  if (desktop) {
+    await t.page.mouse.move(c.x, c.y);
+    await t.page.mouse.down();
+  } else await touch(t, 'touchStart', [{ ...c, id: 9 }]);
+  await sleep(250);
+  const geo = await t.page.evaluate((p) => {
+    const card = document.querySelector(`#half${p} .card`);
+    const box = (el) => {
+      const r = el.getBoundingClientRect();
+      return [r.x, r.y, r.width, r.height].map((v) => Math.round(v * 100) / 100);
+    };
+    const kids = [...card.children].map((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return { cls: el.className, box: box(el), lineBoxes: range.getClientRects().length, overflow: el.scrollWidth > el.clientWidth + 0.5 };
+    });
+    const cs = getComputedStyle(card);
+    return {
+      held: card.classList.contains('held'),
+      card: box(card),
+      cardOverflow: card.scrollWidth > card.clientWidth + 0.5 || card.scrollHeight > card.clientHeight + 0.5,
+      kids,
+      looks: [cs.transition, cs.animationName, cs.boxShadow, cs.borderRadius, cs.backgroundColor].join(' | '),
+    };
+  }, p);
+  const style = await t.page.addStyleTag({ content: '.card .word, .card .line { color: transparent !important; text-shadow: none !important; }' });
+  await sleep(60);
+  const png = await t.page.screenshot();
+  await style.evaluate((el) => el.remove());
+  if (desktop) await t.page.mouse.up();
+  else await touch(t, 'touchEnd', []);
+  await sleep(120);
+  return { geo, png };
+}
+
+async function heldCardGeometry(browser) {
+  console.log('the held card: same outline, lines and pixels for LEAD and FOLLOW');
+  const configs = [
+    { name: 'phone 390', opts: PHONE },
+    { name: 'phone 320', opts: { ...PHONE, viewport: { width: 320, height: 568 } } },
+    { name: 'phone 390 forced side by side', opts: PHONE, side: true },
+    { name: 'desktop', opts: DESKTOP, desktop: true },
+  ];
+  for (const cfg of configs) {
+    for (const motion of cfg.name === 'phone 390' ? ['reduce', 'no-preference'] : ['reduce']) {
+      const seen = {};
+      for (const ord of [1, 0]) {
+        const t = await open(browser, cfg.opts, [ord, ord, 0, 0], { reducedMotion: motion });
+        if (cfg.side) await t.page.locator('[data-set="seat"][data-val="side"]').click();
+        await t.page.locator('#go-play').click();
+        await sleep(250);
+        seen[ord] = [];
+        for (const p of [0, 1]) seen[ord].push(await cardLooks(t, p, cfg.desktop));
+        check(t.errors.length === 0, `no console errors (${t.errors.join('; ')})`);
+        await t.context.close();
+      }
+      for (const p of [0, 1]) {
+        const L = seen[1][p];
+        const F = seen[0][p];
+        const label = `${cfg.name}, ${motion} motion, ${p ? 'Blue' : 'Orange'}`;
+        check(L.geo.held && F.geo.held, `${label}: the card is held`);
+        check(JSON.stringify(L.geo.card) === JSON.stringify(F.geo.card), `${label}: held card box LEAD ${L.geo.card} = FOLLOW ${F.geo.card}`);
+        const lines = (g) => g.kids.map((k) => `${k.cls}:${k.box}:${k.lineBoxes}`).join(' ');
+        check(lines(L.geo) === lines(F.geo), `${label}: same line boxes and wrapping (${lines(L.geo)} vs ${lines(F.geo)})`);
+        check(L.geo.kids.length === 3 && L.geo.kids.every((k) => k.lineBoxes === 1), `${label}: a word and two lines, none wrapped`);
+        check(![L, F].some((x) => x.geo.cardOverflow || x.geo.kids.some((k) => k.overflow)), `${label}: nothing overflows or is clipped`);
+        check(L.geo.looks === F.geo.looks, `${label}: same border, shadow and transitions`);
+        if (motion === 'reduce') check(L.png.equals(F.png), `${label}: the screen, letters aside, is pixel-identical for LEAD and FOLLOW`);
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------ whole games, fast-forwarded
+const C_COUNT = 3000;
+// Facing seats: Blue mirrors Orange's D A S W with Right Left Up Down.
+const MIRROR_KEYS = { KeyD: 'ArrowRight', KeyA: 'ArrowLeft', KeyS: 'ArrowUp', KeyW: 'ArrowDown' };
+// One lap of a rectangle in 6 s at the keyboard's pace; three laps, then hands still for the rest
+// of the round (fast-forwarded); Blue 300 ms behind Orange throughout.
+const LAP = [
+  ['KeyD', 1000],
+  ['KeyS', 1000],
+  ['KeyA', 2000],
+  ['KeyW', 1000],
+  ['KeyD', 1000],
+];
+
 async function wholeGame(browser) {
-  console.log('a whole game, fast-forwarded with a fake clock: practice, four rounds, summary, title');
-  const t = await open(browser, PHONE, [1, 0, 2, 3], {}, true);
+  console.log('a whole game, with a fake clock and both players steering on the keys: practice, four rounds, summary, title');
+  const t = await open(browser, { ...PHONE, deviceScaleFactor: 1 }, [1, 0, 2, 3], {}, true);
+  // Stop the fake clock from also flowing in real time, so a slow machine cannot shift the key
+  // script against the round: from here on, time moves only when the check moves it.
+  await t.page.clock.pauseAt((await t.page.evaluate(() => Date.now())) + 50);
   // Under a fake clock, tap by coordinates: Playwright's own waiting for elements to settle uses frames.
   const tap = async (loc) => {
     await loc.first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
@@ -310,26 +414,50 @@ async function wholeGame(browser) {
   await t.page.clock.runFor(300);
   await tap(t.page.locator('#begin'));
   await t.page.clock.fastForward(C_COUNT + 20000 + 500); // like a tab left in the background: one late frame catches up
-    await t.page.clock.runFor(200);
+  await t.page.clock.runFor(200);
   await tap(t.page.locator('#half0 .choice', { hasText: 'Nobody' }));
   await tap(t.page.locator('#half1 .choice', { hasText: 'Nobody' }));
   await t.page.clock.runFor(300);
   check(/nobody was ahead/.test(await t.page.locator('.punch').innerText()), 'a still practice round: the trace names nobody');
+  check(!/glass broke/.test(await t.page.locator('#screen').innerText()), 'a still practice round breaks nothing');
   await tap(t.page.locator('#next'));
   for (let r = 1; r <= 4; r++) {
     await t.page.clock.runFor(300);
     for (const p of [0, 1]) await tap(t.page.locator(`#half${p} .card`));
     await t.page.clock.runFor(300);
     await tap(t.page.locator('#begin'));
-    await t.page.clock.fastForward(C_COUNT + 30000 + 500); // like a tab left in the background: one late frame catches up
+    await t.page.clock.runFor(C_COUNT + 50);
+    const events = [];
+    let at = 0;
+    for (let lap = 0; lap < 3; lap++)
+      for (const [k, ms] of LAP) {
+        events.push([at, 'down', k], [at + ms, 'up', k], [at + 300, 'down', MIRROR_KEYS[k]], [at + ms + 300, 'up', MIRROR_KEYS[k]]);
+        at += ms;
+      }
+    events.sort((x, y) => x[0] - y[0] || (x[1] === 'up' ? -1 : 1));
+    let now = 0;
+    for (const [when, kind, key] of events) {
+      if (when > now) await t.page.clock.runFor(when - now);
+      now = Math.max(now, when);
+      if (kind === 'down') await t.page.keyboard.down(key);
+      else await t.page.keyboard.up(key);
+    }
+    await t.page.clock.fastForward(30000 - now + 400); // hands still: one late frame catches up
     await t.page.clock.runFor(200);
     await tap(t.page.locator('#half0 .choice').first());
     await tap(t.page.locator('#half1 .choice').first());
     await t.page.clock.runFor(300);
+    const text = await t.page.locator('#screen').innerText();
     check(new RegExp(`round ${r} of 4`, 'i').test(await t.page.locator('.kicker').innerText()), `round ${r} reveal`);
+    const heldLine = (text.match(/The mirror held for [\d.]+ s \(10 s needed\)[^\n]*/) || [''])[0];
+    if (process.env.AFTER_YOU_VERBOSE) console.log('   ', heldLine, '|', (text.match(/ahead by about [^\n]*/) || [''])[0]);
+    check(/the glass is whole/.test(text), `round ${r}: two players steering on the keys keep the glass whole (${heldLine}; ${(text.match(/ahead by about [^\n]*/) || [''])[0]})`);
+    check(/Orange led and Blue followed/.test(text), `round ${r}: Orange, 300 ms ahead on the keys, is measured leading`);
     await tap(t.page.locator('#next'));
   }
   await t.page.clock.runFor(300);
+  const summary = await t.page.locator('#screen').innerText();
+  check(/After 4 rounds/i.test(summary) && /Level\.|wins by/.test(summary) && !/Nobody wins/.test(summary), 'summary: four rounds and a result');
   check((await t.page.locator('#answer').isHidden()) && (await t.page.locator('#show').count()) === 1, 'summary: the bar waits until you have answered out loud');
   await tap(t.page.locator('#show'));
   check(await t.page.locator('#answer').isVisible(), 'summary: the bar appears on request');
@@ -340,17 +468,50 @@ async function wholeGame(browser) {
   check(t.errors.length === 0, `no console errors (${t.errors.join('; ')})`);
   await t.context.close();
 }
-const C_COUNT = 3000;
+
+async function brokenGlass(browser) {
+  console.log('a game in which nobody moves: the glass breaks in round 1 and nobody wins');
+  const t = await open(browser, PHONE, [1, 0, 2, 3], {}, true);
+  const tap = async (loc) => {
+    await loc.first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const b = await loc.first().boundingBox();
+    await t.page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+  };
+  const title = await t.page.locator('#screen').innerText();
+  check(/keep travelling/i.test(title) && /fingertip’s width every second/.test(title), 'the title tip says to keep travelling, with the speed floor');
+  check(/the glass breaks/i.test(title), 'the title explains the glass');
+  await tap(t.page.locator('#go-play'));
+  await t.page.clock.runFor(300);
+  for (const p of [0, 1]) await tap(t.page.locator(`#half${p} .card`));
+  await t.page.clock.runFor(300);
+  await tap(t.page.locator('#begin'));
+  await t.page.clock.fastForward(C_COUNT + 30000 + 500);
+  await t.page.clock.runFor(200);
+  await tap(t.page.locator('#half0 .choice').first());
+  await tap(t.page.locator('#half1 .choice').first());
+  await t.page.clock.runFor(300);
+  const text = await t.page.locator('#screen').innerText();
+  check(/the glass broke/i.test(text), 'a still round: the reveal says the glass broke');
+  check((await t.page.locator('#next').innerText()) === 'See how it went', 'a broken glass goes straight to the end');
+  await t.page.screenshot({ path: path.join(SHOTS, 'phone-reveal-broken.png'), fullPage: true });
+  await tap(t.page.locator('#next'));
+  await t.page.clock.runFor(300);
+  const summary = await t.page.locator('#screen').innerText();
+  check(/The glass broke in round 1\. Nobody wins\./.test(summary), 'summary: the glass broke in round 1, nobody wins');
+  check(/after 1 round\b/i.test(summary), 'summary: after one round');
+  check(t.errors.length === 0, `no console errors (${t.errors.join('; ')})`);
+  await t.context.close();
+}
 
 async function main() {
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch();
+  // AFTER_YOU_ONLY=heldCardGeometry,brokenGlass runs just those parts.
+  const only = (process.env.AFTER_YOU_ONLY || '').split(',').filter(Boolean);
   try {
-    await hiddenDeal(browser);
-    await scoredRound(browser);
-    await keyboardPractice(browser);
-    await schemes(browser);
-    await wholeGame(browser);
+    for (const step of [hiddenDeal, scoredRound, keyboardPractice, schemes, heldCardGeometry, wholeGame, brokenGlass]) {
+      if (!only.length || only.includes(step.name)) await step(browser);
+    }
   } finally {
     await browser.close();
   }
