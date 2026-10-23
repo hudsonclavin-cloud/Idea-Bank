@@ -49,7 +49,7 @@ const HoneyBrake = (() => {
   // ---------------------------------------------------------------- base case
   const BASE = {
     massTotal: 100,      // kg: rider + chair + bag
-    slopeRun: 12,        // slope written as 1:slopeRun (1:12 is the ADA ramp maximum)
+    slopeRun: 12,        // slope written as 1:slopeRun (1:12 is the ADA maximum for new ramps)
     crr: 0.012,          // rolling-resistance coefficient of the whole chair on smooth hard ground
     wheelDia: 0.610,     // m, 24-inch rear wheel (ISO 540 rim) tyre outside diameter
     wheelInertia: 0.15,  // kg m^2 per rear wheel (rim, tyre, spokes, handrim)
@@ -298,7 +298,7 @@ const HoneyBrake = (() => {
     for (let jf = 0; jf <= ny; jf++) {
       for (let i = 0; i < nx; i++) {
         const x = (i + 0.5) * h;
-        const y = jf * h - W / 2;
+        const y = jf * h - W / 2 - (G.yOff || 0);
         let s = 0;
         let sm = 0;
         for (let k = 0; k < n; k++) {
@@ -551,28 +551,53 @@ const HoneyBrake = (() => {
     const yokes = p.pairs;                                     // pairs/2 per side, two sides
     const yokeMassTapered = yokes * p.barW * yokeT * p.pitch * PHYS.rhoSteel;
     const yokeMassUniform = yokes * p.barW * yokeT * (p.pitch + p.magA) * PHYS.rhoSteel;
-    // Jaws: two aluminium plates spanning the arc, from the yoke's inner edge to a bridge 10 mm past the ring
+    // Jaws: two aluminium plates, annular sectors over the bracket's arc, from the yoke's inner edge to a
+    // bridge 10 mm past the ring. The bridge is a curved band of the same plate that joins the two jaws
+    // across the whole stack, just outside that radius (Fig. 2).
     const ro = p.ringOD / 2;
-    const arcLen = p.pairs * p.pitch + 0.020;
-    const jawDepth = ro + 0.010 - (Wh.rRing - p.barW / 2);
-    const jawMass = 2 * arcLen * jawDepth * p.jawT * PHYS.rhoAl;
-    const clampTotal = G.clamp * p.pairs;                      // N pulling the jaws together
-    const arm = ro + 0.010 - Wh.rRing;                         // m, bridge to the pole line
-    const jawI = (arcLen * p.jawT ** 3) / 12;
-    const jawDeflect = (clampTotal * arm ** 3) / (3 * PHYS.eAl * jawI);  // m, cantilever tip estimate
-    const structureMass = jawMass + p.fittingsMass;
-    const bracketMass = magnetMass + yokeMassTapered + structureMass;
-    const perWheel = M.mass + bracketMass;
+    const arcLen = p.pairs * p.pitch + 0.020;                  // m, measured along the pole line
+    const span = arcLen / Wh.rRing;                            // rad, the bracket's angular span
+    const rIn = Wh.rRing - p.barW / 2;                         // m, the jaws' inner edge
+    const rBr = ro + 0.010;                                    // m, inner face of the bridge
+    const jawMass = 2 * ((span * (rBr * rBr - rIn * rIn)) / 2) * p.jawT * PHYS.rhoAl;
     const half = p.jawT + yokeT + p.magL + p.clearance;        // m, one side of the ring
     const stack = 2 * half + p.ringT;                          // m, whole bracket across the ring
+    const bridgeLen = span * (rBr + p.jawT / 2);                // m, along the arc at the bridge's mid-thickness
+    const bridgeMass = bridgeLen * stack * p.jawT * PHYS.rhoAl;
+    // Stiffness. Each jaw carries the whole attraction at the pole line, a lever arm from its root at the
+    // bridge: it bends as a cantilever, and the bridge, under the constant root moment clampTotal * arm
+    // along its span (jaw centre to jaw centre), lets each root turn by M L / (2 E I), which tips the jaw.
+    const clampTotal = G.clamp * p.pairs;                      // N pulling the jaws together
+    const arm = rBr - Wh.rRing;                                // m, bridge to the pole line
+    const jawI = (arcLen * p.jawT ** 3) / 12;
+    const jawBend = (clampTotal * arm ** 3) / (3 * PHYS.eAl * jawI);   // m, cantilever on a rigid root
+    const bridgeI = (bridgeLen * p.jawT ** 3) / 12;
+    const bridgeTilt = (clampTotal * arm * (stack - p.jawT)) / (2 * PHYS.eAl * bridgeI);  // rad at each end
+    const jawDeflect = jawBend + bridgeTilt * arm;             // m, each jaw toward the ring at the pole line
+    const structureMass = jawMass + bridgeMass + p.fittingsMass;
+    const bracketMass = magnetMass + yokeMassTapered + structureMass;
+    const perWheel = M.mass + bracketMass;
     const slide = ro - (Wh.rRing - p.magA / 2) + 0.010;        // m, travel to pull the poles 10 mm clear of the ring
     const cost = magnetsPerWheel * p.magnetUSD + p.ringUSD + p.steelUSD + p.structureUSD;
     return {
       magnetVol, magnetsPerWheel, magnetMass, magnetMassEach: magnetVol * PHYS.rhoNd,
-      yokeFlux, yokeT, yokeMassTapered, yokeMassUniform, jawMass, structureMass, bracketMass,
-      plateMass: M.mass, perWheel, perChair: 2 * perWheel, clampPerPair: G.clamp, clampTotal, jawDeflect,
+      yokeFlux, yokeT, yokeMassTapered, yokeMassUniform, jawMass, bridgeMass, structureMass, bracketMass,
+      plateMass: M.mass, perWheel, perChair: 2 * perWheel, clampPerPair: G.clamp, clampTotal, jawBend, bridgeTilt, jawDeflect,
       half, stack, slide, arcDeg: Wh.arcDeg, cost, costChair: 2 * cost,
     };
+  }
+
+  // Drag left with the bracket slid off: the same field and current solves with the ring offset radially
+  // by the slide travel, as a fraction of the engaged drag. Ideal (infinite) yokes, so this is the field
+  // model's answer, not a bound on what real yokes leak.
+  function offDrag(p) {
+    p = merge(p);
+    const slide = hardware(p).slide;
+    const G = Object.assign(arrayGeom(p), { yOff: slide * 1000 });
+    const { Bf } = fieldOnFaces(G);
+    const S = sheetSolve(Bf, G.nx, G.ny, G.h, NUM.tol);
+    const bc1 = G.Lm1 / (G.Lm1 + G.g2);
+    return S.drag / (kappaSolve(p).kappa * G.n * G.a * G.a * bc1 * bc1);
   }
 
   // ---------------------------------------------------------------- 3.8 the copper pipe
@@ -580,6 +605,56 @@ const HoneyBrake = (() => {
   // Flux through a ring of radius r at axial distance z: Phi = mu0 m r^2 / (2 (r^2 + z^2)^1.5).
   // A thin shell (radius r, thickness dr) of rings gives drag (45/1024) mu0^2 m^2 sigma dr v / r^4;
   // integrating dr / r^4 across the wall gives the (1/3)(ri^-3 - ro^-3) below.
+  // A sphere has no marked poles, so it may fall with its moment ACROSS the pipe. Then B_r on a thin shell
+  // of radius a varies as cos(phi) (2a^2 - z^2)/(a^2 + z^2)^2.5, the azimuthal EMF piles charge on the wall,
+  // and the current must close along the pipe. The wall potential is s(z) sin(phi) with
+  // s'' - s/a^2 = g(z)/a; solved here by finite differences, scale-free (a = 1). Returns the drag of the
+  // transverse moment over that of the axial one, which is the same at every radius.
+  let TRANS = null;
+  function pipeTransverseRatio() {
+    if (TRANS !== null) return TRANS;
+    const Z = 60;
+    const n = 12001;
+    const dz = (2 * Z) / (n - 1);
+    const gAx = new Float64Array(n);
+    const gTr = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const z = -Z + i * dz;
+      const r5 = (1 + z * z) ** 2.5;
+      gAx[i] = (3 * z) / r5;
+      gTr[i] = (2 - z * z) / r5;
+    }
+    // tridiagonal (Thomas) solve, s = 0 at both ends
+    const b = new Float64Array(n);
+    const d = new Float64Array(n);
+    const c = 1 / (dz * dz);
+    b[0] = 1;
+    b[n - 1] = 1;
+    for (let i = 1; i < n - 1; i++) {
+      b[i] = -2 * c - 1;
+      d[i] = gTr[i];
+    }
+    for (let i = 1; i < n; i++) {
+      const lo = i < n - 1 ? c : 0;
+      const up = i - 1 > 0 ? c : 0;
+      const m = lo / b[i - 1];
+      b[i] -= m * up;
+      d[i] -= m * d[i - 1];
+    }
+    const sv = new Float64Array(n);
+    sv[n - 1] = d[n - 1] / b[n - 1];
+    for (let i = n - 2; i >= 0; i--) sv[i] = (d[i] - (i > 0 ? c : 0) * sv[i + 1]) / b[i];
+    let ax = 0;
+    let tr = 0;
+    for (let i = 1; i < n - 1; i++) {
+      const sp = (sv[i + 1] - sv[i - 1]) / (2 * dz);
+      ax += 2 * gAx[i] * gAx[i];                               // 2 pi a  ∫ B_r^2 dz, over pi
+      tr += (gTr[i] + sv[i]) ** 2 + sp * sp;                   // pi a ∫ (J_phi^2 + J_z^2) dz, over pi
+    }
+    TRANS = tr / ax;
+    return TRANS;
+  }
+
   function pipe(q) {
     q = Object.assign({}, PIPE, q || {});
     const Br = GRADES[q.grade].br;
@@ -594,8 +669,10 @@ const HoneyBrake = (() => {
     const aMean = (ri + ro) / 2;
     const kThin = (45 / 1024) * PHYS.mu0 ** 2 * moment ** 2 * sigma * (ro - ri) / aMean ** 4;
     const vT = (mass * PHYS.g) / kPipe;
+    const transRatio = pipeTransverseRatio();
     return {
       Br, vol, moment, mass, ri, ro, sigma, kPipe, kThin, vT, vCmS: vT * 100, tFall: q.length / vT,
+      transRatio, tFallTrans: (q.length * transRatio) / vT,
       tFree: Math.sqrt((2 * q.length) / PHYS.g), tau: mass / kPipe, clearance: ri - rs,
     };
   }
@@ -636,7 +713,8 @@ const HoneyBrake = (() => {
       all *= 1 - r.p;
       if (r.kind === 'technical') tech *= 1 - r.p;
     }
-    return { pTechnical: tech, pProduct: all };
+    const field = RISKS.find((r) => r.id === 'field');
+    return { pPhysics: 1 - field.p, pTechnical: tech, pProduct: all };
   }
 
   // ---------------------------------------------------------------- the first experiment
@@ -698,6 +776,16 @@ const HoneyBrake = (() => {
     const kBig = wheel(Object.assign({}, p, { pairs: e.maxPairs })).kWheel;
     const kKill = kPass * (Wh.kWheel / kBig);
     return { A, B, I, kWheel: Wh.kWheel, kRead, kMean, kPass, kKill, passFrac: kPass / Wh.kWheel, killFrac: kKill / Wh.kWheel, drop: e.runUp + e.timed };
+  }
+
+  // Spotting the release frame late (frames > 0) or early shifts all four measured times by the same amount.
+  // Returns the fractional error this puts on kWheel, for a wheel that really brakes at kFrac of the model.
+  function releaseSlip(kFrac, frames, p, e) {
+    p = merge(p);
+    e = Object.assign({}, EXP, e || {});
+    const X = experiment(Object.assign({}, p, { eta: p.eta * kFrac }), e);
+    const d = frames / e.fps;
+    return analyse(e, X.A.tA - d, X.A.tB - d, X.B.tA - d, X.B.tB - d).k / X.kWheel - 1;
   }
 
   // ---------------------------------------------------------------- numbers quoted in the page and README
@@ -828,6 +916,9 @@ const HoneyBrake = (() => {
     q.yokeMass = fmt(Hw.yokeMassTapered, 2);
     q.yokeMassUniform = fmt(Hw.yokeMassUniform, 2);
     q.jawMass = fmt(Hw.jawMass, 2);
+    q.bridgeMass = fmt(Hw.bridgeMass, 2);
+    q.jawBend_mm = fmt(Hw.jawBend * 1000, 2);
+    q.bridgeTip_mm = fmt(Hw.bridgeTilt * (BASE.ringOD / 2 + 0.010 - R.wheel.rRing) * 1000, 2);
     q.structureMass = fmt(Hw.structureMass, 2);
     q.bracketMass = fmt(Hw.bracketMass, 2);
     q.perWheel = fmt(Hw.perWheel, 1);
@@ -843,6 +934,11 @@ const HoneyBrake = (() => {
     q.costChair = fmt(Hw.costChair, 0);
     q.arcDeg10 = fmt(wheel({ pairs: 10 }).arcDeg, 0);
     q.perWheel10 = fmt(hardware({ pairs: 10 }).perWheel, 1);
+    // living with it: the brake switched off, and the wheel taken off
+    q.offDrag_ppm = fmt(offDrag(BASE) * 1e6, 0);
+    q.offPushN = fmt(Hw.perChair * BASE.crr * PHYS.g, 1);
+    q.offPushPct = fmt((Hw.perChair / (BASE.massTotal - Hw.perChair)) * 100, 0);
+    q.widenMax_cm = fmt(2 * Hw.stack * 100, 0);
     // pipe
     q.pipeMoment = fmt(Pp.moment, 2);
     q.pipeMass_g = fmt(Pp.mass * 1000, 1);
@@ -853,6 +949,8 @@ const HoneyBrake = (() => {
     q.pipeThinPct = fmt(Math.abs(Pp.kThin / Pp.kPipe - 1) * 100, 1);   // the thin-wall shortcut reads low
     q.pipeV_cm = fmt(Pp.vCmS, 1);
     q.pipeT = fmt(Pp.tFall, 0);
+    q.pipeTransRatio = fmt(Pp.transRatio, 2);
+    q.pipeTTrans = fmt(Pp.tFallTrans, 0);
     q.pipeFree = fmt(Pp.tFree, 2);
     q.pipeTau_ms = fmt(Pp.tau * 1000, 1);
     // experiment
@@ -894,6 +992,14 @@ const HoneyBrake = (() => {
       q.expRes_pct = fmt(Math.sqrt(s2) * 100, 1);
     }
     q.expMarkB = fmt(EXP.runUp + EXP.timed, 1);
+    {
+      // how much the fit leans on the release frame, at the kill line and at the model's value
+      q.expSlip3_ms = fmt((3 / EXP.fps) * 1000, 1);
+      q.expSlipKill3_pct = fmt(releaseSlip(E.killFrac, 3) * 100, 0);
+      q.expSlipKill6_pct = fmt(releaseSlip(E.killFrac, 6) * 100, 0);
+      q.expSlipModel6_pct = fmt(releaseSlip(1, 6) * 100, 1);
+      q.expRelease3_mm = fmt(fallPos(E.B.v, E.B.tau, 3 / EXP.fps) * 1000, 1);
+    }
     // small derived facts quoted in the prose
     q.Br = fmt(R.gap.Br, 2);
     q.BrSH = fmt(GRADES.N42SH.br, 2);
@@ -909,6 +1015,7 @@ const HoneyBrake = (() => {
     q.wheelEqMass = fmt(BASE.wheelInertia / (R.wheel.R * R.wheel.R), 1);
     q.draftCylRatio = fmt(0.0254 / ((0.0138 + 0.001) / 2), 1);              // the draft's 1 in magnet / its pipe's mean radius
     // pre-mortem
+    q.pPhysics = fmt(PM.pPhysics * 100, 0);
     q.pTechnical = fmt(PM.pTechnical * 100, 0);
     q.pProduct = fmt(PM.pProduct * 100, 0);
     return q;
@@ -917,7 +1024,8 @@ const HoneyBrake = (() => {
   return {
     PHYS, ALLOYS, GRADES, BASE, NUM, PIPE, EXP, RAMP, SLOPES, RISKS,
     merge, hill, circuit, poleB, sheetSolve, kappaSolve, sharpFactor, gap, pair, wheel, descent, speedAt, ramp,
-    plateMass, hFlatPlate, thermal, hardware, pipe, run, sweep, premortem, fallPos, fallTime, fitFall, analyse, experiment, quoted,
+    plateMass, hFlatPlate, thermal, hardware, offDrag, pipeTransverseRatio, pipe, run, sweep, premortem,
+    fallPos, fallTime, fitFall, analyse, experiment, releaseSlip, quoted,
   };
 })();
 

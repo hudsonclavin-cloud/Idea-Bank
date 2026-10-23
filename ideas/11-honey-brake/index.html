@@ -189,19 +189,19 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
   <div class="byline">by Lenzwright · October 2026 · status: unbuilt and untested; every number below is computed, not measured</div>
 
   <div class="lede">
-    <p><strong>The idea.</strong> Bolt a thin aluminium disc to each rear wheel, and clip a row of magnets to the frame so they straddle it. When the wheel turns, the moving metal cuts the magnets' field and eddy currents swirl through it. They push back with a force proportional to speed, like a spoon pulled through honey. On a slope, the chair speeds up until that drag matches the slope's push, then holds that speed by itself. On the steepest ramp the ADA allows (1:12), a <span class="n"><span data-v="B.massTotal">100</span> kg</span> rider and chair settle at <span class="n"><span data-v="vT">0.88</span> m/s</span>, a slow walk, without touching anything. Nothing rubs, nothing wears, and it can never lock a wheel. Slide the magnets off the disc with a lever and the chair rolls freely again.</p>
+    <p><strong>The idea.</strong> Bolt a thin aluminium disc to each rear wheel, and clip a row of magnets to the frame so they straddle it. When the wheel turns, the moving metal cuts the magnets' field and eddy currents swirl through it. They push back with a force proportional to speed, like a spoon pulled through honey. On a slope, the chair speeds up until that drag matches the slope's push, then holds that speed by itself. On the steepest ramp the ADA allows in new construction (1:12), a <span class="n"><span data-v="B.massTotal">100</span> kg</span> rider and chair settle at <span class="n"><span data-v="vT">0.88</span> m/s</span>, a slow walk, without touching anything. Nothing rubs, nothing wears, and it can never lock a wheel. Slide the magnets off the disc with a lever and the chair rolls freely again.</p>
   </div>
 
   <div class="tiles" aria-label="Key numbers">
     <div class="tile"><div class="big h"><span data-v="vT">0.88</span> m/s</div><div class="what">steady speed down a 1:12 ramp, <span data-v="B.massTotal">100</span> kg all-up, hands off (<span data-v="vKmh">3.2</span> km/h)</div></div>
     <div class="tile"><div class="big"><span data-v="rampFree">3.5</span> m/s</div><div class="what">the same chair free-rolling at the foot of one <span data-v="R.run">9.14</span> m ramp run, with nothing holding it</div></div>
     <div class="tile"><div class="big"><span data-v="kappa">0.359</span></div><div class="what">brake shape factor κ, from a field solve and an eddy-current solve (the number the experiment checks)</div></div>
-    <div class="tile"><div class="big bad"><span data-v="perChair">5.6</span> kg</div><div class="what">added to the chair: two discs and two magnet brackets</div></div>
+    <div class="tile"><div class="big bad"><span data-v="perChair">6.2</span> kg</div><div class="what">added to the chair: two discs and two magnet brackets</div></div>
     <div class="tile"><div class="big bad"><span data-v="stack_mm">63</span> mm</div><div class="what">bracket thickness across the disc, <span data-v="half_mm">29</span> mm of it between the disc and the spokes</div></div>
   </div>
 
   <div class="lede verdict">
-    <p><strong>Verdict.</strong> The physics works, and with margin. A field calculation and an eddy-current calculation, each checked by separately written code, say twelve magnets per wheel hold a 1:12 ramp to walking pace. <strong>The physics is the easy half; what decides it is the package.</strong> It adds <span data-v="perChair">5.6</span> kg to the chair and a bracket <span data-v="stack_mm">63</span> mm thick that has to live between the wheel and the frame. I put <span data-v="pTechnical">58</span>% on a well-built prototype braking as this page says, and <span data-v="pProduct">12</span>% on it becoming something people actually fit to their chairs. Whether a chair that slows itself feels like being held or being dragged is the part no number here can answer. The cheapest decisive test costs about $<span data-v="X.costUSD">200</span>: one braked wheel, two weights and a phone camera (§8).</p>
+    <p><strong>Verdict.</strong> The physics works, and with margin. A field calculation and an eddy-current calculation, each checked by separately written code, say twelve magnets per wheel hold a 1:12 ramp to walking pace. <strong>The physics is the easy half; what decides it is the package.</strong> It adds <span data-v="perChair">6.2</span> kg to the chair and a bracket <span data-v="stack_mm">63</span> mm thick that has to live between the wheel and the frame. I put <span data-v="pPhysics">85</span>% on a well-built prototype braking well enough to clear the experiment's kill line, <span data-v="pTechnical">58</span>% on it also coping with street grit, a hot car boot and left–right matching, and <span data-v="pProduct">12</span>% on it becoming something people actually fit to their chairs (§7). Whether a chair that slows itself feels like being held or being dragged is the part no number here can answer. The cheapest decisive test costs about $<span data-v="X.costUSD">200</span>: one braked wheel, two weights and a phone camera (§8).</p>
   </div>
 
   <nav class="toc" aria-label="Contents">
@@ -217,6 +217,7 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
       <li><a href="#experiment">The first experiment</a></li>
       <li><a href="#assumptions">Assumptions register</a></li>
       <li><a href="#revisions">What changed from the first draft</a></li>
+      <li><a href="#review">What an independent review changed</a></li>
     </ol>
   </nav>
 </header>
@@ -544,7 +545,7 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <thead><tr><th>Slope</th><th class="r">Steady speed</th><th>Feels like</th></tr></thead>
     <tbody>
       <tr><td>1:20 (5%)</td><td class="r"><span data-v="vT_20">0.47</span> m/s</td><td>a dawdle; you'd probably switch it off</td></tr>
-      <tr><td>1:12 (8.3%), the ADA maximum</td><td class="r"><span data-v="vT_12">0.88</span> m/s</td><td>a slow walk</td></tr>
+      <tr><td>1:12 (8.3%), the ADA maximum for new ramps</td><td class="r"><span data-v="vT_12">0.88</span> m/s</td><td>a slow walk</td></tr>
       <tr><td>1:8 (12.5%)</td><td class="r"><span data-v="vT_8">1.38</span> m/s</td><td>a brisk walk</td></tr>
       <tr><td>1:5 (20%), a steep street</td><td class="r"><span data-v="vT_5">2.27</span> m/s</td><td>a jog; hands back on the rims</td></tr>
     </tbody>
@@ -578,19 +579,26 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
 
   <h3>3.7 Iron, force, weight, size and cost</h3>
   <p><strong>The yokes.</strong> Each yoke must carry a whole pole's flux between its two poles: <span data-v="yokeFlux_uWb">670</span> µWb. At <span data-v="C.bSteelMax">1.5</span> T in low-carbon steel, and <span data-v="B.barW" data-scale="1000">40</span> mm wide, that needs <span data-v="yokeT_mm">11.2</span> mm of thickness between the magnets, tapering to nothing at the outer ends. Six tapered yokes weigh <span data-v="yokeMass">0.67</span> kg per wheel; plain bars would weigh <span data-v="yokeMassUniform">1.20</span> kg.</p>
-  <p><strong>The clamp.</strong> The two magnet rows attract each other across the gap. Integrating <var>B</var>²/2<var>μ</var><sub>0</sub> over the mid-plane gives <span data-v="clamp">124</span> N per pole position, <span data-v="clampTotal">744</span> N per bracket. Two <span data-v="B.jawT" data-scale="1000">6</span> mm aluminium jaws carrying that as cantilevers deflect about <span data-v="jawDeflect_mm">0.06</span> mm, which is small against the <span data-v="B.clearance" data-scale="1000">2</span> mm clearances. The ring itself feels no sideways pull: aluminium isn't magnetic, and the forces on its two faces cancel.</p>
+  <p><strong>The clamp.</strong> The two magnet rows attract each other across the gap. Integrating <var>B</var>²/2<var>μ</var><sub>0</sub> over the mid-plane gives <span data-v="clamp">124</span> N per pole position, <span data-v="clampTotal">744</span> N per bracket. Each <span data-v="B.jawT" data-scale="1000">6</span> mm aluminium jaw carries that as a cantilever from the bridge and bends <span data-v="jawBend_mm">0.06</span> mm at the pole line. The bridge bends too, under the jaws' root moment, and tips each jaw a further <span data-v="bridgeTip_mm">0.10</span> mm: about <span data-v="jawDeflect_mm">0.16</span> mm in all, under a tenth of the <span data-v="B.clearance" data-scale="1000">2</span> mm clearances. It is a steady load, so setting the clearances with the magnets fitted takes most of it out. The ring itself feels no sideways pull: aluminium isn't magnetic, and the forces on its two faces cancel.</p>
   <div class="tbl"><table>
     <thead><tr><th>Per wheel</th><th class="r">Mass</th></tr></thead>
     <tbody>
       <tr><td>Disc (rotates with the wheel)</td><td class="r"><span data-v="plateMass">1.01</span> kg</td></tr>
       <tr><td><span data-v="magnetsPerWheel">12</span> magnets at <span data-v="magnetMassEach_g">47</span> g</td><td class="r"><span data-v="magnetMass">0.56</span> kg</td></tr>
       <tr><td>Six tapered steel yokes</td><td class="r"><span data-v="yokeMass">0.67</span> kg</td></tr>
-      <tr><td>Jaws (<span data-v="jawMass">0.41</span> kg), slide, lever share, fasteners</td><td class="r"><span data-v="structureMass">0.56</span> kg</td></tr>
+      <tr><td>Jaws (<span data-v="jawMass">0.44</span> kg), bridge (<span data-v="bridgeMass">0.28</span> kg), slide, lever share, fasteners</td><td class="r"><span data-v="structureMass">0.86</span> kg</td></tr>
     </tbody>
-    <tfoot><tr><td>Per wheel / per chair</td><td class="r"><span data-v="perWheel">2.8</span> / <span data-v="perChair">5.6</span> kg</td></tr></tfoot>
+    <tfoot><tr><td>Per wheel / per chair</td><td class="r"><span data-v="perWheel">3.1</span> / <span data-v="perChair">6.2</span> kg</td></tr></tfoot>
   </table></div>
-  <p>Of that, the bracket on the frame is <span data-v="bracketMass">1.80</span> kg per wheel; the rest turns with the wheel. A 4-pole version weighs <span data-v="perWheel4">2.3</span> kg per wheel (<span data-v="perChair4">4.5</span> kg per chair) and holds 1:12 at <span data-v="vT_4pairs">1.35</span> m/s, but runs at <span data-v="vT_4pairs_8">2.12</span> m/s on 1:8.</p>
+  <p>Of that, the bracket on the frame is <span data-v="bracketMass">2.10</span> kg per wheel; the rest turns with the wheel. A 4-pole version weighs <span data-v="perWheel4">2.5</span> kg per wheel (<span data-v="perChair4">5.0</span> kg per chair) and holds 1:12 at <span data-v="vT_4pairs">1.35</span> m/s, but runs at <span data-v="vT_4pairs_8">2.12</span> m/s on 1:8.</p>
   <p><strong>Size.</strong> Across the ring the bracket is <span data-v="stack_mm">63</span> mm thick: jaw, yoke, magnet and clearance on each side, plus the ring. Of that, <span data-v="half_mm">29</span> mm sits on the spoke side of the disc. The bracket spans <span data-v="arcDeg">69</span>° of the disc and slides <span data-v="slide_mm">53</span> mm to switch off. <strong>This is the real design problem</strong> (§7).</p>
+  <p><strong>Living with it.</strong> Four everyday costs that the numbers above don't show:</p>
+  <ul class="tight">
+    <li><strong>Taking a wheel off.</strong> The jaws straddle the ring, so the brake has to be switched off before a wheel comes off its quick-release axle for a car transfer. The disc then comes away with the wheel, adding <span data-v="plateMass">1.01</span> kg to each wheel you lift.</li>
+    <li><strong>Camber.</strong> The disc tilts with the wheel's camber, and the bracket has to sit square to it, so each chair needs a mount matched to its camber.</li>
+    <li><strong>Width.</strong> Unless the chair already leaves room between wheel and frame, the <span data-v="stack_mm">63</span> mm bracket pushes each wheel outward by up to that much, less whatever gap there is now. At worst the chair gets <span data-v="widenMax_cm">13</span> cm wider.</li>
+    <li><strong>Switched off.</strong> Slid off, the poles sit 10 mm clear of the ring. There the field model leaves about <span data-v="offDrag_ppm">13</span> parts per million of the engaged drag, so on the flat the cost is the mass. <span data-v="perChair">6.2</span> kg adds <span data-v="offPushN">0.7</span> N of rolling resistance, about <span data-v="offPushPct">7</span>% more push than the same chair without it. Real yokes leak more field than the ideal ones in the model, so the prototype should check this (§8).</li>
+  </ul>
   <p><strong>Cost</strong>, one-off, my estimates rather than quotes: <span data-v="magnetsPerWheel">12</span> magnets at about $<span data-v="B.magnetUSD">5</span>, a laser-cut disc at $<span data-v="B.ringUSD">40</span>, yoke steel at $<span data-v="B.steelUSD">20</span>, and jaws, slide and lever at $<span data-v="B.structureUSD">60</span>. That is about $<span data-v="cost">180</span> a wheel, $<span data-v="costChair">360</span> a chair.</p>
 
   <h3>3.8 The same law on a kitchen table</h3>
@@ -600,7 +608,7 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <span class="l"><b><var>v</var><sub>∞</sub> = <var>mg</var>/<var>k</var> = <span data-v="pipeV_cm">5.5</span> cm/s: <span data-v="pipeT">27</span> s to fall <span data-v="P.length">1.5</span> m</b>, against <span data-v="pipeFree">0.55</span> s in free fall</span>
     <span class="c">The 45/1024 comes from ∫ <var>z</var>²/(<var>r</var>²+<var>z</var>²)<sup>5</sup> d<var>z</var>, a Wallis integral. The thin-wall shortcut using the mean radius reads <span data-v="pipeThinPct">1.6</span>% low. Plumbing copper is about <span data-v="iacsPipe">85</span>% IACS. <code>check.mjs</code> redoes the whole integral by brute-force quadrature.</span>
   </div>
-  <p>The prediction assumes the sphere falls with its moment along the pipe. A sphere that tumbles or rubs the wall will fall slower. This proves nothing about the bracket, but it makes the force law tangible: a magnet that should drop in half a second takes half a minute.</p>
+  <p><strong>Which way the sphere points matters.</strong> The <span data-v="pipeT">27</span> s assumes its moment lies along the pipe, and nothing makes a sphere do that. With the moment across the pipe, the wall's EMF varies round the pipe, so charge piles up and the currents have to close along it. That leaves <span data-v="pipeTransRatio">0.69</span>× the drag, and the fall takes about <span data-v="pipeTTrans">19</span> s. A sphere pushed off centre or rubbing the wall falls slower. So expect anywhere from about <span data-v="pipeTTrans">19</span> s to <span data-v="pipeT">27</span> s, or longer if it rubs, and don't blame the force law for the spread. <code>check.mjs</code> recomputes the <span data-v="pipeTransRatio">0.69</span> by a Fourier method. This proves nothing about the bracket, but it makes the force law tangible: a magnet that should drop in half a second takes a quarter to half a minute.</p>
 </section>
 
 <section class="wrap" id="felt">
@@ -674,16 +682,16 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
       <p>Magnetic-resistance exercise bikes and rowers, which vary resistance by moving magnets relative to a flywheel. Permanent-magnet fin brakes on roller coasters and drop towers. Electromagnetic retarders on trucks and buses. The linear eddy-current brake on Germany's ICE 3 trains. The physics and the engineering are mature. <strong>Difference:</strong> none of these is sized for a 100 kg chair at walking pace, packed between a wheel and a frame.</p></div>
     <div class="card"><h4>KR 10-1440447, a wheelchair with an eddy-current brake (filed 2013, granted 2014) <span class="tag l">Likely</span></h4>
       <p>From the abstract: a conductive metal plate turns with the wheel, and a magnet on the chair's body is brought alongside it so eddy currents slow the wheel. That is this concept's core. <strong>I could only read it through a patent aggregator's machine-translated abstract</strong>, not the full text, so I don't know how it is sized or whether it aims at holding a speed on slopes. I found no product. Read this dossier as an independent feasibility check of that idea, with the numbers worked out.</p></div>
-    <div class="card"><h4>Eddy-current speed limits on walkers <span class="tag l">Likely</span></h4>
-      <p>US 10,864,393 describes a fall-control system in which an always-on eddy-current brake limits walking speed, with a second brake for falls. US 12,553,480, "Magnetic braking and speed control system for walker", uses magnetic cores at the wheels to control pace. I have seen their titles and summaries, not their full claims. <strong>Difference:</strong> walkers carry a fraction of the load at a fraction of the speed.</p></div>
+    <div class="card"><h4>Eddy-current speed limits in fall-protection and walking aids <span class="tag l">Likely</span></h4>
+      <p>US 10,864,393 (Burke), "Fall control system and method of controlling a movement during fall event", is not a walker. A trolley runs along a guide rail, tethered to the user. An always-on eddy-current brake against a control track keeps it below walking speed, and a second mechanism slows a fall without stopping it dead. US 12,553,480, "Magnetic braking and speed control system for walker", uses magnetic cores at a walker's wheels to control pace. I have seen their titles and summaries, not their full claims. <strong>Difference:</strong> the rail system limits a person's walking speed rather than carrying their weight on wheels, and a walker carries a fraction of the load at a fraction of the speed.</p></div>
     <div class="card"><h4>Mechanical descent aids for manual wheelchairs <span class="tag c">Certain</span></h4>
       <p>US 4,537,415 (Georgia Tech Research Institute, 1985), "Dynamic brake for manual wheelchair": push the handrim inward and a brake ring meets a friction shoe. US 6,102,166, "Wheelchair brake", has an "on-guard" position giving drag braking on downward inclines. US 8,622,178, "In-hub braking system for manual wheelchairs". The Wijit lever-drive wheels include lever-operated brakes (this one I know only from secondary descriptions). Anti-rollback devices such as US 5,845,746 solve the uphill direction. <strong>Difference:</strong> all of these are friction brakes the user modulates. None holds a speed by itself.</p></div>
     <div class="card"><h4>Power assist <span class="tag l">Likely</span></h4>
-      <p>Hub-motor power-assist wheels can brake with their motors. Rear add-on drives such as the SmartDrive MX2+ (about 5.7 kg) push but do not brake. A Politecnico di Torino paper (Cornagliotto et al., "Evaluation on Implementing an Active Braking System in Wheelchair Rear-Mounted Power-Assisted Device", RAAD 2022) notes that none of the latest rear add-ons has an active braking system. <strong>Difference:</strong> the honey brake needs no battery and weighs about the same as that add-on.</p></div>
+      <p>Hub-motor power-assist wheels can brake with their motors. Rear add-on drives such as the SmartDrive MX2+ (about 5.7 kg) push but do not brake. A Politecnico di Torino paper (Cornagliotto et al., "Evaluation on Implementing an Active Braking System in Wheelchair Rear-Mounted Power-Assisted Device", RAAD 2022) notes that none of the latest rear add-ons has an active braking system. <strong>Difference:</strong> the honey brake needs no battery, though it weighs a little more than that add-on (<span data-v="perChair">6.2</span> kg a chair).</p></div>
     <div class="card"><h4>The physics references <span class="tag l">Likely</span></h4>
       <p>For eddy brakes at low speed: J. H. Wouterse, "Critical torque and speed of eddy current brake with widely separated soft iron poles", <i>IEE Proceedings B</i> 138(4), 1991, which I have seen cited but not read. For the falling magnet: Y. Levin, F. L. da Silveira and F. B. Rizzato, "Electromagnetic braking: a simple quantitative model", <i>Am. J. Phys.</i> 74, 815 (2006), which treats the pipe as stacked rings as §3.8 does, and C. MacLatchy, P. Backman and L. Bogan, "A quantitative magnetic braking experiment", <i>Am. J. Phys.</i> 61 (1993). The derivations on this page are my own and are checked numerically. They don't rely on these papers.</p></div>
     <div class="card"><h4>Standards <span class="tag c">Certain</span></h4>
-      <p>2010 ADA Standards §405.2 (running slope no steeper than 1:12) and §405.6 (no more than 30 inches of rise per ramp run). ISO 7176-3 covers how wheelchair brakes are tested.</p></div>
+      <p>2010 ADA Standards §405.2 (running slope no steeper than 1:12) and §405.6 (no more than 30 inches of rise per ramp run). §405.2's exception lets existing sites that are short of space go steeper: up to 1:10 for at most 6 inches of rise, or 1:8 for at most 3 inches (Table 405.2). Ramps that short are over in a second or two at these speeds. ISO 7176-3 covers how wheelchair brakes are tested.</p></div>
   </div>
 </section>
 
@@ -700,9 +708,9 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <div class="card risk"><div class="p"><span data-v="K.pull" data-scale="100">5</span>%<small>technical</small></div><div><h4>Left and right brake differently and the chair pulls</h4>
       <p>A 10% mismatch is a <span data-v="pull10">3.5</span> N difference between the wheels on 1:12, which a touch on one rim corrects. One lever and cable for both wheels, and magnets matched by measured strength, keep it smaller. A bent bracket on one side is the real worry.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.mounting" data-scale="100">40</span>%<small>adoption</small></div><div><h4>It will not fit between the wheel and the frame</h4>
-      <p>The bracket is <span data-v="stack_mm">63</span> mm across the disc, and <span data-v="half_mm">29</span> mm of that must fit between the disc and the wheel's spokes. On most chairs the wheel sits a few centimetres from the side guard and the axle plate, and a <span data-v="B.ringOD" data-scale="1000">380</span> mm disc sweeps right through that space. Many chairs would need their wheels spaced outward, making the chair wider at every doorway. A version designed into a new frame is the honest route, and that is a much slower road than a retrofit kit.</p></div></div>
+      <p>The bracket is <span data-v="stack_mm">63</span> mm across the disc, and <span data-v="half_mm">29</span> mm of that must fit between the disc and the wheel's spokes. On most chairs the wheel sits a few centimetres from the side guard and the axle plate, and a <span data-v="B.ringOD" data-scale="1000">380</span> mm disc sweeps right through that space. I expect most chairs would need their wheels spaced outward, making the chair up to <span data-v="widenMax_cm">13</span> cm wider at every doorway (§3.7). The <span data-v="K.mounting" data-scale="100">40</span>% is my chance that packaging kills the idea on both routes: a retrofit that widens the chair, and a frame designed around the brake from the start. A version designed into a new frame is the honest route, and that is a much slower road than a retrofit kit.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.weight" data-scale="100">35</span>%<small>adoption</small></div><div><h4>More than five kilograms is too much for the people who would want it</h4>
-      <p>It adds <span data-v="perChair">5.6</span> kg to a chair that may weigh 10–14 kg (<span data-v="perChair4">4.5</span> kg for a 4-pole version that is faster on 1:12). Every push on the flat and every lift into a car pays for it. A SmartDrive add-on weighs about as much and sells, but it adds power, and this adds drag.</p></div></div>
+      <p>It adds <span data-v="perChair">6.2</span> kg to a chair that may weigh 10–14 kg (<span data-v="perChair4">5.0</span> kg for a 4-pole version that is faster on 1:12). Every push on the flat and every lift into a car pays for it. A SmartDrive add-on weighs about as much and sells, but it adds power, and this adds drag.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.fit" data-scale="100">20</span>%<small>adoption</small></div><div><h4>The speed it picks is wrong for the hills people actually have</h4>
       <p>One bracket gives <span data-v="vT_20">0.47</span> m/s on 1:20 and <span data-v="vT_8">1.38</span> m/s on 1:8. A 70 kg rider goes <span data-v="vT_m70">0.61</span> m/s on 1:12; a 130 kg one goes <span data-v="vT_m130">1.14</span>. The obvious fix is partial engagement: slide the bracket part-way off the ring for less braking, as exercise bikes do. It is plausible, but I haven't modelled how braking falls with overlap.</p></div></div>
     <div class="card risk"><div class="p"><span data-v="K.lever" data-scale="100">15</span>%<small>adoption</small></div><div><h4>Switching it on and off is a chore, so it is left off</h4>
@@ -710,7 +718,7 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <div class="card risk"><div class="p"><span data-v="K.liability" data-scale="100">20</span>%<small>adoption</small></div><div><h4>Standards and liability</h4>
       <p>A brake that does not hold the chair at rest fits no existing category. It would need testing (ISO 7176-3 covers brakes), clear labelling that it is not a parking brake, and the chair maker's blessing, or the user's warranty is gone.</p></div></div>
   </div>
-  <p>If I treat these as independent (they aren't, quite), the four technical risks leave a <strong><span data-v="pTechnical">58</span>%</strong> chance that a well-built prototype brakes as §3 says. That is the product of one minus each technical risk. Adding the five adoption risks leaves <strong><span data-v="pProduct">12</span>%</strong> that it becomes something people fit to their chairs. The likeliest killers are space and weight, not physics.</p>
+  <p>Only the first risk is about whether the brake works as §3 says. It leaves <strong><span data-v="pPhysics">85</span>%</strong> that a well-built prototype brakes well enough to clear the experiment's kill line. The other three technical risks are about surviving the street, the car and the matching of two wheels. If I treat the four as independent (they aren't, quite), they leave <strong><span data-v="pTechnical">58</span>%</strong> that a well-built brake both works and survives use. That is the product of one minus each technical risk. Adding the five adoption risks leaves <strong><span data-v="pProduct">12</span>%</strong> that it becomes something people fit to their chairs. The likeliest killers are space and weight, not physics.</p>
 </section>
 
 <section class="wrap" id="experiment">
@@ -720,13 +728,13 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <div class="card"><h4>Kit (about $<span data-v="X.costUSD">200</span>)</h4>
       <p>A used 24-inch wheelchair wheel and axle (or your own); a laser-cut <span data-v="B.ringT" data-scale="1000">5</span> mm 6061 disc; <span data-v="magnetsPerWheel">12</span> N52 blocks of <span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magA" data-scale="1000">25</span> × <span data-v="B.magL" data-scale="1000">10</span> mm; low-carbon steel flat bar for the yokes (plain bars are fine here); plywood or aluminium jaws with shims for the <span data-v="B.clearance" data-scale="1000">2</span> mm clearances; braided fishing line; <span data-v="X.m1">2</span> kg and <span data-v="X.m2">4</span> kg weights; a phone that films at <span data-v="X.fps">240</span> frames per second. <strong>Handle N52 blocks with care</strong>: two snapping together can break a finger.</p></div>
     <div class="card"><h4>Procedure</h4>
-      <p>Clamp the wheel's axle high, at least <span data-v="expDrop">1.5</span> m plus the weight's height above the floor (a stair landing works), and fix the bracket to the same fixture. Wind the line round the tyre and hang the <span data-v="X.m1">2</span> kg weight. Put tape marks <span data-v="X.runUp">0.5</span> m and <span data-v="expMarkB">1.5</span> m below the release point, beside a metre stick. Film the weight from release past both marks, five drops each with <span data-v="X.m1">2</span> kg and <span data-v="X.m2">4</span> kg. From the video read three frames: release, mark A, mark B.</p></div>
+      <p>Clamp the wheel's axle high, at least <span data-v="expDrop">1.5</span> m plus the weight's height above the floor (a stair landing works), and fix the bracket to the same fixture. Wind the line round the tyre and hang the <span data-v="X.m1">2</span> kg weight. Put tape marks <span data-v="X.runUp">0.5</span> m and <span data-v="expMarkB">1.5</span> m below the release point, beside a metre stick. Hang the weight from a short thread and release it by cutting the thread in shot, so the release frame is unmistakable (see the pass and kill lines below). Film the weight from release past both marks, five drops each with <span data-v="X.m1">2</span> kg and <span data-v="X.m2">4</span> kg. From the video read three frames: release, mark A, mark B. Then spin the wheel by hand with the bracket slid off, and again with it removed: if it coasts noticeably less with the bracket only slid off, the off position needs more travel.</p></div>
     <div class="card"><h4>Analysis: fit the motion, not the average</h4>
       <p>From rest the weight obeys <var>x</var>(<var>t</var>) = <var>v</var>(<var>t</var> − <var>τ</var>(1 − e<sup>−<var>t</var>/<var>τ</var></sup>)). The two mark times fix <var>v</var> and <var>τ</var> for each weight, and then <var>k</var><sub>wheel</sub> = (<var>m</var><sub>2</sub> − <var>m</var><sub>1</sub>)<var>g</var>/(<var>v</var><sub>2</sub> − <var>v</var><sub>1</sub>). Bearing and string friction cancel. The analyser below does the fit. <strong>Why not just divide <span data-v="X.timed">1.0</span> m by the time between the marks?</strong> Because a weak brake hasn't settled by mark A. A prototype at <span data-v="expWeakTrue">15.9</span> N·s/m, below the kill line, has <span data-v="expWeakSettled_pct">28</span>% of its transient left at mark A with <span data-v="X.m2">4</span> kg. The naive average reads it as <span data-v="expWeakNaive">22.4</span> N·s/m, comfortably alive. The fit reads <span data-v="expWeakFit">15.9</span>. For a model-perfect wheel the times between the marks would be <span data-v="expT1">2.06</span> s and <span data-v="expT2">1.02</span> s.</p></div>
     <div class="card"><h4>What the model predicts</h4>
       <p><var>k</var><sub>wheel</sub> = <span data-v="kWheel">39.8</span> N·s/m. With <span data-v="X.m1">2</span> kg the weight settles at <span data-v="expV1">0.49</span> m/s (<var>τ</var> = <span data-v="expTau1">0.10</span> s) and passes the marks at <span data-v="expTA1">1.13</span> s and <span data-v="expTB1">3.19</span> s. With <span data-v="X.m2">4</span> kg it settles at <span data-v="expV2">0.98</span> m/s (<var>τ</var> = <span data-v="expTau2">0.15</span> s), passing at <span data-v="expTA2">0.66</span> s and <span data-v="expTB2">1.68</span> s. At <span data-v="X.m2">4</span> kg the ring moves at <span data-v="expVRing2">0.51</span> m/s, close to its <span data-v="vRing">0.46</span> m/s on the 1:12 ramp. These times assume <span data-v="X.friction">0.3</span> N of friction, but the fit doesn't need to know it.</p></div>
     <div class="card kill"><h4>Pass and kill lines, and why a model-perfect wheel passes</h4>
-      <p>Both lines come from what the product needs, not from the model. <strong>Pass: <var>k</var><sub>wheel</sub> ≥ <span data-v="expPass">27.9</span> N·s/m.</strong> That holds a <span data-v="B.massTotal">100</span> kg chair to <span data-v="X.vTarget">1.25</span> m/s on 1:12 with this <span data-v="B.pairs">6</span>-pole bracket. It is <span data-v="expPassFrac">70</span>% of the model's prediction, so a wheel that brakes exactly as modelled passes with room for the ±<span data-v="expRes_pct">1.3</span>% timing error. <strong>Kill: <var>k</var><sub>wheel</sub> &lt; <span data-v="expKill">16.4</span> N·s/m</strong> (<span data-v="expKillFrac">41</span>% of the model). Then even a <span data-v="X.maxPairs">10</span>-pole bracket, <span data-v="arcDeg10">115</span>° of arc and <span data-v="perWheel10">3.9</span> kg per wheel, couldn't hold the target. In between, it works but needs more magnets, so re-weigh it. <code>check.mjs</code> films a simulated model-perfect prototype at <span data-v="X.fps">240</span> fps with 0, 0.3 and 1 N of friction and a one-frame slip in spotting the release, and asserts that every run passes. It also checks that wheels 4% either side of each line land on the right side of it.</p></div>
+      <p>Both lines come from what the product needs, not from the model. <strong>Pass: <var>k</var><sub>wheel</sub> ≥ <span data-v="expPass">27.9</span> N·s/m.</strong> That holds a <span data-v="B.massTotal">100</span> kg chair to <span data-v="X.vTarget">1.25</span> m/s on 1:12 with this <span data-v="B.pairs">6</span>-pole bracket. It is <span data-v="expPassFrac">70</span>% of the model's prediction, so a wheel that brakes exactly as modelled passes with room for the ±<span data-v="expRes_pct">1.3</span>% timing error. <strong>Kill: <var>k</var><sub>wheel</sub> &lt; <span data-v="expKill">16.4</span> N·s/m</strong> (<span data-v="expKillFrac">41</span>% of the model). Then even a <span data-v="X.maxPairs">10</span>-pole bracket, <span data-v="arcDeg10">115</span>° of arc and <span data-v="perWheel10">4.4</span> kg per wheel, couldn't hold the target. In between, it works but needs more magnets, so re-weigh it. <code>check.mjs</code> films a simulated model-perfect prototype at <span data-v="X.fps">240</span> fps with 0, 0.3 and 1 N of friction and a one-frame slip in spotting the release, and asserts that every run passes. It also checks that wheels 4% either side of each line land on the right side of it when the release is read to within a frame. <strong>Near the kill line, the release frame matters.</strong> A weak brake is still speeding up at mark A, so the fit leans on when the fall began. Reading the release 3 frames (<span data-v="expSlip3_ms">12.5</span> ms) late puts <var>k</var><sub>wheel</sub> about <span data-v="expSlipKill3_pct">5</span>% high at the kill line, and 6 frames about <span data-v="expSlipKill6_pct">10</span>%, enough to lift a wheel 4% below the line above it. At the model's value the same 6 frames move it only <span data-v="expSlipModel6_pct">0.2</span>%. Three frames after release the <span data-v="X.m2">4</span> kg weight has moved only <span data-v="expRelease3_mm">0.5</span> mm, which is why the procedure cuts a thread instead of letting go by hand. If a reading lands near a line, re-read the release frame before believing it.</p></div>
   </div>
 
   <div class="calc" id="analyser">
@@ -760,7 +768,7 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
       <tr><td>Realism allowance <var>η</var></td><td><span data-v="B.eta">0.90</span></td><td>My allowance for finite yokes, glue lines, tolerances and curvature. The experiment measures it.</td><td><span class="tag s">Speculative</span></td></tr>
       <tr><td>Heat transfer</td><td><span data-v="B.hConv">8</span> W/m²K</td><td>Flat-plate estimate <span data-v="hFlat">5.8</span> plus rotation and natural convection; within a factor of two</td><td><span class="tag l">Likely</span></td></tr>
       <tr><td>Yoke flux density</td><td><span data-v="C.bSteelMax">1.5</span> T</td><td>Conservative for low-carbon steel</td><td><span class="tag l">Likely</span></td></tr>
-      <tr><td>Jaws and fittings</td><td><span data-v="structureMass">0.56</span> kg per wheel</td><td>Sketch-level sizing; the jaws are checked for stiffness only</td><td><span class="tag s">Speculative</span></td></tr>
+      <tr><td>Jaws, bridge and fittings</td><td><span data-v="structureMass">0.86</span> kg per wheel</td><td>Sketch-level sizing; the jaws and bridge are checked for stiffness only</td><td><span class="tag s">Speculative</span></td></tr>
       <tr><td>Costs</td><td>$<span data-v="costChair">360</span> per chair</td><td>Guesses at one-off prices, not quotes</td><td><span class="tag s">Speculative</span></td></tr>
       <tr><td>Target speed on 1:12</td><td>≤ <span data-v="X.vTarget">1.25</span> m/s</td><td>A brisk walk. Really a felt number (§4); sets the experiment's pass line.</td><td><span class="tag s">Speculative</span></td></tr>
     </tbody>
@@ -777,6 +785,18 @@ ul.tight li, ol.tight li { margin: 0.25rem 0; }
     <li><strong>The experiment's pass and kill lines were set relative to the model,</strong> with a guessed 1 N friction allowance and a single weight. Now two weights cancel friction, the lines come from what the product needs, and the analysis fits the transient. The naive analysis would have let a dead prototype through.</li>
     <li><strong>The pre-mortem quoted hard-coded numbers that had drifted:</strong> a "360 mm plate" for a 380 mm disc, "about 2 kg per wheel" when the draft's own model said 2.6, and "1.9 m/s on 1:8" for 1.99. All numbers are now tagged and filled from the model.</li>
     <li><strong>Smaller fixes:</strong> convection 15 → <span data-v="B.hConv">8</span> W/m²K (the flat-plate estimate is <span data-v="hFlat">5.8</span>), with the temperature feedback iterated; the bracket's thickness, slide travel and jaw stiffness are now computed; the discs' own inertia is included.</li>
+  </ul>
+</section>
+
+<section class="wrap" id="review">
+  <h2><span class="sec">Revision note</span>What an independent review changed</h2>
+  <p>An independent reviewer rebuilt the physics in separate code. It reproduced κ, the field, the clamp force and every downstream number to about three figures, and found these problems, now fixed:</p>
+  <ul class="tight">
+    <li><strong>The headline probability was on the wrong quantity.</strong> The <span data-v="pTechnical">58</span>% was quoted as the chance that a prototype "brakes as this page says", but only one of the four technical risks is about that. It is now <span data-v="pPhysics">85</span>% that the brake clears the kill line, <span data-v="pTechnical">58</span>% that it also survives grit, heat and matching, and <span data-v="pProduct">12</span>% overall. The risk estimates themselves are unchanged.</li>
+    <li><strong>The bracket's bridge was missing from the mass and the stiffness.</strong> With the bridge added, and the jaws taken as the sectors they are, the brake adds <span data-v="perChair">6.2</span> kg a chair, not 5.6, and the jaws deflect <span data-v="jawDeflect_mm">0.16</span> mm, not 0.06.</li>
+    <li><strong>The copper-pipe caveat pointed the wrong way.</strong> A sphere with its moment across the pipe falls faster (<span data-v="pipeTTrans">19</span> s), not slower.</li>
+    <li><strong>The experiment did not warn about the release frame.</strong> Near the kill line a few frames of error move the reading by more than the 4% margin. The procedure now cuts a thread in shot, and the analyser flags readings near a line.</li>
+    <li><strong>Smaller fixes:</strong> US 10,864,393 is a rail-and-trolley fall-control system, not a walker. 1:12 is the ADA maximum for new ramps, not for all ramps. The mounting risk now says what it covers, and §3.7 covers taking a wheel off, camber, width and the cost with the brake switched off.</li>
   </ul>
 </section>
 </main>
@@ -839,7 +859,7 @@ const HoneyBrake = (() => {
   // ---------------------------------------------------------------- base case
   const BASE = {
     massTotal: 100,      // kg: rider + chair + bag
-    slopeRun: 12,        // slope written as 1:slopeRun (1:12 is the ADA ramp maximum)
+    slopeRun: 12,        // slope written as 1:slopeRun (1:12 is the ADA maximum for new ramps)
     crr: 0.012,          // rolling-resistance coefficient of the whole chair on smooth hard ground
     wheelDia: 0.610,     // m, 24-inch rear wheel (ISO 540 rim) tyre outside diameter
     wheelInertia: 0.15,  // kg m^2 per rear wheel (rim, tyre, spokes, handrim)
@@ -1088,7 +1108,7 @@ const HoneyBrake = (() => {
     for (let jf = 0; jf <= ny; jf++) {
       for (let i = 0; i < nx; i++) {
         const x = (i + 0.5) * h;
-        const y = jf * h - W / 2;
+        const y = jf * h - W / 2 - (G.yOff || 0);
         let s = 0;
         let sm = 0;
         for (let k = 0; k < n; k++) {
@@ -1341,28 +1361,53 @@ const HoneyBrake = (() => {
     const yokes = p.pairs;                                     // pairs/2 per side, two sides
     const yokeMassTapered = yokes * p.barW * yokeT * p.pitch * PHYS.rhoSteel;
     const yokeMassUniform = yokes * p.barW * yokeT * (p.pitch + p.magA) * PHYS.rhoSteel;
-    // Jaws: two aluminium plates spanning the arc, from the yoke's inner edge to a bridge 10 mm past the ring
+    // Jaws: two aluminium plates, annular sectors over the bracket's arc, from the yoke's inner edge to a
+    // bridge 10 mm past the ring. The bridge is a curved band of the same plate that joins the two jaws
+    // across the whole stack, just outside that radius (Fig. 2).
     const ro = p.ringOD / 2;
-    const arcLen = p.pairs * p.pitch + 0.020;
-    const jawDepth = ro + 0.010 - (Wh.rRing - p.barW / 2);
-    const jawMass = 2 * arcLen * jawDepth * p.jawT * PHYS.rhoAl;
-    const clampTotal = G.clamp * p.pairs;                      // N pulling the jaws together
-    const arm = ro + 0.010 - Wh.rRing;                         // m, bridge to the pole line
-    const jawI = (arcLen * p.jawT ** 3) / 12;
-    const jawDeflect = (clampTotal * arm ** 3) / (3 * PHYS.eAl * jawI);  // m, cantilever tip estimate
-    const structureMass = jawMass + p.fittingsMass;
-    const bracketMass = magnetMass + yokeMassTapered + structureMass;
-    const perWheel = M.mass + bracketMass;
+    const arcLen = p.pairs * p.pitch + 0.020;                  // m, measured along the pole line
+    const span = arcLen / Wh.rRing;                            // rad, the bracket's angular span
+    const rIn = Wh.rRing - p.barW / 2;                         // m, the jaws' inner edge
+    const rBr = ro + 0.010;                                    // m, inner face of the bridge
+    const jawMass = 2 * ((span * (rBr * rBr - rIn * rIn)) / 2) * p.jawT * PHYS.rhoAl;
     const half = p.jawT + yokeT + p.magL + p.clearance;        // m, one side of the ring
     const stack = 2 * half + p.ringT;                          // m, whole bracket across the ring
+    const bridgeLen = span * (rBr + p.jawT / 2);                // m, along the arc at the bridge's mid-thickness
+    const bridgeMass = bridgeLen * stack * p.jawT * PHYS.rhoAl;
+    // Stiffness. Each jaw carries the whole attraction at the pole line, a lever arm from its root at the
+    // bridge: it bends as a cantilever, and the bridge, under the constant root moment clampTotal * arm
+    // along its span (jaw centre to jaw centre), lets each root turn by M L / (2 E I), which tips the jaw.
+    const clampTotal = G.clamp * p.pairs;                      // N pulling the jaws together
+    const arm = rBr - Wh.rRing;                                // m, bridge to the pole line
+    const jawI = (arcLen * p.jawT ** 3) / 12;
+    const jawBend = (clampTotal * arm ** 3) / (3 * PHYS.eAl * jawI);   // m, cantilever on a rigid root
+    const bridgeI = (bridgeLen * p.jawT ** 3) / 12;
+    const bridgeTilt = (clampTotal * arm * (stack - p.jawT)) / (2 * PHYS.eAl * bridgeI);  // rad at each end
+    const jawDeflect = jawBend + bridgeTilt * arm;             // m, each jaw toward the ring at the pole line
+    const structureMass = jawMass + bridgeMass + p.fittingsMass;
+    const bracketMass = magnetMass + yokeMassTapered + structureMass;
+    const perWheel = M.mass + bracketMass;
     const slide = ro - (Wh.rRing - p.magA / 2) + 0.010;        // m, travel to pull the poles 10 mm clear of the ring
     const cost = magnetsPerWheel * p.magnetUSD + p.ringUSD + p.steelUSD + p.structureUSD;
     return {
       magnetVol, magnetsPerWheel, magnetMass, magnetMassEach: magnetVol * PHYS.rhoNd,
-      yokeFlux, yokeT, yokeMassTapered, yokeMassUniform, jawMass, structureMass, bracketMass,
-      plateMass: M.mass, perWheel, perChair: 2 * perWheel, clampPerPair: G.clamp, clampTotal, jawDeflect,
+      yokeFlux, yokeT, yokeMassTapered, yokeMassUniform, jawMass, bridgeMass, structureMass, bracketMass,
+      plateMass: M.mass, perWheel, perChair: 2 * perWheel, clampPerPair: G.clamp, clampTotal, jawBend, bridgeTilt, jawDeflect,
       half, stack, slide, arcDeg: Wh.arcDeg, cost, costChair: 2 * cost,
     };
+  }
+
+  // Drag left with the bracket slid off: the same field and current solves with the ring offset radially
+  // by the slide travel, as a fraction of the engaged drag. Ideal (infinite) yokes, so this is the field
+  // model's answer, not a bound on what real yokes leak.
+  function offDrag(p) {
+    p = merge(p);
+    const slide = hardware(p).slide;
+    const G = Object.assign(arrayGeom(p), { yOff: slide * 1000 });
+    const { Bf } = fieldOnFaces(G);
+    const S = sheetSolve(Bf, G.nx, G.ny, G.h, NUM.tol);
+    const bc1 = G.Lm1 / (G.Lm1 + G.g2);
+    return S.drag / (kappaSolve(p).kappa * G.n * G.a * G.a * bc1 * bc1);
   }
 
   // ---------------------------------------------------------------- 3.8 the copper pipe
@@ -1370,6 +1415,56 @@ const HoneyBrake = (() => {
   // Flux through a ring of radius r at axial distance z: Phi = mu0 m r^2 / (2 (r^2 + z^2)^1.5).
   // A thin shell (radius r, thickness dr) of rings gives drag (45/1024) mu0^2 m^2 sigma dr v / r^4;
   // integrating dr / r^4 across the wall gives the (1/3)(ri^-3 - ro^-3) below.
+  // A sphere has no marked poles, so it may fall with its moment ACROSS the pipe. Then B_r on a thin shell
+  // of radius a varies as cos(phi) (2a^2 - z^2)/(a^2 + z^2)^2.5, the azimuthal EMF piles charge on the wall,
+  // and the current must close along the pipe. The wall potential is s(z) sin(phi) with
+  // s'' - s/a^2 = g(z)/a; solved here by finite differences, scale-free (a = 1). Returns the drag of the
+  // transverse moment over that of the axial one, which is the same at every radius.
+  let TRANS = null;
+  function pipeTransverseRatio() {
+    if (TRANS !== null) return TRANS;
+    const Z = 60;
+    const n = 12001;
+    const dz = (2 * Z) / (n - 1);
+    const gAx = new Float64Array(n);
+    const gTr = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const z = -Z + i * dz;
+      const r5 = (1 + z * z) ** 2.5;
+      gAx[i] = (3 * z) / r5;
+      gTr[i] = (2 - z * z) / r5;
+    }
+    // tridiagonal (Thomas) solve, s = 0 at both ends
+    const b = new Float64Array(n);
+    const d = new Float64Array(n);
+    const c = 1 / (dz * dz);
+    b[0] = 1;
+    b[n - 1] = 1;
+    for (let i = 1; i < n - 1; i++) {
+      b[i] = -2 * c - 1;
+      d[i] = gTr[i];
+    }
+    for (let i = 1; i < n; i++) {
+      const lo = i < n - 1 ? c : 0;
+      const up = i - 1 > 0 ? c : 0;
+      const m = lo / b[i - 1];
+      b[i] -= m * up;
+      d[i] -= m * d[i - 1];
+    }
+    const sv = new Float64Array(n);
+    sv[n - 1] = d[n - 1] / b[n - 1];
+    for (let i = n - 2; i >= 0; i--) sv[i] = (d[i] - (i > 0 ? c : 0) * sv[i + 1]) / b[i];
+    let ax = 0;
+    let tr = 0;
+    for (let i = 1; i < n - 1; i++) {
+      const sp = (sv[i + 1] - sv[i - 1]) / (2 * dz);
+      ax += 2 * gAx[i] * gAx[i];                               // 2 pi a  ∫ B_r^2 dz, over pi
+      tr += (gTr[i] + sv[i]) ** 2 + sp * sp;                   // pi a ∫ (J_phi^2 + J_z^2) dz, over pi
+    }
+    TRANS = tr / ax;
+    return TRANS;
+  }
+
   function pipe(q) {
     q = Object.assign({}, PIPE, q || {});
     const Br = GRADES[q.grade].br;
@@ -1384,8 +1479,10 @@ const HoneyBrake = (() => {
     const aMean = (ri + ro) / 2;
     const kThin = (45 / 1024) * PHYS.mu0 ** 2 * moment ** 2 * sigma * (ro - ri) / aMean ** 4;
     const vT = (mass * PHYS.g) / kPipe;
+    const transRatio = pipeTransverseRatio();
     return {
       Br, vol, moment, mass, ri, ro, sigma, kPipe, kThin, vT, vCmS: vT * 100, tFall: q.length / vT,
+      transRatio, tFallTrans: (q.length * transRatio) / vT,
       tFree: Math.sqrt((2 * q.length) / PHYS.g), tau: mass / kPipe, clearance: ri - rs,
     };
   }
@@ -1426,7 +1523,8 @@ const HoneyBrake = (() => {
       all *= 1 - r.p;
       if (r.kind === 'technical') tech *= 1 - r.p;
     }
-    return { pTechnical: tech, pProduct: all };
+    const field = RISKS.find((r) => r.id === 'field');
+    return { pPhysics: 1 - field.p, pTechnical: tech, pProduct: all };
   }
 
   // ---------------------------------------------------------------- the first experiment
@@ -1488,6 +1586,16 @@ const HoneyBrake = (() => {
     const kBig = wheel(Object.assign({}, p, { pairs: e.maxPairs })).kWheel;
     const kKill = kPass * (Wh.kWheel / kBig);
     return { A, B, I, kWheel: Wh.kWheel, kRead, kMean, kPass, kKill, passFrac: kPass / Wh.kWheel, killFrac: kKill / Wh.kWheel, drop: e.runUp + e.timed };
+  }
+
+  // Spotting the release frame late (frames > 0) or early shifts all four measured times by the same amount.
+  // Returns the fractional error this puts on kWheel, for a wheel that really brakes at kFrac of the model.
+  function releaseSlip(kFrac, frames, p, e) {
+    p = merge(p);
+    e = Object.assign({}, EXP, e || {});
+    const X = experiment(Object.assign({}, p, { eta: p.eta * kFrac }), e);
+    const d = frames / e.fps;
+    return analyse(e, X.A.tA - d, X.A.tB - d, X.B.tA - d, X.B.tB - d).k / X.kWheel - 1;
   }
 
   // ---------------------------------------------------------------- numbers quoted in the page and README
@@ -1618,6 +1726,9 @@ const HoneyBrake = (() => {
     q.yokeMass = fmt(Hw.yokeMassTapered, 2);
     q.yokeMassUniform = fmt(Hw.yokeMassUniform, 2);
     q.jawMass = fmt(Hw.jawMass, 2);
+    q.bridgeMass = fmt(Hw.bridgeMass, 2);
+    q.jawBend_mm = fmt(Hw.jawBend * 1000, 2);
+    q.bridgeTip_mm = fmt(Hw.bridgeTilt * (BASE.ringOD / 2 + 0.010 - R.wheel.rRing) * 1000, 2);
     q.structureMass = fmt(Hw.structureMass, 2);
     q.bracketMass = fmt(Hw.bracketMass, 2);
     q.perWheel = fmt(Hw.perWheel, 1);
@@ -1633,6 +1744,11 @@ const HoneyBrake = (() => {
     q.costChair = fmt(Hw.costChair, 0);
     q.arcDeg10 = fmt(wheel({ pairs: 10 }).arcDeg, 0);
     q.perWheel10 = fmt(hardware({ pairs: 10 }).perWheel, 1);
+    // living with it: the brake switched off, and the wheel taken off
+    q.offDrag_ppm = fmt(offDrag(BASE) * 1e6, 0);
+    q.offPushN = fmt(Hw.perChair * BASE.crr * PHYS.g, 1);
+    q.offPushPct = fmt((Hw.perChair / (BASE.massTotal - Hw.perChair)) * 100, 0);
+    q.widenMax_cm = fmt(2 * Hw.stack * 100, 0);
     // pipe
     q.pipeMoment = fmt(Pp.moment, 2);
     q.pipeMass_g = fmt(Pp.mass * 1000, 1);
@@ -1643,6 +1759,8 @@ const HoneyBrake = (() => {
     q.pipeThinPct = fmt(Math.abs(Pp.kThin / Pp.kPipe - 1) * 100, 1);   // the thin-wall shortcut reads low
     q.pipeV_cm = fmt(Pp.vCmS, 1);
     q.pipeT = fmt(Pp.tFall, 0);
+    q.pipeTransRatio = fmt(Pp.transRatio, 2);
+    q.pipeTTrans = fmt(Pp.tFallTrans, 0);
     q.pipeFree = fmt(Pp.tFree, 2);
     q.pipeTau_ms = fmt(Pp.tau * 1000, 1);
     // experiment
@@ -1684,6 +1802,14 @@ const HoneyBrake = (() => {
       q.expRes_pct = fmt(Math.sqrt(s2) * 100, 1);
     }
     q.expMarkB = fmt(EXP.runUp + EXP.timed, 1);
+    {
+      // how much the fit leans on the release frame, at the kill line and at the model's value
+      q.expSlip3_ms = fmt((3 / EXP.fps) * 1000, 1);
+      q.expSlipKill3_pct = fmt(releaseSlip(E.killFrac, 3) * 100, 0);
+      q.expSlipKill6_pct = fmt(releaseSlip(E.killFrac, 6) * 100, 0);
+      q.expSlipModel6_pct = fmt(releaseSlip(1, 6) * 100, 1);
+      q.expRelease3_mm = fmt(fallPos(E.B.v, E.B.tau, 3 / EXP.fps) * 1000, 1);
+    }
     // small derived facts quoted in the prose
     q.Br = fmt(R.gap.Br, 2);
     q.BrSH = fmt(GRADES.N42SH.br, 2);
@@ -1699,6 +1825,7 @@ const HoneyBrake = (() => {
     q.wheelEqMass = fmt(BASE.wheelInertia / (R.wheel.R * R.wheel.R), 1);
     q.draftCylRatio = fmt(0.0254 / ((0.0138 + 0.001) / 2), 1);              // the draft's 1 in magnet / its pipe's mean radius
     // pre-mortem
+    q.pPhysics = fmt(PM.pPhysics * 100, 0);
     q.pTechnical = fmt(PM.pTechnical * 100, 0);
     q.pProduct = fmt(PM.pProduct * 100, 0);
     return q;
@@ -1707,7 +1834,8 @@ const HoneyBrake = (() => {
   return {
     PHYS, ALLOYS, GRADES, BASE, NUM, PIPE, EXP, RAMP, SLOPES, RISKS,
     merge, hill, circuit, poleB, sheetSolve, kappaSolve, sharpFactor, gap, pair, wheel, descent, speedAt, ramp,
-    plateMass, hFlatPlate, thermal, hardware, pipe, run, sweep, premortem, fallPos, fallTime, fitFall, analyse, experiment, quoted,
+    plateMass, hFlatPlate, thermal, hardware, offDrag, pipeTransverseRatio, pipe, run, sweep, premortem,
+    fallPos, fallTime, fitFall, analyse, experiment, releaseSlip, quoted,
   };
 })();
 
@@ -1959,7 +2087,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HoneyBrake
     var r = M.analyse(null, t[0], t[1], t[2], t[3]);
     if (!(r.k > 0) || !isFinite(r.k)) { out.innerHTML = 'These times do not fit a braked fall: the heavy weight must fall faster than the light one.'; return; }
     var verdict = r.k >= E0.kPass ? '<b class="pass">PASS</b>: holds 1:12 within ' + M.EXP.vTarget + ' m/s with this bracket.' : r.k < E0.kKill ? '<b class="kill">KILL</b>: even ' + M.EXP.maxPairs + ' poles could not hold the target.' : '<b class="grey">GREY ZONE</b>: works, but needs more poles; re-weigh it.';
-    out.innerHTML = 'Speeds ' + f(r.f1.v, 3) + ' and ' + f(r.f2.v, 3) + ' m/s (τ ' + f(r.f1.tau, 3) + ', ' + f(r.f2.tau, 3) + ' s); friction ' + f(r.friction, 2) + ' N.<br><strong>k<sub>wheel</sub> = ' + f(r.k, 1) + ' N·s/m</strong>, ' + f(100 * r.k / E0.kWheel, 0) + '% of the model (so η ≈ ' + f(M.BASE.eta * r.k / E0.kWheel, 2) + '). ' + verdict;
+    var near = Math.abs(r.k / E0.kKill - 1) < 0.1 || Math.abs(r.k / E0.kPass - 1) < 0.1 ? ' Close to a line: re-read the release frame before believing this (§8).' : '';
+    out.innerHTML = 'Speeds ' + f(r.f1.v, 3) + ' and ' + f(r.f2.v, 3) + ' m/s (τ ' + f(r.f1.tau, 3) + ', ' + f(r.f2.tau, 3) + ' s); friction ' + f(r.friction, 2) + ' N.<br><strong>k<sub>wheel</sub> = ' + f(r.k, 1) + ' N·s/m</strong>, ' + f(100 * r.k / E0.kWheel, 0) + '% of the model (so η ≈ ' + f(M.BASE.eta * r.k / E0.kWheel, 2) + '). ' + verdict + near;
   }
 
   // ---------------------------------------------------------------- start

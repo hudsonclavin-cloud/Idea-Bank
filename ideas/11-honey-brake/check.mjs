@@ -7,8 +7,10 @@
 //     - everything downstream (speeds, heat, iron, mass, the pipe, the ramp) with re-typed constants.
 //  3. Theory tests of the model's own solvers (c = 1/2 for a round pole, wide-pole limit, energy).
 //  4. A small dimensional-analysis kernel checks the units of every formula used.
-//  5. The first experiment is simulated end to end: a model-perfect prototype must PASS it.
+//  5. The first experiment is simulated end to end: a model-perfect prototype must PASS it, and a late
+//     release frame moves a reading near the kill line by as much as the page says.
 //  6. README.md quotes the same numbers; folder rules (size, no network).
+//  7. Pins for the fixes from the independent review (wording that must not come back).
 import fs from 'node:fs';
 import path from 'node:path';
 import { render, loadModel, DIR } from './build.mjs';
@@ -125,13 +127,11 @@ function fft2(re, im, nx, ny, inv) {
 // 2b. Fourier field of an alternating row of square poles between ideal iron planes.
 // Charge sheets +-1 (units of M) at z = +-g2, iron (phi = 0) at z = +-D. Transfer functions derived
 // from the 1-D Green's function in z for each in-plane wavenumber k (see the dossier, section 3.2).
-function fourierField({ a, pitch, n, g2, Lm1, t }) {
+function fourierField({ a, pitch, n, g2, Lm1, t, NY = 256, Y0 = 64 }) {
   const h = 0.5;
   const NX = 1024;
-  const NY = 256;
   const D = g2 + Lm1;
   const X0 = 150; // mm, first pole centre in FFT coordinates
-  const Y0 = 64;
   const src = new Float64Array(NX * NY);
   const w1 = (u) => (Math.abs(u) < a / 2 - 1e-9 ? 1 : Math.abs(Math.abs(u) - a / 2) < 1e-9 ? 0.5 : 0);
   for (let k = 0; k < n; k++) {
@@ -176,7 +176,7 @@ function fourierField({ a, pitch, n, g2, Lm1, t }) {
 }
 
 // 2c. stream-function eddy solve on the ring strip: lap(psi) = dB/dx, psi = 0 on the boundary (SOR).
-function streamSolve(F, { a, pitch, n, W }, sharp) {
+function streamSolve(F, { a, pitch, n, W, off = 0 }, sharp) {
   const hs = 1;
   const margin = 50;
   const L = (n - 1) * pitch + a + 2 * margin;
@@ -185,7 +185,7 @@ function streamSolve(F, { a, pitch, n, W }, sharp) {
   const xc0 = margin + a / 2; // first pole centre, strip coordinates
   const at = (arr, x, y) => {
     const i = Math.round((x - xc0 + F.X0) / F.h);
-    const j = Math.round((y - W / 2 + F.Y0) / F.h);
+    const j = Math.round((y - W / 2 - off + F.Y0) / F.h);
     return arr[j * F.NX + i];
   };
   const S = new Float64Array((nx + 1) * (ny + 1));
@@ -225,6 +225,7 @@ function streamSolve(F, { a, pitch, n, W }, sharp) {
 const geomBase = { a: 25, pitch: 32, n: 6, W: 60, g2: 4.5, Lm1: 10, t: 5 };
 const bc1 = (g) => g.Lm1 / (g.Lm1 + g.g2);
 const Fbase = fourierField(geomBase);
+let indepOffPpm = NaN;
 const kappaInd = streamSolve(Fbase, geomBase) / (6 * 625 * bc1(geomBase) ** 2);
 const cSharpInd = streamSolve(Fbase, geomBase, true) / (6 * 625);
 const K = M.kappaSolve(B);
@@ -291,6 +292,17 @@ const K = M.kappaSolve(B);
     const g = Object.assign({}, geomBase, { g2: 5.5 });
     const kk = streamSolve(fourierField(g), g) / (6 * 625 * bc1(g) ** 2);
     rel(kk, Number(q.kappa_cl3), 0.02, 'kappa with 3 mm clearances, independent');
+  }
+  {
+    // the bracket slid off (poles 10 mm clear of the ring's edge): Fourier field on a taller grid, stream function
+    const g = Object.assign({}, geomBase, { NY: 512, Y0: 128 });
+    const Fo = fourierField(g);
+    const on = streamSolve(Fo, g);
+    const offF = streamSolve(Fo, Object.assign({}, g, { off: (0.19 - (0.16 - 0.0125) + 0.01) * 1000 }));
+    const frac = offF / on;
+    ok(frac > 0 && frac < 1e-4, `bracket slid off: leftover drag ${(frac * 1e6).toFixed(1)} ppm of engaged, independent`);
+    indepOffPpm = frac * 1e6;
+    rel(frac * 1e6, Number(q.offDrag_ppm), 0.2, 'leftover drag with the bracket slid off (ppm), Fourier + stream function vs model');
   }
 }
 
@@ -390,19 +402,45 @@ const indep = {};
   const mMag = 12 * 0.025 * 0.025 * 0.01 * 7500;
   const mYoke = 6 * 0.04 * tY * 0.032 * 7850;
   const arc = 6 * 0.032 + 0.02;
-  const mJaw = 2 * arc * (0.19 + 0.01 - (0.16 - 0.02)) * 0.006 * 2700;
-  const perWheel = mPlate + mMag + mYoke + mJaw + 0.15;
+  const ang = arc / 0.16; // rad, the bracket's span
+  const mJaw = 2 * (ang / 2) * (0.2 ** 2 - 0.14 ** 2) * 0.006 * 2700; // two annular sectors, r 140..200 mm
+  const stack = 2 * (0.006 + tY + 0.01 + 0.002) + 0.005;
+  const mBridge = ang * 0.203 * stack * 0.006 * 2700; // curved band joining the jaws, at r 200..206 mm
+  quotes(q.jawMass, mJaw, 'jaw mass');
+  quotes(q.bridgeMass, mBridge, 'bridge mass');
+  quotes(q.structureMass, mJaw + mBridge + 0.15, 'jaws, bridge and fittings');
+  const perWheel = mPlate + mMag + mYoke + mJaw + mBridge + 0.15;
   quotes(q.magnetMass, mMag, 'magnet mass per wheel');
   quotes(q.yokeMass, mYoke, 'tapered yoke mass');
   quotes(q.perWheel, perWheel, 'mass per wheel');
   quotes(q.perChair, 2 * perWheel, 'mass per chair');
-  quotes(q.stack_mm, (2 * (0.006 + tY + 0.01 + 0.002) + 0.005) * 1000, 'bracket thickness across the ring');
+  quotes(q.stack_mm, stack * 1000, 'bracket thickness across the ring');
+  quotes(q.widenMax_cm, 2 * stack * 100, 'worst-case widening of the chair');
+  quotes(q.offPushN, 2 * perWheel * 0.012 * G0, 'extra rolling resistance from the added mass');
+  quotes(q.offPushPct, ((2 * perWheel) / (100 - 2 * perWheel)) * 100, 'extra push on the flat, brake off (%)');
   quotes(q.half_mm, (0.006 + tY + 0.01 + 0.002) * 1000, 'bracket thickness on one side');
   quotes(q.slide_mm, (0.19 - (0.16 - 0.0125) + 0.01) * 1000, 'disengage travel');
   const clampPair = (K.clampRel * (BR52 * (bC / (BR52 / (1 + 0.009 / 0.02)))) ** 2 * 0.025 ** 2) / (2 * MU0);
   quotes(q.clamp, clampPair, 'attraction per pole position');
   quotes(q.clampTotal, 6 * clampPair, 'attraction per bracket');
-  quotes(q.jawDeflect_mm, ((6 * clampPair * 0.04 ** 3) / (3 * 69e9 * ((arc * 0.006 ** 3) / 12))) * 1000, 'jaw deflection');
+  {
+    // jaw deflection by virtual work round the U-frame (jaw, bridge, jaw), integrated numerically:
+    // relative closing of the two pole lines = sum of M m / EI ds with m the moment of a unit pair of loads
+    const F = 6 * clampPair;
+    const Ij = (arc * 0.006 ** 3) / 12;
+    const Ib = (ang * 0.203 * 0.006 ** 3) / 12;
+    const Lb = stack - 0.006; // jaw centre to jaw centre
+    let closing = 0;
+    const nq = 2000;
+    for (let i = 0; i < nq; i++) {
+      const x = ((i + 0.5) * 0.04) / nq; // along a jaw, from the pole line
+      closing += (2 * (F * x) * x * (0.04 / nq)) / (69e9 * Ij);
+    }
+    for (let i = 0; i < nq; i++) closing += ((F * 0.04) * 0.04 * (Lb / nq)) / (69e9 * Ib);
+    quotes(q.jawDeflect_mm, (closing / 2) * 1000, 'jaw deflection at the pole line (virtual work, jaws + bridge)');
+    quotes(q.jawBend_mm, ((F * 0.04 ** 3) / (3 * 69e9 * Ij)) * 1000, 'jaw bending alone');
+    ok(Number(q.jawDeflect_mm) < 0.1 * 2, 'jaw deflection under a tenth of the 2 mm clearance');
+  }
   quotes(q.arcDeg, ((6 * 0.032) / r) * (180 / Math.PI), 'bracket arc');
   quotes(q.cost, 12 * 5 + 40 + 20 + 60, 'cost per wheel');
   Object.assign(indep, { fNet, kC, kCM, mEff, R, r, Ipl });
@@ -439,11 +477,36 @@ const indep = {};
   const mass = 7500 * (4 / 3) * Math.PI * rs ** 3;
   quotes(q.pipeV_cm, ((mass * G0) / k) * 100, 'sphere terminal speed (cm/s)');
   quotes(q.pipeT, 1.5 / ((mass * G0) / k), 'sphere fall time over 1.5 m');
+  // moment ACROSS the pipe: Fourier transform of B_r(z) on a thin shell (a = 1), m = 1 charge projection
+  // k^2/(k^2 + 1/a^2), against the axial dipole's integral 2 pi * (5 pi / 128) * 9 = 45 pi^2 / 64... per pi
+  const gTr = (z) => (2 - z * z) / (1 + z * z) ** 2.5;
+  const Zm = 80;
+  const nz = 16000;
+  const dzz = (2 * Zm) / nz;
+  let num = 0;
+  const nk = 3000;
+  const kmax = 30;
+  for (let j = 0; j < nk; j++) {
+    const kk = ((j + 0.5) * kmax) / nk;
+    let G = 0;
+    for (let i = 0; i < nz; i++) {
+      const z = -Zm + (i + 0.5) * dzz;
+      G += gTr(z) * Math.cos(kk * z) * dzz;
+    }
+    num += G * G * ((kk * kk) / (kk * kk + 1)) * (kmax / nk);
+  }
+  const trans = num / Math.PI;                 // (1/pi) ∫0^inf |G|^2 k^2/(k^2+1) dk = ∫ (J^2) dz / pi, per pi a
+  const axial = 2 * ((9 * 5 * Math.PI) / 128); // 2 ∫ (3z)^2/(1+z^2)^5 dz, the Wallis integral
+  rel(trans / axial, M.pipeTransverseRatio(), 0.003, 'pipe: transverse/axial drag ratio, Fourier vs model ODE');
+  quotes(q.pipeTransRatio, trans / axial, 'pipe: transverse/axial drag ratio');
+  quotes(q.pipeTTrans, (1.5 / ((mass * G0) / k)) * (trans / axial), 'sphere fall time with its moment across the pipe');
+  ok(Number(q.pipeTTrans) < Number(q.pipeT), 'a sphere with its moment across the pipe falls FASTER');
 }
 
 // 2f. pre-mortem products
 {
   const tech = 0.85 * 0.8 * 0.9 * 0.95;
+  quotes(q.pPhysics, 85, 'physics-only survival % (the field risk alone)');
   quotes(q.pTechnical, tech * 100, 'technical survival %');
   quotes(q.pProduct, tech * 0.6 * 0.65 * 0.8 * 0.85 * 0.8 * 100, 'overall survival %');
 }
@@ -549,7 +612,7 @@ const indep = {};
   const X = M.EXP;
   const Rr = indep.R;
   const I = 0.15 + indep.Ipl;
-  function film(kTrue, friction, phase, slip) {
+  function film(kTrue, friction, phase, slip, exact) {
     const out = [];
     for (const m of [X.m1, X.m2]) {
       const mEff = m + I / (Rr * Rr);
@@ -572,6 +635,10 @@ const indep = {};
         x = xn;
         v = vn;
         t += dt;
+      }
+        if (exact) {
+        out.push([tA - slip / X.fps, tB - slip / X.fps]);
+        continue;
       }
       const frame = (tt) => (Math.ceil(tt * X.fps + phase) - phase) / X.fps;
       const t0 = frame(0) + slip / X.fps;
@@ -631,6 +698,31 @@ const indep = {};
     ok(kOf(film(E.kPass * 1.04, X.friction, 0.5, slip), 'model') >= E.kPass, `a prototype 4% above the pass line reads above it (slip ${slip})`);
     ok(kOf(film(E.kKill * 0.96, X.friction, 0.5, slip), 'model') < E.kKill, `a prototype 4% below the kill line reads below it (slip ${slip})`);
   }
+  // release-frame sensitivity (the page's warning): RK4 times, the release read whole frames late
+  const slipPct = (k, frames) => (kOf(film(k, X.friction, 0, frames, true), 'model') / k - 1) * 100;
+  quotes(q.expSlipKill3_pct, slipPct(E.kKill, 3), 'k error at the kill line, release read 3 frames late (%)');
+  quotes(q.expSlipKill6_pct, slipPct(E.kKill, 6), 'k error at the kill line, release read 6 frames late (%)');
+  quotes(q.expSlipModel6_pct, slipPct(E.kWheel, 6), 'k error at the model value, release read 6 frames late (%)');
+  quotes(q.expSlip3_ms, (3 / X.fps) * 1000, 'three frames (ms)');
+  ok(kOf(film(E.kKill * 0.96, X.friction, 0, 6, true), 'model') > E.kKill, 'a release read 6 frames late lifts a wheel 4% below the kill line above it (why the page warns)');
+  ok(Math.abs(slipPct(E.kKill, -3)) > 4, 'near the kill line, 3 frames of release error exceed the 4% margin either way');
+  {
+    // how far the 4 kg weight has fallen 3 frames after release (RK4)
+    const mEff = X.m2 + I / (Rr * Rr);
+    let x = 0;
+    let v = 0;
+    const dt = 1e-6;
+    const acc = (vv) => (X.m2 * G0 - X.friction - E.kWheel * vv) / mEff;
+    for (let t = 0; t < 3 / X.fps - 1e-12; t += dt) {
+      const k1 = acc(v);
+      const k2 = acc(v + 0.5 * dt * k1);
+      const k3 = acc(v + 0.5 * dt * k2);
+      const k4 = acc(v + dt * k3);
+      x += dt * (v + (dt * (k1 + k2 + k3)) / 6);
+      v += (dt * (k1 + 2 * k2 + 2 * k3 + k4)) / 6;
+    }
+    quotes(q.expRelease3_mm, x * 1000, '4 kg weight fall 3 frames after release (mm)');
+  }
   // why the fit: the naive mean-speed reading would rescue a dead prototype
   ok(Number(q.expWeakNaive) > E.kKill && Number(q.expWeakTrue) < E.kKill, 'naive mean-speed analysis would read a below-kill prototype as alive (the fit does not)');
   near(Number(q.expWeakFit), Number(q.expWeakTrue), 0.11, 'the fit reads the weak prototype correctly');
@@ -653,14 +745,21 @@ const indep = {};
     `${q.vT_20} m/s on 1:20, ${q.vT_8} m/s on 1:8`,
     `**${q.perChair} kg added to the chair (${q.perWheel} kg per wheel).**`, `the disc, ${q.plateMass} kg`, `twelve magnets, ${q.magnetMass} kg`,
     `six tapered steel yokes, ${q.yokeMass} kg`, `(${q.yokeFlux_uWb} µWb`, `${q.yokeT_mm} mm thick at ${M.PHYS.bSteelMax} T and ${B.barW * 1000} mm wide`,
-    `jaws and fittings, ${q.structureMass} kg`, `${q.perChair4} kg per chair and is faster, at ${q.vT_4pairs} m/s`,
+    `jaws, the bridge that joins them, and fittings, ${q.structureMass} kg`, `${q.perChair4} kg per chair and is faster, at ${q.vT_4pairs} m/s`,
     `**${q.stack_mm} mm across the disc, ${q.half_mm} mm of it on the spoke side.**`,
     `${q.power} W into heat, ${q.powerPerRing} W per disc`, `h ≈ ${B.hConv} W/m²K`, `gives ${q.hFlat} at walking pace`,
     `levels off ${q.steadyRise} K above the air`, `by only ${q.hillAdiabatic_K} K`,
     `${q.vOverW_pct}% of the thin-sheet speed scale w = ${q.w} m/s`, `about ${q.linearErr_pct}%`,
     `Going to 3 mm costs ${q.brakeLoss_cl3}% of the braking`, `${q.clampTotal} N per bracket`, `about ${q.jawDeflect_mm} mm of deflection`,
     `$${q.costChair} a chair`, `to ${M.EXP.vTarget} m/s, a brisk walk`,
-    `**Overall:** ${q.pTechnical}% that a well-built prototype`, `and ${q.pProduct}% that it becomes`,
+    `**Overall:** ${q.pPhysics}% that a well-built prototype brakes well enough to clear the experiment's kill line`,
+    `${q.pTechnical}% that it also survives the other three`, `And ${q.pProduct}% that it becomes`,
+    `at worst makes the chair ${q.widenMax_cm} cm wider`, `each wheel then carries its ${q.plateMass} kg disc`, `about ${q.offPushPct}% more push`,
+    `3 frames (${q.expSlip3_ms} ms) late puts k_wheel about ${q.expSlipKill3_pct}% high`, `6 frames about ${q.expSlipKill6_pct}%`,
+    `6 frames move it only ${q.expSlipModel6_pct}%`, `has moved just ${q.expRelease3_mm} mm`,
+    '## Revision note: independent review', `It is now ${q.pPhysics}% that the brake clears the experiment's kill line, ${q.pTechnical}% that it also survives`,
+    `the brake adds ${q.perChair} kg a chair instead of 5.6`, `(4-pole: ${q.perChair4} instead of 4.5 kg)`, `The jaws deflect ${q.jawDeflect_mm} mm instead of 0.06`,
+    `sees ${q.pipeTransRatio}× the drag and falls in about ${q.pipeTTrans} s, faster than the ${q.pipeT} s`,
     `mounting (${pct(M.RISKS.find((r) => r.id === 'mounting').p)}) and weight (${pct(M.RISKS.find((r) => r.id === 'weight').p)})`,
     `about $${M.EXP.costUSD} and a weekend`, `drop a ${M.EXP.m1} kg and then a ${M.EXP.m2} kg weight`, `Film at ${M.EXP.fps} fps`,
     `a mark ${M.EXP.runUp} m down, and a mark ${q.expMarkB} m down`, `divide ${M.EXP.timed} m by the time`,
@@ -673,6 +772,8 @@ const indep = {};
     `from 15 to ${B.hConv} W/m²K`,
   ];
   for (const s of need) ok(readme.includes(s), `README mentions "${s}"`);
+  ok(!readme.includes(`**Overall:** ${q.pTechnical}%`), 'README no longer puts the 58% on "brakes as the page says"');
+  ok(readme.trimEnd().split('\n## ').pop().startsWith('Revision note: independent review'), 'README ends with the independent-review revision note');
   let bytes = 0;
   for (const f of fs.readdirSync(DIR)) if (!/^preview\.(jpg|png)$/.test(f)) bytes += fs.statSync(path.join(DIR, f)).size;
   ok(bytes < 500 * 1024, `folder under 500 KB (is ${(bytes / 1024).toFixed(0)} KB)`);
@@ -683,6 +784,24 @@ const indep = {};
   ok(/prefers-color-scheme: dark/.test(html), 'dark theme present');
 }
 
+// ---------------------------------------------------------------- 7. pins for the independent review's fixes
+{
+  const page = html.slice(0, html.indexOf('/*MODEL:BEGIN*/'));
+  ok(!page.includes('braking as this page says'), 'verdict no longer puts the technical-survival % on "braking as this page says"');
+  ok(page.includes('<span data-v="pPhysics">') && page.includes('clear the experiment\'s kill line'), 'verdict and pre-mortem quote the physics-only probability');
+  ok(!/steepest ramp the ADA allows \(1:12\)/.test(page) && page.includes('ADA maximum for new ramps') && page.includes('Table 405.2'), '1:12 is the ADA maximum for new ramps, with the existing-site exception');
+  ok(!page.includes('speed limits on walkers') && /10,864,393 \(Burke\)[^<]*is not a walker\. A trolley runs along a guide rail/.test(page), 'US 10,864,393 described as a rail-and-trolley system, not a walker');
+  ok(!page.includes('tumbles or rubs the wall will fall slower') && page.includes('data-v="pipeTTrans"'), 'pipe caveat: a transverse moment falls faster');
+  ok(page.includes('data-v="bridgeMass"') && page.includes('data-v="bridgeTip_mm"'), 'bridge counted in the mass table and the deflection');
+  ok(page.includes('cutting the thread in shot') && page.includes('data-v="expSlipKill6_pct"') && html.includes('Close to a line: re-read the release frame'), 'experiment warns about the release frame, and the analyser flags readings near a line');
+  ok(page.includes('Living with it') && page.includes('data-v="offDrag_ppm"') && page.includes('quick-release') && page.includes('camber'), '§3.7 covers wheel removal, camber, width and the off-state cost');
+  ok(page.includes('id="review"') && page.includes('href="#review"'), 'page carries the independent-review revision note');
+  const Hw = M.hardware();
+  ok(Hw.bridgeMass > 0 && Math.abs(Hw.structureMass - (Hw.jawMass + Hw.bridgeMass + B.fittingsMass)) < 1e-12, 'model: structure mass includes the bridge');
+  ok(Hw.jawDeflect > Hw.jawBend * 2, 'model: the bridge\'s bending more than doubles the jaw deflection');
+}
+
 console.log(`\ncheck: ${pass} passed, ${fail} failed  (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+console.log(`slid off: ${q.offDrag_ppm} ppm of the engaged drag (independent ${indepOffPpm.toFixed(1)}); pipe across/along ${q.pipeTransRatio}`);
 console.log(`base case: kappa ${q.kappa} (independent ${kappaInd.toFixed(3)}), ${q.vT} m/s on 1:12, ${q.perChair} kg per chair, bracket ${q.stack_mm} mm thick; experiment pass ${q.expPass} / model ${q.kWheel} / kill ${q.expKill} N s/m`);
 process.exit(fail ? 1 : 0);
