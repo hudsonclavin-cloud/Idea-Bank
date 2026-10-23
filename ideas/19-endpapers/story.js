@@ -29,7 +29,8 @@ var STORY = {
   },
 
   // The register in the back of the book, as the later hands find it.
-  // Only firsts: a bird, a place, a date. Every date is a Sunday.
+  // Only firsts: a bird, a place, a date. Every one of Ron's dates is a Sunday;
+  // Carol's one line (3 Feb 89, the funeral) is a Friday, and Chapter III says so.
   list: [
     { by: "ron", line: "Smew — Cliffe — 15 Jan 61" },
     { by: "ron", line: "Bearded Tit — Stodmarsh — 23 Apr 61" },
@@ -56,7 +57,7 @@ var STORY = {
     { by: "ron", line: "Red-necked Grebe — Dungeness — 5 Feb 84" },
     { by: "ron", line: "Mediterranean Gull — Cliffe — 15 Jun 86" },
     { by: "ron", line: "Great Grey Shrike — Sheppey — 27 Nov 88" },
-    { by: "carol", if: "wrote", line: "Green Woodpecker. St Botolph's, Northfleet. 3 Feb 89. At the funeral. C." },
+    { by: "carol", if: "wrote", line: "Green Woodpecker. St Botolph’s, Northfleet. 3 Feb 89. At the funeral. C." },
   ],
 
   // The chain of hands, written the way an auction catalogue would write it.
@@ -115,8 +116,8 @@ var STORY = {
 
     "c1-shingle": {
       text: [
-        "Dungeness is not a place you arrive at. The road stops caring, and the houses thin to sheds, and the sheds thin to boats with their keels in the stones, and then there is the shingle, which goes on, pale as a beach that has forgotten the sea, to a skyline with two lighthouses on it and the new power station rising between them in its scaffolding like a crate for something that has not been delivered.",
-        "South-easterly, overcast, warm. It is the morning you have waited all spring for, and it does what those mornings do. Wheatears on every post. A whinchat. A tree pipit going over, calling. Two turtle doves purring in the broom by the Long Pits; a cuckoo; a ring ouzel in the broom by the Long Pits, grey-scaled, with the white crescent, which goes in the register: your first, after eleven years. The warden says a wryneck was in the moat on Friday. You walk the moat twice and do not see it, and are not, you tell yourself, disappointed.",
+        "Dungeness is not a place you arrive at. The road stops caring, and the houses thin to sheds, and the sheds thin to boats with their keels in the stones, and then there is the shingle, which goes on, pale as a beach that has forgotten the sea, to a skyline with two lighthouses on it and the new power station rising beside them in its scaffolding like a crate for something that has not been delivered.",
+        "South-easterly, overcast, warm. It is the morning you have waited all spring for, and it does what those mornings do. Wheatears on every post. A whinchat. A tree pipit going over, calling. Two turtle doves purring in the broom by the Long Pits; a cuckoo; a ring ouzel on the open shingle by the old lighthouse, grey-scaled, with the white crescent, which goes in the register: your first, after eleven years. The warden says a wryneck was in the moat on Friday. You walk the moat twice and do not see it, and are not, you tell yourself, disappointed.",
         "At a quarter to one you sit with your back to a winch-house out of the wind and open the sandwiches. A piece of paper comes out with the first round, folded once, in her hand.",
         { quote: "Back by two. Mind you are. — E." },
         "You read it twice. You fold it along its fold and put it in the Peterson, in the plate of the harriers, because that is where the book falls open, and go on eating.",
@@ -159,7 +160,7 @@ var STORY = {
 
     "c1-home": {
       text: [
-        "You are home at ten to three. Her mother’s coat is on the hook. You sit in the Anglia for a minute with the engine ticking and then go in by the back, as if that made it earlier.",
+        "You are home at twenty to four. Her mother’s coat is on the hook. You sit in the Anglia for a minute with the engine ticking and then go in by the back, as if that made it earlier.",
         "The table has been laid for three and cleared for two. Your plate is in the oven under another plate, and the gravy has got a skin, and Eileen, who is in the front room with her feet up on the pouffe and her mother opposite, says, ‘Yours is in the oven,’ pleasantly, which is the worst thing she could have said, and goes back to the pram catalogue.",
         "You eat it standing up at the stove. It is very good.",
         "At nine, when her mother has gone for the bus and the wireless is off and Eileen has gone up, you sit at the kitchen table with the Peterson and the pencil and turn to the back. The register. Nine lines, ten with the ouzel, in your small hand, going back to a smew at Cliffe in the January of ’61. The note is still in the harrier plate. You take it out and read it and put it in your waistcoat pocket, and then you take it out of there and put it back in the book, at the page, where it was.",
@@ -275,7 +276,7 @@ var STORY = {
         "You read it standing up. Then you sit in his chair, which you have not done, and read it again, and it is not birds you are reading. It is Sundays. *Cliffe, 11 Jun 72* was your eighth birthday; there was a party, and he came in at one with his boots in his hand. *Stodmarsh, 4 May 80* was the week before your O-levels. *Sheppey, 20 Nov 83* was eleven days after the funeral. He went. Of course he went. You had not known that he had gone.",
         { if: "entry!=none", then: [
           "And this, a month before you were born, the only line in the list with a time on it:",
-          { hand: ["Montagu’s Harrier", { if: "entry=query", text: " (?)" }, { if: "entry=tick", text: ", female" }, " — Dungeness — 10 May 64, 1.40", { if: "stayed", text: " & 6.15" }, " pm", { if: "entry=query", text: ". Ringtail, one." }] },
+          { hand: ["Montagu’s Harrier", { if: "entry=query", text: " (?)" }, { if: "entry=tick", text: ", female" }, " — Dungeness — 10 May 64, 1.40", { if: "entry=tick and stayed", text: " pm" }, { if: "stayed", text: " & 6.15" }, " pm", { if: "entry=query", text: ". Ringtail, one." }] },
           { if: "stayed",
             then: "Twenty to two, and a quarter past six. He was there till a quarter past six.",
             else: "Twenty to two. He would have been home for his dinner, nearly." },
@@ -450,7 +451,11 @@ var STORY = {
             else: "There is no harrier in the list. The page with the pale mark on it is a page he never wrote about." },
         ] },
         { if: "wrote", then: "And under the last of his, in a different pencil, in a rounder hand: *Green Woodpecker. St Botolph’s, Northfleet. 3 Feb 89. At the funeral. C.* You know St Botolph’s; it is the church on the hill above the old works. You went to a wedding there. 1989. You were not born." },
-        "The list is dates, and every one is a Sunday; you check, on your phone, and it takes a while. Twenty-eight years of Sundays. The places are all places you could get to from here: Cliffe, Sheppey, Dungeness, the marsh at Stodmarsh; his county; your county. Half the birds you have never heard of, and some of them, you find out, are gone, or going: the golden oriole he had at Lade in 1977 does not nest in England any more. And the egret, which was a vagrant, a few records, and which you have every morning in a creek below a hoarding.",
+        ["The list is dates, and every one ",
+         { if: "wrote", text: "of his " },
+         "is a Sunday; you check, on your phone, and it takes a while. Twenty-eight years of Sundays",
+         { if: "wrote", text: ", and then one Friday, in the round hand, which was a funeral" },
+         ". The places are all places you could get to from here: Cliffe, Sheppey, Dungeness, the marsh at Stodmarsh; his county; your county. Half the birds you have never heard of, and some of them, you find out, are gone, or going: the golden oriole he had at Lade in 1977 does not nest in England any more. And the egret, which was a vagrant, a few records, and which you have every morning in a creek below a hoarding."],
         ["The society is still going. Its website has an address for the Recorder. You could write and ask what the county had at Dungeness on the tenth of May 1964. ",
          { if: "entry=tick", text: "Whether he was right." },
          { if: "entry=query", text: "Whether anybody else saw it." },
@@ -467,7 +472,7 @@ var STORY = {
         "The reply comes nine days later, from a man who signs himself the Honorary Recorder, who says the 1964 report is in a box in his garage and he has had a look. Attached is a photograph of a page, taken on a phone, a bit skewed, with his thumb in the corner.",
         { if: "letter=accepted", then: [
           { quote: "MONTAGU’S HARRIER. Dungeness, 10th May, a female (R. Pettit). The only record of the year." },
-          "That is all of it. Nine words in a county report in a box in a garage, and his name, and it was true.",
+          "That is all of it. Thirteen words in a county report in a box in a garage, and his name, and it was true.",
         ] },
         { if: "letter=rejected", then: [
           { quote: "HARRIER SP. Dungeness, 10th May, one ‘ringtail’, not specifically identified (R.P.)." },
@@ -481,7 +486,9 @@ var STORY = {
         ] },
         { if: "entry=none", then: [
           { quote: "RING OUZEL. Dungeness, 10th May, one (per Obs.)." },
-          "An ouzel. The same ouzel that is in his list, from the Observatory’s log, without his name. Nothing else that day. Whatever lay in the hawk plate for sixty years, there is no record of it anywhere, except that it lay there.",
+          ["An ouzel. The same ouzel that is in his list, from the Observatory’s log, without his name. Nothing else that day. Whatever lay in the hawk plate ",
+           { if: "note=carol and given=1989", text: "all those years", else: "for sixty years" },
+           ", there is no record of it anywhere, except that it lay there."],
         ] },
         "The Recorder adds, at the bottom: *Is this a relative? We’d be interested in the book, if it ever wants a home. Old lists are worth more than people think.*",
       ],
@@ -495,7 +502,7 @@ var STORY = {
         ["It is Saturday. You have the book, and a bird with a name, and a list that stops in ",
          { if: "wrote", text: "1989", else: "1988" },
          ", and a page of hawks with ",
-         { if: "note=book", text: "a dead man’s Sunday lying across it in his wife’s writing", else: "a pale mark on it where something lay for sixty years" },
+         { if: "note=book", text: "a dead man’s Sunday lying across it in his wife’s writing", else: ["a pale mark on it where something lay for ", { if: "given=1989", text: "a long time", else: "sixty years" }] },
          ". The tenth of May is a fortnight off.",
          { if: "slip=contact", text: " The number on the envelope is a mobile. It will work or it won’t." }],
         "What are you going to do with it.",
@@ -552,7 +559,7 @@ var STORY = {
          "nothing, which is how lists are. ",
          { if: "given=1989", text: "Somebody called D. Ashby had it thirty-five years and wrote nothing in it but their name, which is also a kind of entry. " },
          "The book goes in your coat pocket in the mornings now. It is the right size for a pocket. It was made to be."],
-        ["You do not know who ", { if: "letter!=none or slip!=none", text: "R. Pettit", else: "Ron" }, " was. You know what he saw, and where, and when, and the order he saw it in. It is more than you know about most people. It is more than you know about your dad."],
+        ["You do not know who ", { if: "letter!=none or slip=name", text: "R. Pettit", else: "Ron" }, " was. You know what he saw, and where, and when, and the order he saw it in. It is more than you know about most people. It is more than you know about your dad."],
       ],
     },
 
@@ -577,7 +584,7 @@ var STORY = {
       ending: "The tenth",
       set: { end: "dungeness" },
       text: [
-        "Friday the tenth of May 2024. You swap a shift for it. The train to Ashford, and the small one to Rye, and the bus, and then the walk, and then the shingle, which goes on, pale, to a skyline with two lighthouses on it and the power station between them, switched off now and being emptied, slowly, over decades, like a house.",
+        "Friday the tenth of May 2024. You swap a shift for it. The train to Ashford, and the small one to Rye, and the bus, and then the walk, and then the shingle, which goes on, pale, to a skyline with two lighthouses on it and the power station beside them, switched off now and being emptied, slowly, over decades, like a house.",
         "The Observatory is still in its cottage. A woman with a clipboard says the wind is wrong, north-westerly, nothing doing, a few wheatears; and you say that’s all right, you’re not here for anything in particular, which is a lie, and she can tell.",
         ["At twenty to two you are sitting with your back to a winch-house out of the wind, with the book open on your knee at the harriers",
          { if: "note=book", text: ", and her note across the plate" },
