@@ -123,8 +123,10 @@
   // along straight runs. The triangulation refuses any chamfer facet steeper than maxDeg.
   const CHAMFER = { inset: 0.4, rise: 0.5, maxDeg: 42 };
   // Size rules: the whole pot fits a 180 mm cube (the smallest common consumer build
-  // volume), and is never more than 4× taller than its narrowest footprint dimension
-  // (the usual tip-over / layer-shear rule of thumb for FDM).
+  // volume), and is never more than 4× taller than the narrowest width of its outline
+  // (the usual tip-over / layer-shear rule of thumb for FDM). The narrowest width is the
+  // minimum caliper width, measured in every direction, not the smaller side of the
+  // bounding box: a diamond-shaped footprint 30 mm by 30 mm is only 21.2 mm across.
   const LIMITS = { zMax: 180, slender: 4 };
   // Inner rings are computed at the target offset plus this margin, so the chords
   // between computed points cannot cut into the wall; the result is then measured.
@@ -181,13 +183,10 @@
     const ring = [...farPts, ...nearPts.slice(1, -1).reverse()];
     const lowerN = farPts.length; // ring[0 .. lowerN-1] is the lower chain
 
-    let zMin = Infinity, zMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-    for (const q of ring) {
-      zMin = min(zMin, q.z); zMax = max(zMax, q.z);
-      yMin = min(yMin, q.y); yMax = max(yMax, q.y);
-    }
-    const variation = zMax - zMin, depth = yMax - yMin, minDim = min(2 * R, depth);
-    const heightCap = min(PARAMS.height.max, LIMITS.zMax - variation, LIMITS.slender * minDim - variation);
+    let zMin = Infinity, zMax = -Infinity;
+    for (const q of ring) { zMin = min(zMin, q.z); zMax = max(zMax, q.z); }
+    const variation = zMax - zMin, narrowest = minWidth(ring);
+    const heightCap = min(PARAMS.height.max, LIMITS.zMax - variation, LIMITS.slender * narrowest - variation);
     const height = max(PARAMS.height.min, min(p.height, heightCap));
     const zShift = height - zMin;
     for (const q of ring) q.z += zShift;
@@ -195,8 +194,45 @@
     return {
       params: { ...p, height }, requestedHeight: p.height, capped: height < p.height - 1e-9,
       heightCap, sizeOK: heightCap >= PARAMS.height.min,
-      R, phi, ring, lowerN, zShift, rimLow: height, rimHigh: zMax + zShift, variation, A, B,
+      R, phi, ring, lowerN, zShift, rimLow: height, rimHigh: zMax + zShift, variation, narrowest, A, B,
     };
+  }
+
+  /**
+   * Minimum caliper width of a set of plan points: the narrowest strip between two
+   * parallel lines that holds them all, over every direction. One side of the narrowest
+   * strip always lies along an edge of the convex hull, so each hull edge is tried with
+   * the hull vertex farthest from it.
+   */
+  function minWidth(pts) {
+    const h = convexHull(pts);
+    if (h.length < 3) return 0;
+    let best = Infinity;
+    for (let i = 0; i < h.length; i++) {
+      const a = h[i], b = h[(i + 1) % h.length];
+      const dx = b.x - a.x, dy = b.y - a.y, l = hypot(dx, dy);
+      let far = 0;
+      for (const q of h) far = max(far, abs((q.x - a.x) * dy - (q.y - a.y) * dx) / l);
+      best = min(best, far);
+    }
+    return best;
+  }
+  /** Convex hull (Andrew's monotone chain), CCW, without collinear points. */
+  function convexHull(pts) {
+    const P = pts.map((q) => ({ x: q.x, y: q.y })).sort((a, b) => a.x - b.x || a.y - b.y);
+    const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [], up = [];
+    for (const q of P) {
+      while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop();
+      lo.push(q);
+    }
+    for (let i = P.length - 1; i >= 0; i--) {
+      const q = P[i];
+      while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop();
+      up.push(q);
+    }
+    lo.pop(); up.pop();
+    return lo.concat(up);
   }
 
   /** Sample one branch at equal 3-D arc length, keeping corners exact. */
@@ -730,8 +766,8 @@
       positions, triangles, inner: inner.ring, base: base.ring,
       index: { bottom: iB, chamfer: iC, rim: iR, rimInner: iI, floor: iF },
       bbox: { x: [-r.R, r.R], y: [yMin, yMax], z: [0, r.rimHigh] },
-      footprint: { width: 2 * r.R, depth },
-      slenderness: r.rimHigh / min(2 * r.R, depth),
+      footprint: { width: 2 * r.R, depth, narrowest: r.narrowest },
+      slenderness: r.rimHigh / r.narrowest,
       minWall: gap.gap, chamferInset: baseGap, worstOverhang: worstChamfer, earClipped,
       stats,
       massPLA: stats.volume / 1000 * 1.24, // g, at 100% infill, PLA 1.24 g/cm³
@@ -886,7 +922,7 @@
 
   return {
     SHAPES, PARAMS, CHAMFER, LIMITS, shapeById, defaults, normalize,
-    rim, buildSteps, buildMesh, meshStats, erode, ringGap, isSimple, signedArea, earClip,
+    rim, minWidth, buildSteps, buildMesh, meshStats, erode, ringGap, isSimple, signedArea, earClip,
     project, shapeOutline, illusionError, chordError, toSTL, parseSTL, fileName,
   };
 });

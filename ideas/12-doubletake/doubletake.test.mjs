@@ -10,7 +10,8 @@
 //     (consistent winding), one connected shell, V − E + F = 2
 //   no degenerate triangles (area ≥ 1e-4 mm², every edge ≥ 20 µm), no duplicate vertices
 //   positive signed volume; stored normals agree with the winding
-//   bounding box as claimed; fits a 180 mm cube; height ≤ 4 × narrowest footprint side
+//   bounding box as claimed; fits a 180 mm cube; height ≤ 4 × the narrowest width of the
+//     outline, over every direction (minimum caliper width, not the bounding box)
 //   overhang: every downward-facing triangle off the bed lies in the 0.5 mm chamfer band
 //     and leans at most 42° from vertical
 //   flat base: every downward horizontal triangle is at z = 0
@@ -24,7 +25,8 @@
 //   self-intersection: no two triangles that share no vertex intersect or touch
 //     (separating-axis test on every pair whose bounding boxes overlap); triangles that
 //     share one vertex meet only there (opposite-edge test)
-//   the illusion: every rim station projects onto the eye shape and the mirror shape
+//   the illusion: every rim station projects onto the eye shape and the mirror shape, and
+//     the straight rim edges between stations stray at most CHORD_BOUND from them
 // and reports volume and PLA mass (1.24 g/cm³).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -39,6 +41,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const { SHAPES, PARAMS, CHAMFER, LIMITS } = D;
 const DEG = 180 / Math.PI;
 const f32 = Math.fround;
+// The README's bound on how far a straight rim edge strays from the shapes between
+// stations, over every setting (the worst case is square with star at 60°, 80 mm, detail 48).
+const CHORD_BOUND = 0.21;
+const README = fs.readFileSync(path.join(HERE, 'README.md'), 'utf8');
 
 // ------------------------------------------------------------ independent STL reader
 function readSTL(buf) {
@@ -293,6 +299,53 @@ function pointInPoly(px, py, ring) {
   }
   return inside;
 }
+/**
+ * Narrowest width of a plan point set over every direction (the minimum caliper width).
+ * Written apart from the generator's monotone-chain version: gift-wrap the convex hull,
+ * then for each hull edge take the width of the strip, normal to that edge, that holds
+ * every point. Each candidate is a true width in some direction, and the narrowest
+ * strip always has one side along a hull edge, so the minimum is exact.
+ */
+function caliperWidth(pts) {
+  const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const d2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  let start = 0;
+  for (let i = 1; i < pts.length; i++) if (pts[i].x < pts[start].x || (pts[i].x === pts[start].x && pts[i].y < pts[start].y)) start = i;
+  const hull = [];
+  let cur = start;
+  do {
+    hull.push(pts[cur]);
+    let nxt = (cur + 1) % pts.length;
+    for (let i = 0; i < pts.length; i++) {
+      const c = cr(pts[cur], pts[nxt], pts[i]);
+      if (c < 0 || (c === 0 && d2(pts[cur], pts[i]) > d2(pts[cur], pts[nxt]))) nxt = i;
+    }
+    cur = nxt;
+  } while (cur !== start && hull.length <= pts.length);
+  let best = Infinity;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length];
+    const l = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!(l > 0)) continue;
+    const nx = -(b.y - a.y) / l, ny = (b.x - a.x) / l;
+    let lo = Infinity, hi = -Infinity;
+    for (const q of pts) { const d = q.x * nx + q.y * ny; lo = Math.min(lo, d); hi = Math.max(hi, d); }
+    best = Math.min(best, hi - lo);
+  }
+  return best;
+}
+/** The same width by brute force: the smallest extent over directions `step` degrees apart. */
+function scanWidth(pts, step) {
+  let best = Infinity;
+  for (let a = 0; a < 180; a += step) {
+    const c = Math.cos(a / DEG), sn = Math.sin(a / DEG);
+    let lo = Infinity, hi = -Infinity;
+    for (const q of pts) { const d = q.x * c + q.y * sn; lo = Math.min(lo, d); hi = Math.max(hi, d); }
+    best = Math.min(best, hi - lo);
+  }
+  return best;
+}
+
 function loopArea(r) {
   let a = 0;
   for (let i = 0; i < r.length; i++) { const p = r[i], q = r[(i + 1) % r.length]; a += p.x * q.y - q.x * p.y; }
@@ -417,8 +470,6 @@ function checkCase(params, { rays = 0, lines = 200, selfX = false, label = '' } 
   close(bb[5], mesh.rimHigh, `${label} bbox z max`);
   assert.ok(bb[5] <= LIMITS.zMax && bb[4] - bb[1] <= LIMITS.zMax && bb[3] - bb[0] <= LIMITS.zMax, `${label} fits a ${LIMITS.zMax} mm cube`);
   assert.ok(bb[4] - bb[1] <= 2 * p.width + 1e-9, `${label} depth ≤ 2 × width`);
-  const slender = bb[5] / Math.min(bb[3] - bb[0], bb[4] - bb[1]);
-  assert.ok(slender <= LIMITS.slender + 1e-6, `${label} height / narrowest side = ${slender.toFixed(3)} ≤ ${LIMITS.slender}`);
   assert.ok(mesh.sizeOK, `${label} the size rules can be met`);
   // the lowest rim point is the (possibly capped) height setting
   let rimLow = Infinity;
@@ -434,6 +485,12 @@ function checkCase(params, { rays = 0, lines = 200, selfX = false, label = '' } 
   // Walls, from the STL alone: outer outline at z = rise, inner outline at z = floor.
   const outer = outlineAt(welded, f32(CHAMFER.rise));
   const inner = outlineAt(welded, f32(p.floor));
+  // Tall-and-thin rule against the narrowest width of the outline read from the STL, in
+  // every direction (a diamond-shaped footprint is narrower across its flats than its box).
+  const narrowest = caliperWidth(outer);
+  const slender = bb[5] / narrowest;
+  assert.ok(slender <= LIMITS.slender + 1e-6, `${label} height / narrowest width = ${slender.toFixed(3)} ≤ ${LIMITS.slender}`);
+  close(narrowest, mesh.footprint.narrowest, `${label} the generator's narrowest width`);
   assert.ok(D.isSimple(outer) && D.isSimple(inner), `${label} outlines are simple polygons`);
   for (const q of inner) assert.ok(pointInPoly(q.x, q.y, outer), `${label} inner outline lies inside the outer`);
   const minWall = loopGap(outer, inner);
@@ -489,7 +546,7 @@ function checkCase(params, { rays = 0, lines = 200, selfX = false, label = '' } 
   assert.ok(worst < 2e-4, `${label} rim projects onto both shapes within ${worst.toExponential(2)} mm (float32 rounding)`);
   STATS.maxIllusion = Math.max(STATS.maxIllusion, worst);
   const chord = D.chordError(mesh).worst;
-  assert.ok(chord < 0.2, `${label} rim edges stray ≤ ${chord.toFixed(3)} mm from the shapes between stations`);
+  assert.ok(chord <= CHORD_BOUND, `${label} rim edges stray ${chord.toFixed(4)} mm ≤ ${CHORD_BOUND} mm from the shapes between stations`);
   STATS.maxChord = Math.max(STATS.maxChord, chord);
   if (p.eye !== p.mirror) {
     let diff = 0;
@@ -570,12 +627,13 @@ test('every ordered pair of shapes at the defaults (with the self-intersection t
   console.log(`# 100 pairs at the defaults: steepest overhang ${worst.overhang.toFixed(2)}°, tallest ${worst.z.toFixed(1)} mm, deepest ${worst.depth.toFixed(1)} mm, slenderness ≤ ${worst.slender.toFixed(2)}`);
 });
 
-test('every pair at the hardest slider corners (thick wall, narrow pot; thin wall, wide pot; tall)', () => {
+test('every pair at the hardest slider corners (thick wall, narrow pot; thin wall, wide pot; tall; coarsest rim)', () => {
   const corners = [
     { angle: 30, width: 30, wall: 3.2, detail: 192, height: 100 },
     { angle: 60, width: 30, wall: 3.2, detail: 48, height: 100 },
     { angle: 30, width: 80, wall: 1.2, detail: 48, height: 100 },
     { angle: 60, width: 80, wall: 1.2, detail: 192, height: 100 },
+    { angle: 60, width: 80, wall: 3.2, detail: 48, height: 100 }, // the worst faceting
   ];
   let capped = 0, worstOverhang = 0, tallest = 0;
   for (const a of SHAPES) {
@@ -588,7 +646,7 @@ test('every pair at the hardest slider corners (thick wall, narrow pot; thin wal
       }
     }
   }
-  console.log(`# 400 hard cases: ${capped} had their height capped by the size rules; steepest overhang ${worstOverhang.toFixed(2)}°, tallest ${tallest.toFixed(1)} mm`);
+  console.log(`# ${SHAPES.length ** 2 * corners.length} hard cases: ${capped} had their height capped by the size rules; steepest overhang ${worstOverhang.toFixed(2)}°, tallest ${tallest.toFixed(1)} mm`);
 });
 
 test('a seeded random sample of 150 parameter sets', () => {
@@ -607,20 +665,111 @@ test('size rules: height is capped, never the footprint', () => {
   assert.ok(m.capped, 'a tall narrow crescent pot gets its height capped');
   assert.ok(m.slenderness <= LIMITS.slender + 1e-9);
   assert.ok(m.rimLow >= PARAMS.height.min);
-  // the cap is the binding one of: 180 mm overall, 4 × narrowest side
-  const cap = Math.min(PARAMS.height.max, LIMITS.zMax - m.variation, LIMITS.slender * Math.min(m.footprint.width, m.footprint.depth) - m.variation);
+  // the cap is the binding one of: 180 mm overall, 4 × the narrowest width
+  const cap = Math.min(PARAMS.height.max, LIMITS.zMax - m.variation, LIMITS.slender * m.footprint.narrowest - m.variation);
   assert.ok(Math.abs(m.rimLow - cap) < 1e-9, 'capped exactly at the size rule');
-  console.log(`# crescent/crescent 60° 30 mm: asked for 100 mm, got ${m.rimLow.toFixed(1)} mm (total ${m.rimHigh.toFixed(1)} mm on a ${m.footprint.depth.toFixed(1)} mm deep footprint)`);
+  console.log(`# crescent/crescent 60° 30 mm: asked for 100 mm, got ${m.rimLow.toFixed(1)} mm (total ${m.rimHigh.toFixed(1)} mm on a footprint ${m.footprint.narrowest.toFixed(1)} mm across at its narrowest)`);
   // and an uncapped request is left alone
   assert.equal(D.buildMesh({ height: 55 }).rimLow, 55);
-  // The rules can always be met: every pair at every whole-degree angle, at the narrowest
-  // width (every term of the cap grows with the width, so that is the worst case).
-  let least = Infinity;
+  // The rules can always be met: every pair at every whole-degree angle, at both ends of the
+  // width range. Every length in the cap scales with the width, so each term of the cap is
+  // linear in it (4 × narrowest − variation grows with it, 180 − variation shrinks) and the
+  // smallest cap is at one end or the other.
+  let least = Infinity, where = '';
   for (const a of SHAPES) for (const b of SHAPES) for (let angle = PARAMS.angle.min; angle <= PARAMS.angle.max; angle++) {
-    least = Math.min(least, D.rim({ eye: a.id, mirror: b.id, angle, width: PARAMS.width.min, detail: PARAMS.detail.min }).heightCap);
+    for (const width of [PARAMS.width.min, PARAMS.width.max]) {
+      const c = D.rim({ eye: a.id, mirror: b.id, angle, width, detail: PARAMS.detail.min }).heightCap;
+      if (c < least) { least = c; where = `${a.id}/${b.id} ${angle}° ${width} mm`; }
+    }
   }
   assert.ok(least >= PARAMS.height.min, `smallest height cap ${least} mm`);
-  console.log(`# smallest possible height cap: ${least.toFixed(1)} mm (the slider's minimum is ${PARAMS.height.min} mm)`);
+  console.log(`# smallest possible height cap: ${least.toFixed(1)} mm at ${where} (the slider's minimum is ${PARAMS.height.min} mm)`);
+});
+
+test('the tall-and-thin rule uses the narrowest width in every direction, not the bounding box', () => {
+  // Triangle on triangle at 60° and 30 mm stands on a 30 × 30 mm diamond: only 30/√2 =
+  // 21.2 mm across its flats. Measuring the bounding box let it grow to 120 mm (5.66×).
+  const m = D.buildMesh({ eye: 'triangle', mirror: 'triangle', angle: 60, width: 30, height: 100 });
+  assert.ok(Math.abs(m.footprint.width - 30) < 1e-9 && Math.abs(m.footprint.depth - 30) < 1e-6, 'a 30 × 30 mm bounding box');
+  const scan = scanWidth(m.ring, 0.05);
+  assert.ok(Math.abs(scan - 30 / Math.SQRT2) < 1e-3, `narrowest width by a 0.05° scan: ${scan}`);
+  assert.ok(m.rimHigh <= LIMITS.slender * scan + 1e-6, `${m.rimHigh.toFixed(2)} mm tall ≤ 4 × ${scan.toFixed(2)} mm`);
+  assert.ok(m.capped, 'its height is capped');
+  assert.ok(Math.abs(m.rimHigh - LIMITS.slender * 30 / Math.SQRT2) < 1e-6, 'capped exactly at 4 × the narrowest width');
+  assert.ok(Math.abs(m.footprint.narrowest - 30 / Math.SQRT2) < 1e-6, `the generator's narrowest width ${m.footprint.narrowest}`);
+  console.log(`# triangle/triangle 60° 30 mm: asked for 100 mm, got ${m.rimLow.toFixed(1)} mm (${m.rimHigh.toFixed(1)} mm overall, ${m.footprint.narrowest.toFixed(1)} mm across)`);
+  // The two width methods agree on every pair at the narrow, steep corner, and the
+  // generator's figure is never wider than a brute-force scan finds.
+  for (const a of SHAPES) for (const b of SHAPES) {
+    const r = D.rim({ eye: a.id, mirror: b.id, angle: 60, width: 30, detail: 48 });
+    const exact = caliperWidth(r.ring), coarse = scanWidth(r.ring, 0.25);
+    assert.ok(Math.abs(exact - r.narrowest) < 1e-9, `${a.id}/${b.id}: hull widths agree`);
+    assert.ok(coarse >= exact - 1e-9 && coarse - exact < 0.05, `${a.id}/${b.id}: scan ${coarse} vs exact ${exact}`);
+  }
+});
+
+test('faceting: the worst case over every pair and angle at the coarsest, widest rim', () => {
+  // The straight-edge error grows with the width and falls with the detail, so the worst
+  // case is at 80 mm and 48 vertices per side; try every pair at every whole-degree angle.
+  let worst = { e: 0 };
+  for (const a of SHAPES) for (const b of SHAPES) for (let angle = PARAMS.angle.min; angle <= PARAMS.angle.max; angle++) {
+    const r = D.rim({ eye: a.id, mirror: b.id, angle, width: PARAMS.width.max, detail: PARAMS.detail.min });
+    const e = D.chordError(r).worst;
+    if (e > worst.e) worst = { e, a: a.id, b: b.id, angle };
+  }
+  console.log(`# worst faceting: ${worst.e.toFixed(4)} mm, ${worst.a}/${worst.b} at ${worst.angle}°, 80 mm, detail 48`);
+  assert.ok(worst.e <= CHORD_BOUND, `${worst.e} ≤ ${CHORD_BOUND}`);
+  assert.ok(worst.e > 0.2, 'the bound is not loose: the worst case is just over 0.2 mm');
+  assert.deepEqual([worst.a, worst.b, worst.angle], ['square', 'star', 60]); // star/square ties it
+  // the worst case shrinks with more detail and a narrower pot
+  const at = (q) => D.chordError(D.rim({ eye: 'square', mirror: 'star', angle: 60, ...q })).worst;
+  assert.ok(at({ width: 80, detail: 56 }) < worst.e && at({ width: 79, detail: 48 }) < worst.e);
+  // at the defaults it is about 0.011 mm
+  const d = D.chordError(D.rim({})).worst;
+  assert.ok(d > 0.0105 && d < 0.0115, `defaults: ${d}`);
+});
+
+test('a shape with itself: the same shape twice, with a flat rim only when the shape is symmetric top to bottom', () => {
+  const flat = [], bent = [];
+  let most = { swing: 0 };
+  for (const s of SHAPES) {
+    const r = D.rim({ eye: s.id, mirror: s.id });
+    // both images are the same shape at every station
+    for (const q of r.ring) assert.ok(Math.abs(q.eye - (q.branch === 'near' ? s.bottom(q.u) : s.top(q.u)) * r.R) < 1e-9);
+    // rim height is (top + bottom)·R / (2 cos φ): constant only when top = −bottom
+    let symmetric = true;
+    for (let i = 0; i <= 200; i++) { const x = -1 + i / 100; if (Math.abs(s.top(x) + s.bottom(x)) > 1e-9) symmetric = false; }
+    (r.variation < 1e-9 ? flat : bent).push(s.id);
+    assert.equal(r.variation < 1e-9, symmetric, `${s.id}: flat rim iff symmetric top to bottom`);
+    if (r.variation > most.swing) most = { swing: r.variation, id: s.id };
+  }
+  assert.deepEqual(flat, ['circle', 'square', 'diamond', 'hexagon', 'star', 'oval']);
+  assert.deepEqual(bent, ['triangle', 'pentagon', 'heart', 'moon']);
+  assert.equal(most.id, 'triangle');
+  assert.ok(Math.abs(most.swing - 36.74) < 0.01, `triangle with itself: the rim bends by ${most.swing.toFixed(2)} mm`);
+  console.log(`# a shape with itself: flat rim for ${flat.join(', ')}; bent for ${bent.join(', ')} (up to ${most.swing.toFixed(1)} mm, ${most.id})`);
+});
+
+test('the README states the numbers these tests measure', () => {
+  // Everything above the revision note (which quotes the old claims to say what changed).
+  const body = README.split('## Revision note')[0];
+  const one = (re) => { const m = body.match(re); assert.ok(m, `README matches ${re}`); return m; };
+  // faceting: 0.011 mm at the defaults, 0.21 mm at worst, and nowhere the old 0.141 mm
+  assert.ok(!body.includes('0.141'), 'the old 0.141 mm bound is gone');
+  one(/at most 0\.011 mm at the defaults, and by at most 0\.21 mm at the coarsest, widest settings \(square with star at 60°, 80 mm/);
+  one(/\(0\.21 mm at worst\)/);
+  one(/rim edges stray ≤ 0\.207 mm between stations/);
+  assert.equal(CHORD_BOUND.toFixed(2), '0.21');
+  // the tall-and-thin rule is stated against the narrowest width, with the diamond example
+  one(/more than 4× the narrowest width of its footprint/);
+  one(/30 × 30 mm diamond, which is only 21\.2 mm across/);
+  assert.ok(!/narrowest (footprint )?side/.test(body), 'no "narrowest side" (that was the bounding box)');
+  // a shape with itself
+  assert.ok(!body.includes('just an ordinary pot') && !body.includes('gives an ordinary cylinder'), 'no blanket "ordinary pot" claim');
+  assert.ok(README.includes('## Revision note'), 'the README has a revision note');
+  one(/For the circle, square, diamond, hexagon, star and oval the rim is flat: an ordinary pot\. The triangle, pentagon, heart and crescent are not symmetric top to bottom, so their rims still have to bend, by up to 37 mm/);
+  // printing in layers
+  one(/at 0\.2 mm layers the printed rim is up to about half a layer \(0\.1 mm\) off its true height/);
 });
 
 test('generation runs in short slices', () => {

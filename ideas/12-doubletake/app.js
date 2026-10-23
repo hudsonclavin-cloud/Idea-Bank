@@ -160,7 +160,7 @@
       ['Volume', `${(m.stats.volume / 1000).toFixed(1)} cm³ · ${m.massPLA.toFixed(0)} g of PLA if solid`],
       ['Thinnest wall', `${m.minWall.toFixed(3)} mm (set ${p.wall.toFixed(1)}), floor ${p.floor.toFixed(1)} mm`],
       ['Steepest overhang', `${m.worstOverhang.toFixed(1)}° from vertical, base chamfer only`],
-      ['Tall ÷ narrow', `${m.slenderness.toFixed(2)} (limit ${D.LIMITS.slender})`],
+      ['Tall ÷ narrowest', `${m.rimHigh.toFixed(1)} ÷ ${m.footprint.narrowest.toFixed(1)} mm = ${m.slenderness.toFixed(2)} (limit ${D.LIMITS.slender})`],
       ['Triangles', `${m.stats.triangles.toLocaleString('en-US')} · STL ${((84 + 50 * m.stats.triangles) / 1024).toFixed(0)} KB`],
     ];
     $('stats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
@@ -168,7 +168,7 @@
     if (m.capped) {
       note.hidden = false;
       note.textContent = `Height capped at ${m.rimLow.toFixed(1)} mm (you asked for ${m.requestedHeight} mm): ` +
-        `this footprint is only ${Math.min(m.footprint.width, m.footprint.depth).toFixed(1)} mm across at its narrowest, and the pot is kept ` +
+        `this footprint is only ${m.footprint.narrowest.toFixed(1)} mm across at its narrowest, and the pot is kept ` +
         `within ${D.LIMITS.slender}× that in height and inside a ${D.LIMITS.zMax} mm cube.`;
     } else note.hidden = true;
     $('fileInfo').textContent = `${D.fileName(p)} · ${((84 + 50 * m.stats.triangles) / 1024).toFixed(0)} KB`;
@@ -176,7 +176,9 @@
     $('capMirror').textContent = `The mirror: ${m.B.name.toLowerCase()}`;
     const err = D.illusionError(m), chord = D.chordError(m).worst;
     $('verdict').innerHTML = `All <b>${m.ring.length}</b> rim vertices land on both shapes, to within <b>${err < 1e-12 ? '10⁻¹² mm' : `${err.toExponential(1)} mm`}</b> (floating-point rounding). ` +
-      `Between vertices the rim is a straight edge, which strays from the shapes by at most <b>${chord < 0.01 ? chord.toFixed(4) : chord.toFixed(3)} mm</b>, far below what a 0.4 mm nozzle can draw.`;
+      `Between vertices the rim is a straight edge, which strays from the shapes by at most <b>${chord < 0.01 ? chord.toFixed(4) : chord.toFixed(3)} mm</b>, ` +
+      `${chord < 0.1 ? 'far below' : 'below'} the 0.4 mm width of a printed line. Printing in 0.2 mm layers steps the rim's top to the layer grid, ` +
+      `which moves the outline by up to about ${(0.1 * Math.cos(p.angle * DEG)).toFixed(2)} mm.`;
     $('view').setAttribute('aria-label', `A pot that looks like a ${m.A.name.toLowerCase()} from the front at ${p.angle}° and like a ${m.B.name.toLowerCase()} in the mirror behind it. Drag sideways to turn the pot, up and down to move your eye.`);
   }
 
