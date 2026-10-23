@@ -47,7 +47,7 @@
     {
       name: 'Gap',
       hint: 'A one-wide gap is a wall: there is no corner to swing through. Go round.',
-      rows: ['...#..', 'AB.#*.', '...#..', '......', '......'],
+      rows: ['...#..', 'AB..*.', '...#..', '......', '......'],
     },
     {
       name: 'Nook',
@@ -71,7 +71,7 @@
     },
     {
       name: 'Islands',
-      hint: 'Which leg takes which mark? Every pin and hole here matters.',
+      hint: 'Which leg takes which mark? Every hole here matters.',
       rows: ['..*....', '...o...', '.o..*..', '..o.o..', '.*.o...', '.......', '...AB..'],
     },
     {
@@ -91,7 +91,7 @@
     },
     {
       name: 'Star chart',
-      hint: 'Five marks, seven holes, one par line. The last sheet.',
+      hint: 'Five marks, six holes, one par line. The last sheet.',
       rows: ['...o....', '..*.....', '.oo.o.*.', '...*....', '...o....', '.*....*.', '...o....', '...AB...'],
     },
   ];

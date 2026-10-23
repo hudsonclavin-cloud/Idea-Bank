@@ -306,11 +306,11 @@ test('in the puzzles every pin and hole is load-bearing', () => {
   }
 });
 
-test('degenerate strategies do not work', () => {
-  // 1. Swinging only one leg: the stick spins in place and reaches four cells at most.
-  //    The exceptions are Hop and Corner, whose lessons are one leg swinging round the other.
+test('swinging only one leg solves nothing but Hop and Corner', () => {
+  // The stick spins in place and reaches four cells at most. The exceptions are
+  // Hop and Corner, whose lessons are one leg swinging round the other.
+  const oneLeg = [];
   for (const [i, L] of parsed.entries()) {
-    if (LEVELS[i].name === 'Hop' || LEVELS[i].name === 'Corner') continue;
     for (const leg of ['a', 'b']) {
       const seen = new Set();
       let frontier = [R.initialState(L)];
@@ -329,42 +329,128 @@ test('degenerate strategies do not work', () => {
         }
         frontier = next;
       }
-      assert.ok(!solved, `level ${i + 1} solvable by swinging only leg ${leg}`);
+      if (solved && !oneLeg.includes(LEVELS[i].name)) oneLeg.push(LEVELS[i].name);
     }
   }
-  // 2. Greedy play: always take the move whose landing cell is nearest (as the crow
-  //    flies) to the nearest unpricked mark, ties by move order; give up after 4×par.
-  const greedyWins = [];
-  const greedyFinishes = [];
-  for (const [i, L] of parsed.entries()) {
-    let s = R.initialState(L);
-    let n = 0;
-    const limit = 4 * analyses[i].moves;
-    while (!R.isSolved(L, s) && n < limit) {
-      const todo = L.marks.filter((c, bit) => !((s.mask >> bit) & 1));
-      let best = null;
-      let bestD = Infinity;
-      for (const m of R.moves(L, s)) {
-        const [tx, ty] = R.xy(L, m.to);
-        for (const c of todo) {
-          const [mx, my] = R.xy(L, c);
-          const d = Math.hypot(tx - mx, ty - my);
-          if (d < bestD) {
-            bestD = d;
-            best = m;
-          }
+  assert.deepEqual(oneLeg, ['Hop', 'Corner']);
+});
+
+/* ------------------------------------------------------------------ */
+/* Greedy players. Choose the swing whose landing cell is nearest to the */
+/* nearest unpricked mark; ties go to the first move in `order`; give up */
+/* after 4×par. With `guard`, only swings into positions not yet visited */
+/* are considered, whenever there is at least one.                       */
+/* ------------------------------------------------------------------ */
+const METRICS = {
+  euclidean: (dx, dy) => Math.hypot(dx, dy),
+  manhattan: (dx, dy) => Math.abs(dx) + Math.abs(dy),
+  chebyshev: (dx, dy) => Math.max(Math.abs(dx), Math.abs(dy)),
+};
+const ENGINE_ORDER = ['a-ccw', 'a-cw', 'b-ccw', 'b-cw']; // the order rules.moves lists them in
+function permutations(xs) {
+  if (xs.length <= 1) return [xs];
+  return xs.flatMap((x, i) => permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p]));
+}
+function greedy(i, { metric = 'euclidean', order = ENGINE_ORDER, guard = false } = {}) {
+  const L = parsed[i];
+  const par = analyses[i].moves;
+  let s = R.initialState(L);
+  const seen = new Set([R.key(L, s)]);
+  let n = 0;
+  let firstRevisit = -1;
+  while (!R.isSolved(L, s) && n < 4 * par) {
+    const todo = L.marks.filter((c, bit) => !((s.mask >> bit) & 1));
+    const ms = R.moves(L, s).sort((x, y) => order.indexOf(`${x.leg}-${x.turn}`) - order.indexOf(`${y.leg}-${y.turn}`));
+    const fresh = ms.filter((m) => !seen.has(R.key(L, R.apply(L, s, m))));
+    const pool = guard && fresh.length ? fresh : ms;
+    let best = null;
+    let bestD = Infinity;
+    for (const m of pool) {
+      const [tx, ty] = R.xy(L, m.to);
+      for (const c of todo) {
+        const [mx, my] = R.xy(L, c);
+        const d = METRICS[metric](tx - mx, ty - my);
+        if (d < bestD) {
+          bestD = d;
+          best = m;
         }
       }
-      s = R.apply(L, s, best);
-      n++;
     }
-    if (R.isSolved(L, s)) greedyFinishes.push(i + 1);
-    if (R.isSolved(L, s) && n <= analyses[i].moves) greedyWins.push(i + 1);
+    s = R.apply(L, s, best);
+    n++;
+    const k = R.key(L, s);
+    if (firstRevisit < 0 && seen.has(k)) firstRevisit = n;
+    seen.add(k);
   }
-  assert.ok(greedyWins.every((n) => n <= LESSONS), `greedy reaches par on puzzle levels ${greedyWins.filter((n) => n > LESSONS)}`);
-  assert.ok(greedyFinishes.every((n) => n <= LESSONS), `greedy finishes puzzle levels ${greedyFinishes.filter((n) => n > LESSONS)}`);
-  assert.match(README, new RegExp(`reaches par on ${greedyWins.length} of the 15 levels`), 'README states the greedy result');
+  return { solved: R.isSolved(L, s), n, par, firstRevisit };
+}
+const PUZZLES = LEVELS.map((l, i) => i).filter((i) => i >= LESSONS);
+
+test('a memoryless greedy player fails the puzzles by going round in circles, not because they are hard', () => {
+  const runs = LEVELS.map((l, i) => greedy(i));
+  const atPar = runs.map((r, i) => (r.solved && r.n <= r.par ? i + 1 : 0)).filter(Boolean);
+  assert.deepEqual(atPar, [1, 2, 3, 4, 7, 8], 'memoryless greedy reaches par on these levels');
+  assert.match(README, new RegExp(`reaches par on ${atPar.length} of the 15 levels, all of them lessons`));
+  const revisits = [];
+  for (const i of PUZZLES) {
+    assert.ok(!runs[i].solved, `memoryless greedy finishes ${LEVELS[i].name}`);
+    // Its choice depends only on the position, so the first repeated position
+    // starts a cycle it never leaves. On every puzzle that happens before par.
+    assert.ok(runs[i].firstRevisit > 0 && runs[i].firstRevisit < runs[i].par, `${LEVELS[i].name}: first revisit ${runs[i].firstRevisit}`);
+    revisits.push(runs[i].firstRevisit);
+  }
+  assert.match(README, new RegExp(`within the first ${Math.min(...revisits)} to ${Math.max(...revisits)} moves, after which it cycles for good`));
 });
+
+test('a greedy player that avoids revisiting positions finishes most puzzles, sometimes in par', () => {
+  // Engine move order, straight-line distance, plus the no-revisit rule.
+  const guarded = PUZZLES.map((i) => ({ i, ...greedy(i, { guard: true }) }));
+  const finished = guarded.filter((r) => r.solved);
+  const missed = guarded.filter((r) => !r.solved).map((r) => LEVELS[r.i].name);
+  const worst = Math.max(...finished.map((r) => r.n / r.par));
+  assert.equal(finished.length, 5);
+  assert.deepEqual(missed, ['Meadow']);
+  assert.ok(worst <= 1.6, `worst finish ${worst.toFixed(2)}×par`);
+  assert.match(README, new RegExp(`finishes ${finished.length} of the 6 puzzles within 1\\.6 times par \\(all but ${missed[0]}\\)`));
+  // 72 variants: three distance measures × 24 tie-break orders, all with the rule.
+  const orders = permutations(ENGINE_ORDER);
+  assert.equal(orders.length * Object.keys(METRICS).length, 72);
+  const parHits = {};
+  for (const i of PUZZLES) {
+    parHits[LEVELS[i].name] = 0;
+    for (const metric of Object.keys(METRICS)) {
+      for (const order of orders) {
+        const r = greedy(i, { metric, order, guard: true });
+        if (r.solved && r.n === r.par) parHits[LEVELS[i].name]++;
+      }
+    }
+  }
+  assert.deepEqual(parHits, { Garden: 24, Islands: 4, Meadow: 0, 'Lily pads': 0, Pond: 0, 'Star chart': 3 });
+  assert.match(README, /hit par exactly on Garden \(24 of 72\), Islands \(4\) and Star chart \(3\); none hits par on Meadow, Lily pads or Pond/);
+  // So the README must not offer greedy failure as evidence that the puzzles are hard.
+  assert.doesNotMatch(README, /greedy play never finishes them/);
+});
+
+// Every shortest solution of a level, as arrays of moves (small levels only).
+function allParSolutions(L, a) {
+  const out = [];
+  const walkFrom = (s, path) => {
+    if (path.length === a.moves) {
+      if (R.isSolved(L, s)) out.push(path.slice());
+      return;
+    }
+    for (const m of R.moves(L, s)) {
+      const t = R.apply(L, s, m);
+      const d = S.distanceToGoal(L, t);
+      if (d < 0 || path.length + 1 + d > a.moves) continue;
+      path.push(m);
+      walkFrom(t, path);
+      path.pop();
+    }
+  };
+  walkFrom(R.initialState(L), []);
+  return out;
+}
 
 test('each lesson level teaches what its hint says', () => {
   const byName = (n) => {
@@ -400,28 +486,79 @@ test('each lesson level teaches what its hint says', () => {
     assert.ok(a.path.some((m) => m.sweep === hole), 'a swing passes over the hole');
     assert.ok(solveRows(def.rows.map((r) => r.replace('o', '#'))).moves > a.moves);
   }
-  // Gap: widening the one-wide gap to two cells shortens the route.
+  // Gap: the wall has a one-wide gap in it, and the gap is as good as a wall. No leg
+  // can ever stand in it (the corners either side are pins), so pinning it shut
+  // changes nothing. The way round is the two-wide passage below the wall:
+  // narrowing that to one wide makes the level unsolvable, and removing the pin
+  // under the gap opens a wide way through and shortens the route.
   {
-    const [, a, def] = byName('Gap');
-    const rows = def.rows.slice();
-    rows[2] = rows[2].replace('#', '.');
-    assert.ok(solveRows(rows).moves < a.moves);
+    const [L, a, def] = byName('Gap');
+    const at = (x, y) => R.cellAt(L, x, y);
+    const gaps = [];
+    for (let y = 0; y < L.h; y++) {
+      for (let x = 0; x < L.w; x++) {
+        if (at(x, y) !== R.FLOOR) continue;
+        const pinnedV = at(x, y - 1) === R.PIN && at(x, y + 1) === R.PIN && at(x - 1, y) === R.FLOOR && at(x + 1, y) === R.FLOOR;
+        const pinnedH = at(x - 1, y) === R.PIN && at(x + 1, y) === R.PIN && at(x, y - 1) === R.FLOOR && at(x, y + 1) === R.FLOOR;
+        if (pinnedV || pinnedH) gaps.push([x, y]);
+      }
+    }
+    assert.ok(gaps.length >= 1, 'the board shows a one-wide gap');
+    const states = S.reachableStates(L);
+    for (const [x, y] of gaps) {
+      const i = y * L.w + x;
+      assert.ok(states.every((s) => s.a !== i && s.b !== i), `a leg can stand in the gap at ${x},${y}`);
+      const shut = def.rows.map((r, j) => (j === y ? r.slice(0, x) + '#' + r.slice(x + 1) : r));
+      const b = solveRows(shut);
+      assert.deepEqual([b.moves, b.solutions, b.reachable], [a.moves, a.solutions, a.reachable], 'pinning the gap shut changes nothing');
+    }
+    const [wx] = gaps[0];
+    const setCell = (rows, x, y, ch) => rows.map((r, j) => (j === y ? r.slice(0, x) + ch + r.slice(x + 1) : r));
+    // the passage round the wall: the floor cells in the gap's column below the last pin
+    const lastPin = Math.max(...def.rows.map((r, y) => (r[wx] === '#' ? y : -1)));
+    const passage = [];
+    for (let y = lastPin + 1; y < L.h; y++) passage.push(y);
+    assert.equal(passage.length, 2, 'the way round is two wide');
+    assert.equal(solveRows(setCell(def.rows, wx, passage[0], '#')).solvable, false, 'a one-wide way round is no way round');
+    assert.ok(solveRows(setCell(def.rows, wx, lastPin, '.')).moves < a.moves, 'removing the pin under the gap shortens the route');
   }
   // Nook: pins beside the mark instead of holes make it unreachable.
   {
     const [, , def] = byName('Nook');
     assert.equal(solveRows(def.rows.map((r) => r.replace(/o/g, '#'))).solvable, false);
   }
-  // Rosette: the last three swings share one pivot, the hub in the middle of the four marks.
+  // Rosette: the hub (the square beside all four marks) is on coral's colour, so
+  // only coral can stand there. Every par solution plants coral on the hub and
+  // swings blue round it for at least two of the marks; the README says how many
+  // finish with three swings round it.
   {
     const [L, a] = byName('Rosette');
-    const last = a.path.slice(-3);
-    assert.ok(last.every((m) => m.pivot === last[0].pivot));
-    const [hx, hy] = R.xy(L, last[0].pivot);
-    for (const c of L.marks) {
-      const [mx, my] = R.xy(L, c);
-      assert.equal(Math.abs(mx - hx) + Math.abs(my - hy), 1, 'every mark is beside the hub');
+    const near = (i, j) => {
+      const [x1, y1] = R.xy(L, i);
+      const [x2, y2] = R.xy(L, j);
+      return Math.abs(x1 - x2) + Math.abs(y1 - y2) === 1;
+    };
+    const hubs = [...L.cells.keys()].filter((i) => L.cells[i] === R.FLOOR && L.marks.every((c) => near(c, i)));
+    assert.equal(hubs.length, 1);
+    const hub = hubs[0];
+    assert.equal(R.parity(L, hub), R.parity(L, L.start.a), 'only coral can stand on the hub');
+    const all = allParSolutions(L, a);
+    assert.equal(all.length, a.solutions, 'enumeration finds every par solution');
+    let lastThree = 0;
+    for (const path of all) {
+      assert.ok(path.some((m) => m.leg === 'a' && m.to === hub), 'coral stands on the hub');
+      let s = R.initialState(L);
+      let round = 0;
+      for (const m of path) {
+        const t = R.apply(L, s, m);
+        if (t.mask !== s.mask && m.pivot === hub) round++;
+        s = t;
+      }
+      assert.ok(round >= 2, 'at least two marks pricked round the hub');
+      if (path.slice(-3).every((m) => m.pivot === hub)) lastThree++;
     }
+    assert.match(README, new RegExp(`${lastThree} of its ${all.length} par solutions`));
+    assert.ok(lastThree < all.length, 'not every par solution ends with three swings round the hub');
   }
   // Stair: most of the par solution swings over holes.
   {
@@ -434,7 +571,7 @@ test('each lesson level teaches what its hint says', () => {
 test('the page wires the modules in order and declares a viewport', () => {
   const html = fs.readFileSync(here('./index.html'), 'utf8');
   assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1/);
-  const order = ['rules.js', 'levels.js', 'solver.js', 'game.js'].map((f) => html.indexOf(`src="${f}"`));
+  const order = ['rules.js', 'levels.js', 'solver.js', 'progress.js', 'game.js'].map((f) => html.indexOf(`src="${f}"`));
   assert.ok(order.every((p, i) => p >= 0 && (i === 0 || p > order[i - 1])), 'scripts load in dependency order');
   const game = fs.readFileSync(here('./game.js'), 'utf8');
   for (const fn of ['parse', 'initialState', 'moves', 'apply', 'isSolved', 'findMove', 'parity', 'xy', 'rotate', 'cellAt']) {
@@ -443,4 +580,71 @@ test('the page wires the modules in order and declares a viewport', () => {
   }
   assert.ok(game.includes('SOLVER.solve('), 'the page computes par with the solver');
   assert.ok(/try\s*\{[^}]*localStorage/.test(game), 'localStorage access is wrapped in try/catch');
+});
+
+test('every count a hint states is true of its level', () => {
+  const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const TENS = { twenty: 20, thirty: 30, forty: 40 };
+  const value = (w) => {
+    w = w.toLowerCase();
+    if (ONES.includes(w)) return ONES.indexOf(w);
+    const [t, o] = w.split('-');
+    return t in TENS ? TENS[t] + (o ? ONES.indexOf(o) : 0) : NaN;
+  };
+  let checked = 0;
+  for (const [i, def] of LEVELS.entries()) {
+    const count = (ch) => def.rows.join('').split(ch).length - 1;
+    const truth = { mark: count('*'), hole: count('o'), pin: count('#'), swing: analyses[i].moves, 'par line': analyses[i].solutions };
+    for (const m of def.hint.matchAll(/\b([a-z]+(?:-[a-z]+)?) (marks?|holes?|pins?|swings?|par lines?)\b/gi)) {
+      const n = value(m[1]);
+      if (Number.isNaN(n)) continue;
+      const what = m[2].toLowerCase().replace(/s$/, '');
+      assert.equal(n, truth[what], `${def.name}: the hint says "${m[0]}"`);
+      checked++;
+    }
+    // A hint that talks about pins or holes is on a level that has them.
+    if (/\bpins?\b/i.test(def.hint)) assert.ok(truth.pin > 0, `${def.name}: the hint mentions a pin but there is none`);
+    if (/\bholes?\b/i.test(def.hint)) assert.ok(truth.hole > 0, `${def.name}: the hint mentions a hole but there is none`);
+  }
+  assert.ok(checked >= 5, `${checked} counted claims checked`);
+});
+
+test('the README prose agrees with the levels', () => {
+  // The lesson list names one lesson per lesson level, in play order.
+  const list = README.match(/The first nine each teach one thing \(([^)]*)\)/);
+  assert.ok(list, 'README lists the lessons');
+  const items = list[1].split(';').map((t) => t.trim());
+  assert.equal(items.length, LESSONS, 'one lesson per lesson level');
+  const cue = { Swing: /either leg/, Hop: /hop/, Walk: /alternat/, Corner: /pin in the corner/, Hollow: /hole stops landing/, Gap: /one-wide gap/, Nook: /nook/, Rosette: /four marks round one square/, Stair: /staircase/ };
+  for (let i = 0; i < LESSONS; i++) assert.match(items[i], cue[LEVELS[i].name], `lesson ${i + 1} (${LEVELS[i].name}) is item ${i + 1}`);
+  // Which puzzles make you share the marks out between the legs: the ones with marks on both colours.
+  const split = [];
+  for (let i = LESSONS; i < LEVELS.length; i++) {
+    const L = parsed[i];
+    const coral = L.marks.filter((c) => R.parity(L, c) === R.parity(L, L.start.a)).length;
+    if (coral > 0 && coral < L.marks.length) split.push(LEVELS[i].name);
+  }
+  assert.deepEqual(split, ['Islands', 'Star chart']);
+  assert.match(README, new RegExp(`only ${split.join(' and ')} split the marks between the legs`));
+  // "States within par" is every state at most par moves from the start, as solver.js counts it.
+  assert.match(README, /every position a player can be in after at most par moves, whether or not par is still reachable from it/);
+  // The test count the README gives is this file's.
+  const own = fs.readFileSync(new URL(import.meta.url), 'utf8').match(/^test\(/gm).length;
+  assert.match(README, new RegExp(`\\(\`dividers\\.test\\.mjs\`, ${own} tests\\)`));
+});
+
+test('stored progress is cleaned before the page uses it', () => {
+  const P = require('./progress.js');
+  const n = LEVELS.length;
+  assert.deepEqual(P.clean(null, n), P.defaults());
+  assert.deepEqual(P.clean('not json', n), P.defaults());
+  assert.deepEqual(P.clean('{"best":{"0":"x"}}', n).best, {}, 'a string is not a move count');
+  assert.deepEqual(P.clean('{"best":{"0":"<img src=x onerror=alert(1)>"}}', n).best, {}, 'markup is dropped');
+  const p = P.clean(JSON.stringify({ best: { 0: 3, 1: -2, 2: 2.5, 3: '3', 4: 7, 99: 4, foo: 1, '07': 5 }, sound: 'yes', level: 2 }), n);
+  assert.deepEqual(p, { best: { 0: 3, 4: 7 }, sound: true, level: 2 });
+  assert.deepEqual(P.clean({ best: { 14: 30 }, sound: false, level: 15 }, n), { best: { 14: 30 }, sound: false, level: 0 });
+  // The page reads progress through progress.js and never writes stored values as HTML.
+  const game = fs.readFileSync(here('./game.js'), 'utf8');
+  assert.ok(game.includes('PROGRESS.clean('), 'game.js cleans stored progress');
+  assert.doesNotMatch(game, /innerHTML\s*=\s*`[^`]*\$\{/, 'no interpolated innerHTML');
 });

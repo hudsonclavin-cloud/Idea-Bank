@@ -1,6 +1,7 @@
 /*
  * game.js: rendering, input, sound and flow for Dividers.
- * The rules live in rules.js, the levels in levels.js, the solver in solver.js.
+ * The rules live in rules.js, the levels in levels.js, the solver in solver.js,
+ * and stored progress is read back through progress.js.
  */
 (function () {
   'use strict';
@@ -8,6 +9,7 @@
   const R = window.Dividers;
   const LEVELS = window.DividersLevels;
   const SOLVER = window.DividersSolver;
+  const PROGRESS = window.DividersProgress;
   const U = 10; // SVG units per cell
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const $ = (id) => document.getElementById(id);
@@ -16,17 +18,13 @@
 
   /* ------------------------------------------------------------ storage */
   const KEY = 'dividers.v1';
-  const progress = { best: {}, sound: true, level: 0 };
+  const progress = PROGRESS.defaults();
   function loadProgress() {
     try {
       const raw = window.localStorage.getItem(KEY);
       if (!raw) return;
-      const p = JSON.parse(raw);
-      if (p && typeof p === 'object') {
-        if (p.best && typeof p.best === 'object') progress.best = p.best;
-        if (typeof p.sound === 'boolean') progress.sound = p.sound;
-        if (Number.isInteger(p.level) && p.level >= 0 && p.level < LEVELS.length) progress.level = p.level;
-      }
+      // Only well-formed entries survive (see progress.js).
+      Object.assign(progress, PROGRESS.clean(raw, LEVELS.length));
     } catch (e) {
       /* no storage: play without memory */
     }
@@ -537,8 +535,18 @@
         if (best <= par) b.classList.add('par');
       }
       if (i === G.index) b.classList.add('current');
-      b.innerHTML = `<span class="st"></span><span class="n">${i + 1}</span><span class="nm"></span>${best !== undefined ? `<span class="best">${best}</span>` : ''}`;
-      b.querySelector('.nm').textContent = lv.name;
+      // Built as nodes with textContent: nothing read from storage is ever parsed as HTML.
+      for (const [cls, text] of [
+        ['st', ''],
+        ['n', String(i + 1)],
+        ['nm', lv.name],
+        ...(best !== undefined ? [['best', String(best)]] : []),
+      ]) {
+        const span = document.createElement('span');
+        span.className = cls;
+        span.textContent = text;
+        b.appendChild(span);
+      }
       b.setAttribute('aria-label', `Level ${i + 1}, ${lv.name}${best !== undefined ? `, best ${best} moves` : ''}`);
       b.addEventListener('click', () => {
         hide('levels');
