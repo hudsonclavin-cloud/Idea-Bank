@@ -12,7 +12,7 @@ const TEXT = fs.readFileSync(path.join(DIR, 'poems.txt'), 'utf8');
 const WORDS = ['round', 'hand', 'still', 'home']; // bells 1–4: treble, second, third, tenor
 const PLACE_NOTATION = ['x', '14', 'x', '14', 'x', '14', 'x', '12']; // one lead of Plain Bob Minimus
 const LEADS = 3;
-const MAX_LINE = 44; // characters, so a line fits a 390 px phone unbroken at the page's type size
+const MAX_LINE = 44; // characters: 14% headroom at 390 px in Liberation Serif; the page's fit step covers wider faces
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /* ---------- an independent implementation of the method ---------- */
@@ -79,7 +79,7 @@ const rows = plainBobMinimus();
 test('Plain Bob Minimus from its place notation is the full extent on four bells', () => {
   assert.equal(rows.length, 25);
   const keys = rows.map((r) => r.join(''));
-  assert.equal(new Set(keys.slice(0, 24)).size, 24, 'the 24 changes are all different');
+  assert.equal(new Set(keys.slice(0, 24)).size, 24, 'the 24 rows before the return are all different');
   assert.equal(keys[0], '1234', 'starts in rounds');
   assert.equal(keys[24], '1234', 'comes round at the 25th row');
   for (let i = 1; i < rows.length; i++) assert.ok(isAdjacentSwapChange(rows[i - 1], rows[i]), `change ${i} swaps only neighbours`);
@@ -131,7 +131,7 @@ test('the end-words are exactly the four bare words: no plurals, no inflections,
 });
 
 /* ---------- typography ---------- */
-test(`no line is longer than ${MAX_LINE} characters, so none wraps on a 390 px phone`, () => {
+test(`no line is longer than ${MAX_LINE} characters`, () => {
   for (const s of stanzas) for (const l of s.lines) {
     assert.ok(l.length <= MAX_LINE, `${l.length} chars: "${l}"`);
     assert.equal(l, l.trimEnd(), `trailing whitespace: "${l}"`);
