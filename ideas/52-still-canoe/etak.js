@@ -11,7 +11,10 @@
  *      and it sets at 360° − A. No refraction, no dip of the horizon, J2000 star positions.
  *      Polaris is taken as due north; the upright Southern Cross as due south; the two
  *      "leaning" Southern Cross points are where Acrux stands when the cross's long axis
- *      (Gacrux to Acrux) leans 45° from the vertical, found numerically.
+ *      (Gacrux to Acrux) leans 45° from the vertical (the Weriyeng compass's definition, as
+ *      transcribed by McDonald), found numerically. That pair is not a mirror pair: the
+ *      cross's axis is not exactly north-south on the sky, so it reaches 45° at different
+ *      hour angles on the two sides.
  *   2. The Earth as a sphere (mean radius 6371.0088 km), bearings as initial great-circle
  *      bearings, distances in nautical miles (1852 m).
  *   3. A voyage as a great-circle track from one island to another at a given speed history.
@@ -44,11 +47,13 @@
   function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
 
   // ---------------------------------------------------------------- stars (J2000) --------
-  // Right ascension in hours, declination in degrees, J2000, as catalogued in SIMBAD
-  // (Hipparcos astrometry). `name` is the Western name; `local` is the name used on the
-  // Weriyeng-school compass from Polowat (Puluwat) as transcribed in McDonald's
-  // polowat-star-compass under the supervision of Mario Benito of Polowat. Spellings
-  // differ between islands and schools.
+  // Right ascension in hours, declination in degrees, J2000: the Hipparcos-derived values
+  // of the HYG database (v4.1), copied digit for digit from src/compass.js in McDonald's
+  // polowat-star-compass, which credits its stars to HYG. They agree with catalogued
+  // Hipparcos declinations, typed in by hand in etak.test.mjs, to within 0.1″. `name` is
+  // the Western name; `local` is the star's own name on the Weriyeng-school compass from
+  // Polowat (Puluwat) as transcribed in McDonald's repository under the supervision of
+  // Mario Benito of Polowat. Spellings differ between islands and schools.
   var STARS = {
     polaris:   { name: 'Polaris',   local: 'Wenewenen fuhemwakut', ra: 2.530303,  dec: 89.264109 },
     kochab:    { name: 'Kochab',    local: 'Mailapanefang',        ra: 14.845091, dec: 74.155505 },
@@ -68,44 +73,50 @@
     gacrux:    { name: 'Gacrux',    local: '',                     ra: 12.519433, dec: -57.113213 },
   };
 
-  // The 32 points clockwise from north. `src` says how sure the page is that the point
-  // belongs on the Carolinian compass:
-  //   'two'  = named by two independent sources (Halpern 1986's table and the Weriyeng list,
-  //            or the Penn Museum account of the Puluwat–Truk voyage);
-  //   'one'  = only on the Weriyeng list as transcribed by McDonald.
+  // The 32 points clockwise from north. All 32 are points of the published Carolinian
+  // compass: search extracts of Goodenough (1953) list the rising points from Polaris round
+  // through Kochab, Dubhe, Schedar, Vega, the Pleiades, Aldebaran, the three Aquila stars and
+  // Orion's Belt, and his plates show the Southern Cross in five compass positions; Halpern's
+  // 1986 table agrees where legible; the Weriyeng list (McDonald) has the same 32. What the
+  // sources do not fix is where the two *leaning* Southern Cross points sit: no star rises or
+  // sets there. They are placed by the Weriyeng compass's own definition (its `tilt45`: Acrux
+  // when the cross leans 45°), which could not be checked against how navigators judge the
+  // lean; compass() marks them `byDefinition` and the page draws them hollow.
+  // `local` on a point overrides the star's name where the Weriyeng list names the point
+  // itself rather than after a star's rising or setting (the three Southern Cross positions).
   var POINTS = [
-    { star: 'polaris', event: 'pole', src: 'two' },
-    { star: 'kochab', event: 'rise', src: 'two' },
-    { star: 'dubhe', event: 'rise', src: 'two' },
-    { star: 'schedar', event: 'rise', src: 'two' },
-    { star: 'vega', event: 'rise', src: 'two' },
-    { star: 'pleiades', event: 'rise', src: 'one' },
-    { star: 'aldebaran', event: 'rise', src: 'one' },
-    { star: 'tarazed', event: 'rise', src: 'one' },
-    { star: 'altair', event: 'rise', src: 'two' },
-    { star: 'alshain', event: 'rise', src: 'one' },
-    { star: 'belt', event: 'rise', src: 'one' },
-    { star: 'gienah', event: 'rise', src: 'two' },
-    { star: 'antares', event: 'rise', src: 'two' },
-    { star: 'shaula', event: 'rise', src: 'two' },
-    { star: 'acrux', event: 'rise', src: 'two' },
-    { star: 'acrux', event: 'lean', side: 'rise', src: 'one' },
-    { star: 'acrux', event: 'upright', src: 'two' },
-    { star: 'acrux', event: 'lean', side: 'set', src: 'one' },
-    { star: 'acrux', event: 'set', src: 'two' },
-    { star: 'shaula', event: 'set', src: 'two' },
-    { star: 'antares', event: 'set', src: 'two' },
-    { star: 'gienah', event: 'set', src: 'two' },
-    { star: 'belt', event: 'set', src: 'one' },
-    { star: 'alshain', event: 'set', src: 'one' },
-    { star: 'altair', event: 'set', src: 'two' },
-    { star: 'tarazed', event: 'set', src: 'one' },
-    { star: 'aldebaran', event: 'set', src: 'one' },
-    { star: 'pleiades', event: 'set', src: 'one' },
-    { star: 'vega', event: 'set', src: 'two' },
-    { star: 'schedar', event: 'set', src: 'two' },
-    { star: 'dubhe', event: 'set', src: 'two' },
-    { star: 'kochab', event: 'set', src: 'two' },
+    { star: 'polaris', event: 'pole' },
+    { star: 'kochab', event: 'rise' },
+    { star: 'dubhe', event: 'rise' },
+    { star: 'schedar', event: 'rise' },
+    { star: 'vega', event: 'rise' },
+    { star: 'pleiades', event: 'rise' },
+    { star: 'aldebaran', event: 'rise' },
+    { star: 'tarazed', event: 'rise' },
+    { star: 'altair', event: 'rise' },
+    { star: 'alshain', event: 'rise' },
+    { star: 'belt', event: 'rise' },
+    { star: 'gienah', event: 'rise' },
+    { star: 'antares', event: 'rise' },
+    { star: 'shaula', event: 'rise' },
+    { star: 'acrux', event: 'rise' },
+    { star: 'acrux', event: 'lean', side: 'rise', local: 'Maechmeh' },
+    { star: 'acrux', event: 'upright', local: 'Wenewenenubw' },
+    { star: 'acrux', event: 'lean', side: 'set', local: 'Maechemelotou' },
+    { star: 'acrux', event: 'set' },
+    { star: 'shaula', event: 'set' },
+    { star: 'antares', event: 'set' },
+    { star: 'gienah', event: 'set' },
+    { star: 'belt', event: 'set' },
+    { star: 'alshain', event: 'set' },
+    { star: 'altair', event: 'set' },
+    { star: 'tarazed', event: 'set' },
+    { star: 'aldebaran', event: 'set' },
+    { star: 'pleiades', event: 'set' },
+    { star: 'vega', event: 'set' },
+    { star: 'schedar', event: 'set' },
+    { star: 'dubhe', event: 'set' },
+    { star: 'kochab', event: 'set' },
   ];
 
   /** Azimuth (deg east of true north) where a star of declination dec rises at latitude lat,
@@ -185,8 +196,46 @@
         : p.event === 'lean' ? 'Cross ∠'
         : s.name === "Orion's Belt" ? 'Belt' : s.name === 'Southern Cross' ? 'Cross' : s.name;
       return { k: k, star: p.star, event: p.event, side: p.side || null, az: az, label: label,
-        short: short, local: s.local, src: p.src };
+        short: short, local: p.local || s.local, byDefinition: p.event === 'lean' };
     });
+  }
+
+  /** The point on the other side of the ring that pairs with point i: a star's setting for
+   *  its rising (and back), or the other leaning-Cross point. Null for Polaris and the
+   *  upright Cross, which have no partner. */
+  function partnerOf(points, i) {
+    var p = points[i];
+    if (p.event === 'pole' || p.event === 'upright') return null;
+    for (var j = 0; j < points.length; j++) {
+      if (j === i) continue;
+      var q = points[j];
+      if (q.star !== p.star) continue;
+      if (p.event === 'lean' && q.event === 'lean') return j;
+      if ((p.event === 'rise' && q.event === 'set') || (p.event === 'set' && q.event === 'rise')) return j;
+    }
+    return null;
+  }
+
+  /**
+   * What the ring says when point i is tapped, as plain text: { head, local, az, partner,
+   * text, evidence }. A star's rising and setting are exact mirror images about north–south;
+   * the two leaning-Cross points are not (they miss by about 4° at Puluwat), and the text says
+   * so instead of calling them "the same angle from north".
+   */
+  function pointNote(points, i) {
+    var p = points[i], j = partnerOf(points, i), text;
+    var f1 = function (x) { return wrap360(x).toFixed(1) + '°'; };
+    if (j != null) {
+      var q = points[j], mirror = 360 - p.az, miss = Math.abs(wrap180(q.az - mirror));
+      text = 'Its partner, ' + q.label + (q.local && q.local !== p.local ? ' (' + q.local + ')' : '') + ', is at ' + f1(q.az);
+      if (miss < 0.05) text += ': the same angle from north on the other side.';
+      else text += '. The two are not mirror images (that would be ' + f1(mirror) + ', ' + miss.toFixed(1) + '° away): the cross’s long axis is not exactly north–south on the sky, so it reaches the same lean at different times on its two sides.';
+    } else if (p.event === 'pole') text = 'North: Polaris barely moves.';
+    else text = 'South: the Cross at its highest.';
+    var evidence = p.byDefinition
+      ? 'A point of the published compass, but no star rises or sets here: placed by the Weriyeng compass’s definition, Acrux when the cross leans 45°.'
+      : 'In the published compass (Goodenough 1953) and on the Weriyeng list.';
+    return { head: p.label, local: p.local, az: p.az, partner: j, text: text, evidence: evidence };
   }
 
   // ---------------------------------------------------------------- the sphere ----------
@@ -467,7 +516,7 @@
     STARS: STARS, POINTS: POINTS, PLACES: PLACES,
     wrap360: wrap360, wrap180: wrap180, clamp: clamp,
     risingAzimuth: risingAzimuth, altAz: altAz, crossLean: crossLean, crossLeanAzimuth: crossLeanAzimuth,
-    compass: compass, nearestPoint: nearestPoint,
+    compass: compass, nearestPoint: nearestPoint, partnerOf: partnerOf, pointNote: pointNote,
     toVec: toVec, fromVec: fromVec, bearing: bearing, distanceNm: distanceNm, along: along,
     project: project, unproject: unproject,
     makeVoyage: makeVoyage, etakSegments: etakSegments, segmentAt: segmentAt,

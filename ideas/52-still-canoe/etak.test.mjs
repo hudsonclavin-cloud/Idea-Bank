@@ -95,7 +95,10 @@ const PTS = V.points;
 const idx = (event, star) => PTS.findIndex((p) => p.event === event && p.star === star);
 
 // ------------------------------------------------------------ 1. the compass ---------
-test('star positions match SIMBAD J2000 declinations to within a second of arc', () => {
+// The positions in etak.js are the HYG v4.1 (Hipparcos-derived) values from McDonald's
+// repository. These declinations are catalogued Hipparcos J2000 values typed in by hand to
+// 0.1″, so agreement within 0.1″ is all the typing allows.
+test('star positions agree with hand-typed Hipparcos J2000 declinations to within 0.1″', () => {
   const dms = (s, d, m, x) => s * (d + m / 60 + x / 3600);
   const simbad = {
     polaris: dms(1, 89, 15, 50.8), kochab: dms(1, 74, 9, 19.8), dubhe: dms(1, 61, 45, 3.7),
@@ -106,7 +109,7 @@ test('star positions match SIMBAD J2000 declinations to within a second of arc',
     gacrux: dms(-1, 57, 6, 47.6),
   };
   for (const [k, dec] of Object.entries(simbad)) {
-    assert.ok(Math.abs(E.STARS[k].dec - dec) < 1 / 3600, `${k}: ${E.STARS[k].dec} vs ${dec}`);
+    assert.ok(Math.abs(E.STARS[k].dec - dec) < 0.1 / 3600, `${k}: ${E.STARS[k].dec} vs ${dec}`);
   }
 });
 
@@ -152,6 +155,48 @@ test('the leaning Southern Cross points, by an independent position-angle calcul
   }
 });
 
+test('the two leaning-Cross points are not mirror images, and the ring readout says so', () => {
+  const lr = idx('lean', 'acrux'), ls = PTS.findIndex((p) => p.event === 'lean' && p.side === 'set');
+  const miss = PTS[lr].az - (360 - PTS[ls].az);
+  assert.ok(miss > 3.5 && miss < 4.5, `asymmetry ${miss}`);
+  // the cause: Gacrux is not due north of Acrux on the sky. Give it Acrux's right ascension
+  // and the pair becomes an exact mirror.
+  const ra = E.STARS.gacrux.ra;
+  try {
+    E.STARS.gacrux.ra = E.STARS.acrux.ra;
+    const r = E.crossLeanAzimuth(LAT, 'rise'), st = E.crossLeanAzimuth(LAT, 'set');
+    assert.ok(Math.abs(r + st - 360) < 1e-6, `${r} + ${st}`);
+  } finally { E.STARS.gacrux.ra = ra; }
+  // the readout: no "same angle" for the lean pair; it does say so for every star's rise/set pair
+  for (const i of [lr, ls]) {
+    const n = E.pointNote(PTS, i);
+    assert.equal(n.partner, i === lr ? ls : lr);
+    assert.doesNotMatch(n.text, /same angle/);
+    assert.match(n.text, /not mirror images \(that would be [0-9.]+°, 4\.0° away\)/);
+    assert.match(n.evidence, /definition/);
+  }
+  for (let i = 0; i < PTS.length; i++) {
+    if (PTS[i].event !== 'rise' && PTS[i].event !== 'set') continue;
+    const n = E.pointNote(PTS, i);
+    assert.match(n.text, /same angle from north on the other side/, PTS[i].label);
+    assert.match(n.evidence, /Goodenough 1953/);
+  }
+  log(`leaning pair: ${PTS[lr].az.toFixed(2)}° and ${PTS[ls].az.toFixed(2)}°, ${miss.toFixed(2)}° from mirror images`);
+});
+
+test('point names and evidence follow the Weriyeng list and the published compass', () => {
+  // the three Southern Cross positions have their own names on the Weriyeng list
+  assert.equal(PTS.find((p) => p.event === 'lean' && p.side === 'rise').local, 'Maechmeh');
+  assert.equal(PTS.find((p) => p.event === 'upright').local, 'Wenewenenubw');
+  assert.equal(PTS.find((p) => p.event === 'lean' && p.side === 'set').local, 'Maechemelotou');
+  // every rising and setting point carries its star's name
+  for (const p of PTS) if (p.event === 'rise' || p.event === 'set') assert.equal(p.local, E.STARS[p.star].local, p.label);
+  // hollow (placed by a definition) is exactly the two leaning points; nothing is "one source"
+  assert.deepEqual(PTS.filter((p) => p.byDefinition).map((p) => p.label),
+    ['Southern Cross, leaning (rising)', 'Southern Cross, leaning (setting)']);
+  assert.ok(PTS.every((p) => !('src' in p)), 'no point carries a source-count label');
+});
+
 // ------------------------------------------------------------ 2. the sphere ----------
 test('bearings and distances agree with 3-D vectors, and the sphere with the WGS84 ellipsoid', () => {
   const pairs = [[P.puluwat, P.pisaras], [P.truk, P.pisaras], [P.puluwat, P.truk], [P.pisaras, P.puluwat]];
@@ -175,14 +220,59 @@ test('the voyage interpolates along the great circle', () => {
 });
 
 // ------------------------------------------------------------ 3. the etak ------------
-test('the published star sequence for Puluwat→Chuuk via Pisaras falls out of the geometry', () => {
+// What the record lets the geometry test is the two ends: Pisaras under rising Vega from
+// Puluwat and under setting Vega from Chuuk. The order of the points between them is forced
+// by the compass (next test), so it is checked here but not counted as a confirmation.
+test('the two ends: Pisaras lies nearest rising Vega from Puluwat and setting Vega from Chuuk', () => {
+  const b0 = bearingVec(P.puluwat, P.pisaras), b1 = bearingVec(P.truk, P.pisaras);
+  const near = (az) => PTS.reduce((best, p, i) => (Math.abs(wrap180(p.az - az)) < Math.abs(wrap180(PTS[best].az - az)) ? i : best), 0);
+  assert.equal(PTS[near(b0)].label, 'rising Vega');
+  assert.equal(PTS[near(b1)].label, 'setting Vega');
+  assert.equal(PTS[V.segments.startPoint].label, 'rising Vega');
+  assert.equal(PTS[V.segments.endPoint].label, 'setting Vega');
+  // the margin at the start: how far the bearing is from where rising Schedar would be nearer
+  const half = (PTS[idx('rise', 'schedar')].az + PTS[idx('rise', 'vega')].az) / 2;
+  assert.ok(b0 - half > 2.5 && b0 - half < 3.5, `start margin ${b0 - half}`);
   const seq = V.segments.segments.map((s) => PTS[s.endPoint].label);
   const expected = ['rising Schedar', 'rising Dubhe', 'rising Kochab', 'Polaris', 'setting Kochab', 'setting Dubhe', 'setting Schedar', 'setting Vega'];
   assert.deepEqual(seq, expected);
-  assert.equal(PTS[V.segments.startPoint].label, 'rising Vega');
-  assert.equal(PTS[V.segments.endPoint].label, 'setting Vega');
   assert.equal(V.segments.segments.length, 8);
+  log(`start ${b0.toFixed(2)}° (rising Vega ${PTS[idx('rise', 'vega')].az.toFixed(2)}°, margin ${(b0 - half).toFixed(2)}°), end ${b1.toFixed(2)}° (setting Vega ${PTS[idx('set', 'vega')].az.toFixed(2)}°)`);
   log('segments (nm):', V.segments.segments.map((s) => s.lengthNm.toFixed(1)).join(', '));
+});
+
+test('the order in between is forced: every island with the same two ends passes the same seven points', () => {
+  // Reference islands scattered at random north of the track. Keep those that, like Pisaras,
+  // lie nearest rising Vega from Puluwat and nearest setting Vega from Chuuk. Follow each one's
+  // bearing along the track by brute force (no etak.js) and list the points it passes.
+  let s = 20240917;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const near = (az) => PTS.reduce((best, p, i) => (Math.abs(wrap180(p.az - az)) < Math.abs(wrap180(PTS[best].az - az)) ? i : best), 0);
+  const inner = ['rising Schedar', 'rising Dubhe', 'rising Kochab', 'Polaris', 'setting Kochab', 'setting Dubhe', 'setting Schedar'];
+  const counts = new Set();
+  let kept = 0;
+  for (let k = 0; k < 3000; k++) {
+    const ref = { lat: 7.6 + 4 * rnd(), lon: 148.5 + 4 * rnd() };
+    if (PTS[near(bearingVec(P.puluwat, ref))].label !== 'rising Vega') continue;
+    if (PTS[near(bearingVec(P.truk, ref))].label !== 'setting Vega') continue;
+    kept++;
+    const M = 400, passed = [];
+    let u = bearingVec(P.puluwat, ref);
+    for (let i = 1; i <= M; i++) {
+      const nu = u + wrap180(bearingVec(interp(P.puluwat, P.truk, i / M), ref) - wrap360(u));
+      assert.ok(nu < u, 'the bearing turns one way only');
+      const hits = [];
+      for (const p of PTS) for (const t of [-360, 0, 360]) if ((u - (p.az + t)) * (nu - (p.az + t)) < 0) hits.push({ x: (u - (p.az + t)) / (u - nu), label: p.label });
+      hits.sort((a, b) => a.x - b.x).forEach((h) => passed.push(h.label));
+      u = nu;
+    }
+    assert.deepEqual(passed.filter((l) => l !== 'rising Vega' && l !== 'setting Vega'), inner);
+    counts.add(E.makeVoyage(P.puluwat, P.truk, ref).segments.segments.length);
+  }
+  assert.ok(kept >= 30, `only ${kept} islands kept`);
+  // the etak count is not fixed by the record: it depends on which side of the Vega points the ends fall
+  assert.ok(counts.has(8) && counts.size > 1, `counts ${[...counts]}`);
+  log(`${kept} random islands with Pisaras's two ends: all pass the same seven points; etak counts ${[...counts].sort((a, b) => a - b).join(', ')}`);
 });
 
 test('every etak boundary agrees with brute-force sampling of the bearing', () => {
@@ -318,6 +408,12 @@ test('closest approach and bearing drift agree with step-by-step simulation', ()
   const c = E.cpa(P0, Vr);
   assert.ok(c.d < 1e-12 && Math.abs(c.bearingRate) < 1e-12);
   for (let t = 0; t < 1.9; t += 0.1) assert.ok(Math.abs(E.relBearingAt(P0, Vr, t) - E.relBearingAt(P0, Vr, 0)) < 1e-9);
+  // constant bearing without a meeting: same course and speed, and a vessel moving straight away
+  const still = E.cpa({ x: 1, y: 0 }, { x: 0, y: 0 });
+  assert.ok(still.bearingRate === 0 && Math.abs(still.d - 1) < 1e-12, 'no relative motion: fixed bearing, fixed range');
+  const away = E.cpa({ x: 3, y: 4 }, { x: 0.6, y: 0.8 });
+  assert.ok(Math.abs(away.bearingRate) < 1e-12 && Math.abs(away.d - 5) < 1e-12, 'receding: fixed bearing, range opening');
+  for (let t = 0; t < 3; t += 0.5) assert.ok(Math.hypot(3 + 0.6 * t, 4 + 0.8 * t) >= 5);
 });
 
 // ------------------------------------------------------------ 7. the page's numbers --
@@ -331,6 +427,19 @@ test('every number tagged data-claim in the page matches the model', () => {
   const d = 1e-4;
   const rate = (f) => Math.abs(wrap180(V.refBearing(f + d) - V.refBearing(f))) / (d * V.total);
   const ca = E.closestApproach(V);
+  // section 6: how far north of the lagoon's centre a course held on rising Altair passes
+  // (cross-track distance from the great circle leaving Puluwat on that azimuth, by vectors)
+  const altairLine = (() => {
+    const n0 = vec(P.puluwat), z = [0, 0, 1], east = crs(z, n0), el = len(east), e = east.map((x) => x / el), north = crs(n0, e);
+    const a = PTS[idx('rise', 'altair')].az * RAD, dir = e.map((x, i) => x * Math.sin(a) + north[i] * Math.cos(a));
+    const pole = crs(n0, dir), pl = len(pole);
+    return -Math.asin(dot(vec(P.truk), pole.map((x) => x / pl))) * R_NM; // + when the lagoon lies south of that course
+  })();
+  // section 6: on an even 32-point ring set by north, rising Altair's point (k = 8) is due east
+  assert.equal(Math.round(V.course(0) / 11.25), 8);
+  // section 5: how far the destination's bearing moves against the stars over the voyage
+  let destDrift = 0;
+  for (let i = 0; i < 1000; i++) destDrift = Math.max(destDrift, Math.abs(wrap180(bearingVec(interp(P.puluwat, P.truk, i / 1000), P.truk) - V.course(0))));
   const expected = {
     altair_rise: [PTS[idx('rise', 'altair')].az, 1],
     altair_north_of_east: [90 - PTS[idx('rise', 'altair')].az, 1],
@@ -355,8 +464,15 @@ test('every number tagged data-claim in the page matches the model', () => {
     rate_abeam: [rate(ca.f), 2],
     course: [V.course(0), 1],
     nm_per_deg_mid: [1 / rate(ca.f), 1],
-    start_off: [PTS[idx('rise', 'vega')].az - E.bearing(P.puluwat, P.pisaras), 0],
-    end_off: [E.bearing(P.truk, P.pisaras) - PTS[idx('set', 'vega')].az, 0],
+    start_off: [PTS[idx('rise', 'vega')].az - E.bearing(P.puluwat, P.pisaras), 1],
+    end_off: [E.bearing(P.truk, P.pisaras) - PTS[idx('set', 'vega')].az, 1],
+    start_margin: [E.bearing(P.puluwat, P.pisaras) - (PTS[idx('rise', 'schedar')].az + PTS[idx('rise', 'vega')].az) / 2, 1],
+    lean_asym: [PTS[idx('lean', 'acrux')].az - (360 - PTS.find((p) => p.event === 'lean' && p.side === 'set').az), 1],
+    chuuk_off_belt: [PTS[idx('rise', 'belt')].az - V.course(0), 1],
+    chuuk_off_altair: [V.course(0) - PTS[idx('rise', 'altair')].az, 1],
+    altair_line_nm: [altairLine, 0],
+    even_off: [Math.abs(V.course(0) - 90), 1],
+    dest_drift: [destDrift, 1],
     nm_per_deg_end: [1 / rate(0), 1],
   };
   const tagged = [...html.matchAll(/data-claim="([a-z_]+)">([^<]+)</g)];
@@ -395,3 +511,36 @@ test('every citation has a sources.json entry and a list item, and every source 
   }
   log(`${cited.size} sources cited, all with entries`);
 });
+
+// ------------------------------------------------------------ 8. the review's corrections
+// An independent review found claims that went further than the evidence. These checks keep
+// the corrected wording from drifting back.
+test('the corrections from the independent review stay in the page and the README', () => {
+  const readme = fs.readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+  const app = fs.readFileSync(new URL('./app.js', import.meta.url), 'utf8');
+  const lib = fs.readFileSync(new URL('./etak.js', import.meta.url), 'utf8');
+  // 1. the star sequence is forced by the compass once the ends are fixed; only the ends are tested
+  assert.doesNotMatch(html, /Nothing in the model was tuned to get this/);
+  assert.doesNotMatch(readme, /a check I could not predict/);
+  assert.match(html, /That order is not a second check/);
+  assert.match(readme, /they are not a second test/);
+  // 2. no point is labelled as resting on one source; hollow means "placed by a definition"
+  for (const text of [html, app, lib, readme]) {
+    assert.doesNotMatch(text, /Weriyeng list only|Two sources\.|src: 'one'|points from one source hollow/);
+  }
+  assert.match(html, /Hollow ticks: the two leaning-Cross points/);
+  // 3. Chuuk is two compass points from rising Altair on this ring; the destination does not "sit on a star"
+  assert.doesNotMatch(html, /sits on the same star/);
+  assert.match(html, /two-point disagreement/);
+  // 5. the 45° lean is the Weriyeng compass's definition, not the author's own
+  assert.doesNotMatch(html + readme, /placed by my definition|use my own definition/);
+  // 6. star positions are HYG v4.1 (via McDonald), not SIMBAD
+  assert.doesNotMatch(html, /data-src="simbad"/);
+  assert.ok(!sources.some((x) => x.id === 'simbad'));
+  assert.match(html, /data-src="hyg"/);
+  // 7. a constant bearing means a meeting only for an approaching vessel
+  assert.match(html, /For an approaching vessel on a steady course/);
+  // the README records what changed
+  assert.match(readme, /^## Revision note$/m);
+});
+

@@ -6,9 +6,9 @@
     "title": "Native Astronomy in the Central Carolines",
     "venue": "Museum Monographs, University Museum, University of Pennsylvania, Philadelphia",
     "url": "https://www.penn.museum/documents/publications/pdfs/Native_Astronomy_in_the_Central_Carolines.pdf",
-    "claim": "The central Carolinian sidereal compass: Altair (mailap) is the base star, its rising marking east and its setting west; Polaris marks north and the upright Southern Cross south; twenty-eight further points are marked by the rising and setting of other stars, 32 in all; the points are not equally spaced.",
-    "verified": "Structure (Altair base star, 'rising marks due east ... setting due west', Polaris just visible and north, Southern Cross upright south, 'twenty-eight additional points', not equally spaced) confirmed from WebSearch extracts of the Penn Museum PDF. I could not read the monograph's own star-by-star table, so the page does not attribute individual non-voyage points to Goodenough.",
-    "found_via": "WebSearch: 'Goodenough 1953 Native Astronomy in the Central Carolines star compass'; 'Carolinian star compass 32 points Altair Mailap Goodenough'"
+    "claim": "The central Carolinian sidereal compass: Altair (mailap) is the base star, its rising marking east and its setting west; Polaris marks north and the upright Southern Cross south; twenty-eight further points are marked by the rising and setting of other stars, 32 in all; the rising points run from Polaris through beta Ursae Minoris (Kochab), alpha Ursae Majoris (Dubhe), alpha Cassiopeiae, Vega, the Pleiades, Aldebaran, gamma Aquilae, Altair, beta Aquilae and Orion's Belt, and on through Antares to the Southern Cross, which occupies five compass positions; where the stars physically rise the points are not equally spaced; in a summary of his account, the stars name the points rather than physically marking them.",
+    "verified": "Structure (Altair base star, 'rising marks due east ... setting due west', Polaris just visible and north, Southern Cross upright south, 'twenty-eight additional points', not equally spaced) confirmed from WebSearch extracts of the Penn Museum PDF. Revision: further extracts of the same PDF list the rising points in order, including the Pleiades, Alpha Tauri (Aldebaran), Gamma Aquilae, Alpha Aquilae (Altair), Beta Aquilae and Orion's Belt, and its list of plates includes 'The Southern Cross at Compass Positions 15-19'; so every point on the page's ring is in Goodenough's compass, and the earlier 'one source' (hollow) marking of the Pleiades, Aldebaran, Tarazed, Alshain, Orion's Belt and the leaning Cross was wrong. Two search summaries (one of an eHRAF reprint) say he argued that the stars name the points rather than physically mark them; the page reports that as a summary. An eHRAF summary notes that nearly all of his data were compiled from published sources. I still could not read the monograph's table or plates themselves; the PDF host was not reachable from the sandbox.",
+    "found_via": "WebSearch: 'Goodenough 1953 Native Astronomy in the Central Carolines star compass'; 'Carolinian star compass 32 points Altair Mailap Goodenough'; revision: 'Native Astronomy in the Central Carolines \"Alpha Tauri\" \"Pleiades\" \"Gamma Aquilae\" \"Beta Aquilae\" \"Orion\"'; 'Native Astronomy in the Central Carolines Southern Cross rising upright setting positions compass points'; 'Goodenough sidereal compass star structure stars do not physically mark the points they name them'"
   },
   {
     "id": "gladwin1970",
@@ -115,7 +115,7 @@
     "venue": "Expedition, 29(3), 3–14 (Penn Museum)",
     "url": "https://www.penn.museum/sites/expedition/traditional-navigation-in-the-western-pacific-2/",
     "claim": "The Puluwat–Truk (Chuuk) voyage with Pisaras as the reference island; navigators' term rendered as 'dragging'; Pisaras dragged through the risings of Vega, Cassiopeia, the main star of Ursa Major, Kochab and Polaris, ending at Vega's setting on arrival; the course from Puluwat to Truk almost directly east on the rising of Altair.",
-    "verified": "From WebSearch extracts of the Penn Museum's online reprint, across three searches. The title appears both as 'A Search for Pattern' and 'A Search for a Pattern' in catalogue records. I did not see the article's figure, so the eight-segment count on the page is my geometry, consistent with (not copied from) the record; one search summary also reported 'eight segments' for this example.",
+    "verified": "From WebSearch extracts of the Penn Museum's online reprint, across three searches. The title appears both as 'A Search for Pattern' and 'A Search for a Pattern' in catalogue records. I did not see the article's figure, so the eight-segment count on the page is my geometry, consistent with (not copied from) the record; one search summary also reported 'eight segments' for this example. Revision: the page no longer presents the match of the in-between star sequence as an independent confirmation. Given the two end bearings (Pisaras under rising Vega from Puluwat and setting Vega from Chuuk), the order of the seven points in between is forced by the compass; the geometry tests only the two ends.",
     "found_via": "WebSearch: 'Expedition magazine Traditional Navigation in the Western Pacific Goodenough Thomas Puluwat Truk Pisaras'; 'Pisaras Vega Kochab Polaris Cassiopeia Puluwat Truk navigation drag reference island'"
   },
   {
@@ -136,8 +136,8 @@
     "title": "Sidereal compasses: A case for Carolinian–Arab links",
     "venue": "Journal of the Polynesian Society, 95(4), 441–460",
     "url": "http://www.jps.auckland.ac.nz/document//Volume_95_1986/Volume_95,_No._4/Sidereal_compasses:_a_case_for_Carolinian-Arab_links,_by_M._Halpern,_p_441-460/p1",
-    "claim": "A numbered table of the Carolinian compass's points: Polaris (north only), Kochab, Dubhe, alpha Cassiopeiae, Vega, Altair, gamma Corvi, Antares, Shaula, and the Southern Cross in several positions, each star giving a rising and a setting point. Used as the second source for the points drawn solid.",
-    "verified": "Only through partly garbled OCR extracts of the JPS page returned by WebSearch. The extracts agree with the Weriyeng list for Kochab, Dubhe, alpha Cassiopeiae, Vega, Altair, gamma Corvi, Antares, Shaula and the Southern Cross; two extracts placed the Pleiades and Orion's Belt inconsistently, so those points are drawn hollow (one source). Page range given as 441–459 in some records.",
+    "claim": "A numbered table of the Carolinian compass's points: Polaris (north only), Kochab, Dubhe, alpha Cassiopeiae, Vega, Altair, gamma Corvi, Antares, Shaula, and the Southern Cross in several positions, each star giving a rising and a setting point; it agrees with the Weriyeng list where legible.",
+    "verified": "Only through partly garbled OCR extracts of the JPS page returned by WebSearch. The extracts agree with the Weriyeng list for Kochab, Dubhe, alpha Cassiopeiae, Vega, Altair, gamma Corvi, Antares, Shaula and the Southern Cross; two extracts placed the Pleiades and Orion's Belt inconsistently, which the OCR may explain. (The first version of the page used this table as the 'second source' for solid ticks and drew the other points hollow; after the independent review, which showed those points are standard in Goodenough 1953, the ticks no longer encode source counts.) Page range given as 441–459 in some records.",
     "found_via": "WebSearch: 'Halpern 1986 Sidereal compasses Carolinian compass table Kochab Cassiopeia Big Dipper Corvus Shaula Southern Cross'"
   },
   {
@@ -158,9 +158,9 @@
     "title": "polowat-star-compass",
     "venue": "Software and data, GitHub (github.com/kylemcdonald/polowat-star-compass)",
     "url": "https://github.com/kylemcdonald/polowat-star-compass",
-    "claim": "The 32-point Weriyeng compass as printed (east at the top) on a Weriyeng shirt, with Polowat spellings corrected under the supervision of Mario Benito from Inowon in Polowat: Polaris; rising and setting Kochab, Dubhe, Schedar, Vega, Pleiades, Aldebaran, Tarazed, Altair, Alshain, Orion's Belt, Gienah (gamma Corvi), Antares, Shaula; the Southern Cross rising, leaning 45°, at the meridian, leaning 45° and setting; and the Polowat names used in etak.js.",
-    "verified": "Read directly: I cloned the public repository and read its README and src/compass.js as data. It is not peer-reviewed; the page uses it only for the points marked hollow and for local names, and says so.",
-    "found_via": "WebSearch: 'Satawal star compass names Tumur Antares Mailap Altair ...'; then git clone of the public repository"
+    "claim": "The 32-point Weriyeng compass as printed (east at the top) on a Weriyeng shirt, with Polowat spellings corrected under the supervision of Mario Benito from Inowon in Polowat: Polaris; rising and setting Kochab, Dubhe, Schedar, Vega, Pleiades, Aldebaran, Tarazed, Altair, Alshain, Orion's Belt, Gienah (gamma Corvi), Antares, Shaula; the Southern Cross rising, leaning 45°, at the meridian, leaning 45° and setting, the leaning points defined as 'bearing of Acrux when the Southern Cross leans 45 degrees' (event 'tilt45'); the Polowat names used in etak.js, including the point names Maechmeh, Wenewenenubw and Maechemelotou for the three Southern Cross positions; the 32 points drawn evenly, 11.25° apart, with each star's actual rising marked separately; and the J2000 star positions (credited in the repository to the HYG Database) that etak.js uses.",
+    "verified": "Read directly: I cloned the public repository (commit 1b6a94c) and read its README, src/compass.js and src/main.js as data. It is not peer-reviewed. The page uses it for local names and spellings, the east-up layout, the leaning-Cross definition and the star positions; after the revision it is no longer the only evidence for any compass point. The first version wrongly called the 45° definition the author's own and gave all three Southern Cross positions the star name Ubw.",
+    "found_via": "WebSearch: 'Satawal star compass names Tumur Antares Mailap Altair ...'; then git clone of the public repository; revision: re-cloned and compared src/compass.js with etak.js (all 16 star positions identical; HOUSES k = 15, 16, 17)"
   },
   {
     "id": "finney1979",
@@ -204,15 +204,15 @@
     "found_via": "WebSearch: 'Bowditch American Practical Navigator distance of the horizon formula 1.17 square root height in feet nautical miles'"
   },
   {
-    "id": "simbad",
-    "author": "Centre de Données astronomiques de Strasbourg",
+    "id": "hyg",
+    "author": "Nash, D. (astronexus)",
     "year": "n.d.",
-    "title": "SIMBAD astronomical database",
-    "venue": "CDS, Strasbourg (Hipparcos astrometry, epoch and equinox J2000)",
-    "url": "https://simbad.cds.unistra.fr/",
+    "title": "HYG Database, v4.1",
+    "venue": "github.com/astronexus/HYG-Database (Hipparcos-derived, J2000), as given in src/compass.js of McDonald's polowat-star-compass",
+    "url": "https://github.com/astronexus/HYG-Database",
     "claim": "J2000 right ascensions and declinations of the compass stars (Polaris, Kochab, Dubhe, Schedar, Vega, Alcyone, Aldebaran, Tarazed, Altair, Alshain, Alnilam, Gienah, Antares, Shaula, Acrux, Gacrux).",
-    "verified": "Kochab and Dubhe declinations confirmed by WebSearch against Wikipedia's Hipparcos-based infoboxes; all sixteen agree within 0.1 arcsecond with the HYG v4.1 (Hipparcos-derived) values in the McDonald repository, and with the sexagesimal values typed into etak.test.mjs. The live SIMBAD service was not reachable from the sandbox.",
-    "found_via": "WebSearch: 'Kochab beta Ursae Minoris declination J2000'; 'Dubhe alpha Ursae Majoris declination'"
+    "verified": "The sixteen positions in etak.js are digit for digit those in McDonald's src/compass.js (checked by script against a fresh clone); that repository credits its stars to the HYG Database v4.1, and its HYG-derived bright-star list carries the same values for the stars it shares (Altair, Acrux, Aldebaran, Antares, Alnilam). The declinations agree to within 0.06 arcsecond with catalogued Hipparcos values typed in by hand in etak.test.mjs, and the independent reviewer's own Hipparcos/SIMBAD values agree to within 0.05 arcsecond. Earlier versions cited SIMBAD as the source; SIMBAD was never reachable from the sandbox, so that was wrong provenance, though no number changes.",
+    "found_via": "Reading src/compass.js, src/brightStars.js and the README of github.com/kylemcdonald/polowat-star-compass; WebSearch: 'Kochab beta Ursae Minoris declination J2000'; 'Dubhe alpha Ursae Majoris declination'"
   },
   {
     "id": "coords",
@@ -220,8 +220,8 @@
     "year": "n.d.",
     "title": "Coordinates of Poluwat, Piherarh (Pisaras) and Chuuk Lagoon",
     "venue": "Wikipedia articles 'Poluwat', 'Piherarh', 'Chuuk Lagoon'",
-    "claim": "Poluwat 7°21′26″N 149°12′01″E; Pisaras (Piherarh) 8°34′11″N 150°25′09″E; Chuuk Lagoon 7°24′54″N 151°44′06″E.",
-    "verified": "Poluwat also matches an NGA GeoNames record (7.357222, 149.200278); Chuuk Lagoon from Wikipedia; Pisaras from a Wikipedia mirror only, consistent with the Habele Institute's 'south-east end of the atoll at about 8°35′N, 150°24′E'. A position error of a few kilometres would move the bearings on the page by well under a degree.",
-    "found_via": "WebSearch: 'Pisaras island Namonuito Atoll coordinates'; 'Puluwat atoll coordinates; Tol island; Weno'"
+    "claim": "Poluwat 7°21′26″N 149°12′01″E; Pisaras (Piherarh) 8°34′11″N 150°25′09″E; Chuuk Lagoon 7°24′54″N 151°44′06″E; the lagoon about 79 by 50 km inside its reef.",
+    "verified": "Poluwat also matches an NGA GeoNames record (7.357222, 149.200278); Chuuk Lagoon from Wikipedia; Pisaras from a Wikipedia mirror only, consistent with the Habele Institute's 'south-east end of the atoll at about 8°35′N, 150°24′E'. A position error of a few kilometres would move the bearings on the page by well under a degree. The lagoon's size (a natural harbour about 79 by 50 km, 2,130 km², inside a reef about 225 km round) from WebSearch extracts of the Wikipedia article and the CIA World Factbook, which agree; the US National Park Service gives about 64 km across. Used only to say that a course on Altair's rising passes near the lagoon's northern edge.",
+    "found_via": "WebSearch: 'Pisaras island Namonuito Atoll coordinates'; 'Puluwat atoll coordinates; Tol island; Weno'; 'Chuuk Lagoon 79 km 50 km natural harbor reef 225 km'"
   }
 ]

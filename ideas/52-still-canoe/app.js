@@ -90,18 +90,19 @@
     PTS.forEach(function (p, i) {
       var a = scr(p.az, upAz);
       var inner = polar(cx, cy, R, a), outer = polar(cx, cy, R + tick, a);
-      ctx.strokeStyle = hi[i] || (p.src === 'two' ? C.star : C['star-dim']);
-      ctx.lineWidth = hi[i] ? 2.6 : (p.src === 'two' ? 1.8 : 1.2);
+      // hollow: the two leaning-Cross points, placed by a definition rather than a star
+      ctx.strokeStyle = hi[i] || (!p.byDefinition ? C.star : C['star-dim']);
+      ctx.lineWidth = hi[i] ? 2.6 : (!p.byDefinition ? 1.8 : 1.2);
       ctx.beginPath(); ctx.moveTo(inner.x, inner.y); ctx.lineTo(outer.x, outer.y); ctx.stroke();
       var dot = polar(cx, cy, R + tick + 3.2, a);
       ctx.beginPath(); ctx.arc(dot.x, dot.y, hi[i] ? 3.6 : 2.4, 0, Math.PI * 2);
-      if (p.src === 'two' || hi[i]) { ctx.fillStyle = hi[i] || C.star; ctx.fill(); }
+      if (!p.byDefinition || hi[i]) { ctx.fillStyle = hi[i] || C.star; ctx.fill(); }
       else { ctx.strokeStyle = C['star-dim']; ctx.lineWidth = 1.1; ctx.stroke(); }
     });
     // labels, greedily by priority, skipping overlaps
     if (opts.labels !== 'none') {
       var cand = PTS.map(function (p, i) {
-        var pri = hi[i] ? 9 : p.star === 'altair' ? 6 : VOYAGE_PTS[i] ? 5 : p.event === 'upright' ? 4 : p.src === 'two' ? 2 : 1;
+        var pri = hi[i] ? 9 : p.star === 'altair' ? 6 : VOYAGE_PTS[i] ? 5 : p.event === 'upright' ? 4 : !p.byDefinition ? 2 : 1;
         if (opts.labels === 'voyage' && !(hi[i] || VOYAGE_PTS[i] || p.star === 'altair')) pri = -1;
         return { i: i, p: p, pri: pri };
       }).filter(function (c) { return c.pri >= 0; });
@@ -125,7 +126,7 @@
           if (x0 < q.x + q.w + 2 && x0 + tw + 2 > q.x && y0 < q.y + q.h && y0 + th > q.y) return;
         }
         placed.push({ x: x0, y: y0, w: tw, h: th });
-        ctx.fillStyle = hi[c.i] || (c.p.src === 'two' ? C.ink : C.muted);
+        ctx.fillStyle = hi[c.i] || (!c.p.byDefinition ? C.ink : C.muted);
         ctx.textAlign = 'left'; ctx.textBaseline = 'top';
         ctx.fillText(text, x0, y0 + 1);
       });
@@ -193,18 +194,7 @@
     drawRing(ctx, cx, cy, R, { upAz: 90, labels: 'all', hi: hi, fs: w < 420 ? 10 : 12, trueN: true });
     drawCanoe(ctx, cx, cy, Math.min(34, R * 0.28), 0);
   }
-  function partnerOf(i) {
-    var p = PTS[i];
-    if (p.event === 'pole' || p.event === 'upright') return null;
-    for (var j = 0; j < PTS.length; j++) {
-      if (j === i) continue;
-      var q = PTS[j];
-      if (q.star !== p.star) continue;
-      if (p.event === 'lean' && q.event === 'lean') return j;
-      if ((p.event === 'rise' && q.event === 'set') || (p.event === 'set' && q.event === 'rise')) return j;
-    }
-    return null;
-  }
+  function partnerOf(i) { return E.partnerOf(PTS, i); }
   function ringPick(ev) {
     var cv = $('ringCanvas'), xy = pointerXY(ev, cv), r = cv.getBoundingClientRect();
     var cx = r.width / 2, cy = r.height / 2;
@@ -212,12 +202,9 @@
     if (Math.sqrt(dx * dx + dy * dy) < Math.min(r.width, r.height) * 0.12) return;
     var az = E.wrap360(Math.atan2(dx, -dy) / RAD + 90);
     ring.sel = E.nearestPoint(PTS, az);
-    var p = PTS[ring.sel], q = partnerOf(ring.sel);
-    var txt = '<strong>' + cap(p.label) + '</strong>' + (p.local ? ' (' + p.local + ')' : '') + ': ' + deg(p.az);
-    if (q != null) txt += '. Its partner, ' + PTS[q].label + ', is at ' + deg(PTS[q].az) + ': the same angle from north on the other side.';
-    else if (p.event === 'pole') txt += '. North: Polaris barely moves.';
-    else txt += '. South: the Cross at its highest.';
-    txt += ' <span class="small">' + (p.src === 'two' ? 'Two sources.' : 'Weriyeng list only.') + '</span>';
+    var n = E.pointNote(PTS, ring.sel);
+    var txt = '<strong>' + cap(n.head) + '</strong>' + (n.local ? ' (' + n.local + ')' : '') + ': ' + deg(n.az) + '. ' + n.text;
+    txt += ' <span class="small">' + n.evidence + '</span>';
     $('ringReadout').innerHTML = txt;
     drawRingSection();
   }
