@@ -27,14 +27,18 @@
  *     mean obliquity  ε  = 23.4392911° − 0.0130042°·T   (23°26′21.448″ − 46.815″·T)
  *     so peri = L − M    = 282.93735° + 1.71954°·T
  *   The constant aberration −0.00569° (−20.5″) is applied to λ, as Meeus does for the
- *   "apparent" Sun. Nutation (±17″ in longitude, up to ±1 s of time) is NOT modelled.
+ *   "apparent" Sun. Nutation (up to ±17″ in longitude) is NOT modelled; it would move the
+ *   equation of time by only ~0.2 s, because it shifts sidereal time almost as much as it
+ *   shifts the Sun, but it moves an equinox instant by up to ~7 min.
  *   Mean solar time = UT (UT1 − UTC < 0.9 s is ignored), so the mean Sun's Greenwich hour
- *   angle is 15°·(UT − 12 h), by definition.
+ *   angle is 15°·(UT − 12 h), by definition. ΔT is ignored too: dates serve as both UT and TT.
  *
- * SIMPLIFICATIONS: no nutation, no planetary perturbations (< 0.02° in λ, i.e. ≤ 5 s of
- *   time), no lunar wobble of the Earth around the Earth–Moon barycentre (≈ 6″), standard
- *   atmospheric refraction of 34′ at the horizon and no refraction elsewhere, the Sun's
- *   semi-diameter taken as 16′ (so rise/set is when the centre is at −50′ = −0.8333°).
+ * SIMPLIFICATIONS: a mean-element Sun: no nutation, no planetary perturbations, no lunar
+ *   wobble of the Earth around the Earth–Moon barycentre (≈ 6″), no ΔT. Against PyEphem's
+ *   VSOP87 Sun over 2000–2050 that leaves the equation of time within 2.2 s and the
+ *   declination within 0.005°, but equinox and solstice instants off by up to ~16 min.
+ *   Standard atmospheric refraction of 34′ at the horizon and no refraction elsewhere, the
+ *   Sun's semi-diameter taken as 16′ (so rise/set is when the centre is at −50′ = −0.8333°).
  */
 (function (root, factory) {
   const api = factory();
@@ -73,11 +77,14 @@
     // Mars: Allison & McEwen (2000), Planet. Space Sci. 48, 215: e = 0.09340, ε = 25.1919°,
     // areocentric longitude of the Sun at perihelion 251.000° (epoch 2000).
     mars: { label: 'Mars', e: 0.0934, obl: 25.1919, peri: 251.0, aberr: 0 },
-    // Saturn and Jupiter: e and obliquity from the NASA planetary fact sheets; perihelion
-    // longitudes measured from each planet's own equinox are not fact-sheet numbers, so
-    // these use a nominal 280°. The figure's shape barely depends on it at these e.
-    saturn: { label: 'Saturn', e: 0.0565, obl: 26.73, peri: 280, aberr: 0 },
-    jupiter: { label: 'Jupiter', e: 0.0489, obl: 3.13, peri: 280, aberr: 0 },
+    // Saturn and Jupiter: e and obliquity from the NASA planetary fact sheets. The Sun's
+    // planetocentric longitude at perihelion is not a fact-sheet number, so it is computed from
+    // each planet's IAU pole (Jupiter RA 268.0566°, Dec 64.4953°; Saturn 40.589°, 83.537°) and
+    // its J2000 mean orbital elements: Jupiter 57.5°, Saturn 279.0°. The same calculation gives
+    // Mars's 251.0° above (sun.test.mjs repeats it). It matters: at these eccentricities the
+    // perihelion season sets how far the loop opens and which way it leans.
+    saturn: { label: 'Saturn', e: 0.0565, obl: 26.73, peri: 279.0, aberr: 0 },
+    jupiter: { label: 'Jupiter', e: 0.0489, obl: 3.13, peri: 57.5, aberr: 0 },
   };
 
   // ---------- time ----------
@@ -287,6 +294,29 @@
     return out;
   }
 
+  /**
+   * The polar stretch of one kind in a yearRiseSet table ('day' = midnight sun, 'night' = polar night):
+   * {start, end, days} with start and end rows (a stretch may wrap New Year), or null if there is none.
+   */
+  function polarRun(table, type) {
+    const n = table.length;
+    const is = (i) => table[((i % n) + n) % n].polar === type;
+    if (!table.some((r) => r.polar === type)) return null;
+    if (table.every((r) => r.polar === type)) return { start: table[0], end: table[n - 1], days: n };
+    let start = 0;
+    while (!(is(start) && !is(start - 1))) start++;
+    let len = 0;
+    while (is(start + len)) len++;
+    return { start: table[start], end: table[(start + len - 1) % n], days: table.filter((r) => r.polar === type).length };
+  }
+
+  /** Does ordinary day `row` (with day index row.i in an n-day year) fall 'before' or 'after' polar stretch `run`? Nearest edge wins. */
+  function sideOfRun(row, run, n) {
+    const toStart = (((run.start.i - row.i) % n) + n) % n;
+    const sinceEnd = (((row.i - run.end.i) % n) + n) % n;
+    return toStart <= sinceEnd ? 'before' : 'after';
+  }
+
   /** Extremes of a yearRiseSet table: earliest/latest sunrise and sunset, shortest/longest day. */
   function riseSetExtremes(table) {
     const ok = table.filter((r) => !r.polar);
@@ -447,7 +477,7 @@
     daysSinceJ2000, dateFromDays, isLeap, daysInYear, meanLongitude,
     solveKepler, sunAt, eotParts, elementsFor, sunOnDay,
     hourAngle, altAz, localInstant, sunInSky, skyFigure,
-    riseSet, yearRiseSet, riseSetExtremes,
+    riseSet, yearRiseSet, riseSetExtremes, polarRun, sideOfRun,
     eotExtremes, seasonPoints, selfCrossings, shape, hoursToHM,
   };
 });

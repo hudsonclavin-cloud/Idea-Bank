@@ -2,12 +2,16 @@
 //   node --test ideas/21-same-time-tomorrow/sun.test.mjs
 // Every check compares sun.js against something it does not share code with: closed forms,
 // an independent NOAA/Meeus implementation written below, Allison & McEwen's Mars series,
-// or published values (USNO, EarthSky, the epoch-2000 equation-of-time table).
+// a full-ephemeris reference table (pyephem-reference.json: PyEphem's VSOP87 Sun, generated once;
+// the generator is stored in the file), or published values (USNO, EarthSky, the epoch-2000 table).
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
 const S = createRequire(import.meta.url)('./sun.js');
+const REF = JSON.parse(fs.readFileSync(new URL('./pyephem-reference.json', import.meta.url), 'utf8'));
+const readText = (name) => fs.readFileSync(new URL(name, import.meta.url), 'utf8');
 const log = (...a) => console.log('   ', ...a);
 const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
@@ -50,6 +54,34 @@ function noaaRiseSet(year, month, day, lat, lonEast, zone) {
   const rise = noaa(jd0 + first.rise / 1440, lat, lonEast, zone).rise;
   const set = noaa(jd0 + first.set / 1440, lat, lonEast, zone).set;
   return { rise: rise / 60, set: set / 60, noon: noaa(jd0 + first.noon / 1440, lat, lonEast, zone).noon / 60 };
+}
+
+/** Nutation in longitude (degrees), Meeus ch. 22 four-term series; sun.js leaves it out. */
+function nutationLongitude(d) {
+  const T = d / 36525;
+  const om = 125.04452 - 1934.136261 * T;
+  const L = 280.4665 + 36000.7698 * T;
+  const Lm = 218.3165 + 481267.8813 * T;
+  return (-17.2 * sin(om) - 1.32 * sin(2 * L) - 0.23 * sin(2 * Lm) + 0.21 * sin(2 * om)) / 3600;
+}
+
+/** The Sun's planetocentric longitude at perihelion and the obliquity, from a pole (RA, Dec, J2000 equatorial)
+ *  and orbital elements (i, Ω, ϖ on the J2000 ecliptic). The equinox is where the Sun crosses the planet's
+ *  equator heading north: the direction pole × orbit-normal. */
+function perihelionSeason(poleRA, poleDec, i, node, varpi) {
+  const eps = 23.4392911;
+  const c = [cos(poleDec) * cos(poleRA), cos(poleDec) * sin(poleRA), sin(poleDec)];
+  const p = [c[0], cos(eps) * c[1] + sin(eps) * c[2], -sin(eps) * c[1] + cos(eps) * c[2]];
+  const n = [sin(i) * sin(node), -sin(i) * cos(node), cos(i)];
+  const crossV = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dotV = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const q0 = crossV(p, n);
+  const ql = Math.hypot(...q0);
+  const q = q0.map((x) => x / ql);
+  const w = varpi - node;
+  const P = [cos(node) * cos(w) - sin(node) * sin(w) * cos(i), sin(node) * cos(w) + cos(node) * sin(w) * cos(i), sin(w) * sin(i)];
+  const s = P.map((x) => -x); // the Sun seen from the planet at perihelion
+  return { Ls: wrap360(Math.atan2(dotV(crossV(q, s), n), dotV(q, s)) * DEG), obl: Math.acos(dotV(p, n)) * DEG };
 }
 
 // ---------- calendar ----------
@@ -226,7 +258,7 @@ test('equation of time extremes: −14.25 min on Feb 11/12 and +16.42 min on Nov
   assert.ok(Math.floor(y2020.max.day) >= 1 && Math.floor(y2020.max.day) <= 3);
 });
 
-test('2026 equinoxes and solstices land within 15 min of the USNO times (no nutation in the model)', () => {
+test('2026 equinoxes and solstices land within 15 min of the USNO times (mean-element Sun: no perturbations, nutation or ΔT)', () => {
   const sp = S.seasonPoints('earth', 2026);
   const usno = {
     marchEquinox: [2026, 3, 20, 14 + 46 / 60],
@@ -240,6 +272,68 @@ test('2026 equinoxes and solstices land within 15 min of the USNO times (no nuta
     log(k, dateStr(sp[k]), S.hoursToHM((sp[k].day % 1) * 24), 'UT; USNO', `${m}/${d}`, S.hoursToHM(h), '→ Δ', diffMin.toFixed(1), 'min');
     assert.ok(Math.abs(diffMin) < 15);
   }
+});
+
+test('equinox and solstice instants vs PyEphem 2000–2050: up to ~16 min off, and nutation is not the main cause', () => {
+  const keys = ['marchEquinox', 'juneSolstice', 'septemberEquinox', 'decemberSolstice'];
+  const targets = [0, 90, 180, 270];
+  let worst = { v: 0 };
+  let worstNut = { v: 0 };
+  let sumSq = 0;
+  let n = 0;
+  let sameUtDate = 0;
+  const y2026 = [];
+  const y2026nut = [];
+  for (let y = 2000; y <= 2050; y++) {
+    const sp = S.seasonPoints('earth', y);
+    keys.forEach((k, j) => {
+      const truth = REF.seasonInstants[y][j];
+      const err = (sp[k].d - truth) * 1440;
+      // the same Sun with nutation added to its longitude, solved by bisection near the true instant
+      const g = (d) => S.wrap180(S.sunOnDay('earth', d).lambda + nutationLongitude(d) - targets[j]);
+      let a = truth - 1;
+      let b = truth + 1;
+      for (let it = 0; it < 60; it++) {
+        const m = (a + b) / 2;
+        if (g(m) <= 0) a = m;
+        else b = m;
+      }
+      const errNut = ((a + b) / 2 - truth) * 1440;
+      if (Math.abs(err) > Math.abs(worst.v)) worst = { v: err, at: `${k} ${y}` };
+      if (Math.abs(errNut) > Math.abs(worstNut.v)) worstNut = { v: errNut, at: `${k} ${y}` };
+      if (Math.floor(sp[k].d + 0.5) === Math.floor(truth + 0.5)) sameUtDate++;
+      sumSq += err * err;
+      n++;
+      if (y === 2026) {
+        y2026.push(err);
+        y2026nut.push(errNut);
+      }
+    });
+  }
+  const f = (a) => a.map((x) => x.toFixed(1)).join(', ');
+  log('2026 model − PyEphem:', f(y2026), 'min; with nutation added:', f(y2026nut), 'min');
+  log('2000–2050:', n, 'events, worst', worst.v.toFixed(1), 'min (' + worst.at + '), rms', Math.sqrt(sumSq / n).toFixed(1), 'min; with nutation, worst', worstNut.v.toFixed(1), 'min (' + worstNut.at + '); UT date right for', sameUtDate);
+  // PyEphem itself agrees with the USNO 2026 times (14:46, 08:24, 00:05, 20:50 UT) to the minute.
+  const usno = [[3, 20, 14 + 46 / 60], [6, 21, 8 + 24 / 60], [9, 23, 5 / 60], [12, 21, 20 + 50 / 60]];
+  usno.forEach(([m, d, h], j) => assert.ok(Math.abs(REF.seasonInstants[2026][j] - S.daysSinceJ2000(2026, m, d, h)) * 1440 < 1));
+  [-5.6, -0.6, 8.3, 3.2].forEach((v, j) => assert.ok(Math.abs(y2026[j] - v) < 0.2, `2026 ${keys[j]}`));
+  assert.ok(Math.abs(worst.v) > 15 && Math.abs(worst.v) < 17, 'errors reach ~16 min in some years, not just the ~8 min of 2026');
+  assert.ok(Math.abs(worstNut.v) > 9, 'adding nutation alone still leaves errors of ~10 min');
+  assert.ok(Math.abs(y2026nut[0]) > Math.abs(y2026[0]), 'nutation would make the 2026 March equinox worse');
+  assert.equal(sameUtDate, 202, 'the UT date is right for all but two events that fall within minutes of midnight');
+});
+
+test('equation of time and declination vs PyEphem (VSOP87, every 10th day 2000–2050): within 2.2 s and 0.005°', () => {
+  let worstEot = 0;
+  let worstDec = 0;
+  for (const [d, eotMin, dec] of REF.eotDeclination) {
+    const s = S.sunOnDay('earth', d);
+    worstEot = Math.max(worstEot, Math.abs(s.eotMin - eotMin) * 60);
+    worstDec = Math.max(worstDec, Math.abs(s.delta - dec));
+  }
+  log('max |ΔEoT|', worstEot.toFixed(2), 's; max |Δδ|', worstDec.toFixed(4), '° over', REF.eotDeclination.length, 'days');
+  assert.ok(worstEot < 2.2 && worstEot > 1.5);
+  assert.ok(worstDec < 0.005 && worstDec > 0.003);
 });
 
 test('solstice declinations are ±ε and the equinox declination is zero', () => {
@@ -304,10 +398,13 @@ test('the offset from the solstice shrinks toward the pole and swaps hemispheres
     return dayIndex(2026, sd.month, sd.day) - dayIndex(2026, es.month, es.day);
   };
   const o40 = offsetDays(40);
+  const oLondon = offsetDays(51.5);
   const o52 = offsetDays(52);
   const o60 = offsetDays(60);
-  log('shortest day minus earliest sunset: 40°N', o40, 'days; 52°N', o52, '; 60°N', o60);
+  log('shortest day minus earliest sunset: 40°N', o40, 'days; 51.5°N (London)', oLondon, '; 52°N', o52, '; 60°N', o60);
   assert.ok(o40 > o52 && o52 > o60 && o60 >= 3);
+  assert.equal(o40, 14);
+  assert.equal(oLondon, 9, 'a fortnight only at about 40°N: nine days in London');
   const south = S.riseSetExtremes(S.yearRiseSet('earth', 2026, -34, 0, 0));
   log('34°S: shortest day', `${south.shortestDay.month}/${south.shortestDay.day}`, 'earliest sunset', `${south.earliestSunset.month}/${south.earliestSunset.day}`, 'latest sunrise', `${south.latestSunrise.month}/${south.latestSunrise.day}`);
   assert.deepEqual([south.shortestDay.month, south.shortestDay.day], [6, 21]);
@@ -327,6 +424,51 @@ test('polar cases: midnight sun and polar night are flagged, not computed as non
   const spring = S.riseSet('earth', 2026, 3, 20, 70, 0, 0);
   assert.equal(spring.polar, null);
   assert.ok(spring.length > 11.5 && spring.length < 13);
+});
+
+test('polar stretches: which side of the polar night and the midnight sun each extreme falls on', () => {
+  const n = 365;
+  const at = (lat, lon, zone) => {
+    const t = S.yearRiseSet('earth', 2026, lat, lon, zone);
+    return { t, ex: S.riseSetExtremes(t), night: S.polarRun(t, 'night'), day: S.polarRun(t, 'day') };
+  };
+  const d = (r) => `${r.month}/${r.day}`;
+  // 70°N, 60°W, UTC−4: the earliest sunset AND the latest sunrise are both on the last day before the polar night.
+  const a = at(70, -60, -4);
+  log('70°N 60°W: polar night', d(a.night.start), '–', d(a.night.end), '; earliest sunset', d(a.ex.earliestSunset), 'latest sunrise', d(a.ex.latestSunrise), '; earliest sunrise', d(a.ex.earliestSunrise), 'latest sunset', d(a.ex.latestSunset));
+  assert.deepEqual([a.night.start.month, a.night.start.day, a.night.end.month, a.night.end.day], [11, 26, 1, 16]);
+  assert.equal(S.sideOfRun(a.ex.earliestSunset, a.night, n), 'before');
+  assert.equal(S.sideOfRun(a.ex.latestSunrise, a.night, n), 'before');
+  assert.equal(S.sideOfRun(a.ex.earliestSunrise, a.day, n), 'before');
+  assert.equal(S.sideOfRun(a.ex.latestSunset, a.day, n), 'before');
+  // On the Greenwich meridian the same latitude straddles both stretches.
+  const b = at(70, 0, 0);
+  assert.equal(S.sideOfRun(b.ex.earliestSunset, b.night, n), 'before');
+  assert.equal(S.sideOfRun(b.ex.latestSunrise, b.night, n), 'after');
+  assert.equal(S.sideOfRun(b.ex.latestSunset, b.day, n), 'before');
+  assert.equal(S.sideOfRun(b.ex.earliestSunrise, b.day, n), 'after');
+  // 66°N has a midnight sun but no polar night; 70°S has its polar night in June.
+  const c = at(66, 0, 0);
+  assert.equal(c.night, null);
+  assert.ok(c.day.days > 10);
+  const south = at(-70, 0, 0);
+  assert.equal(south.night.start.month, 5);
+  assert.equal(south.day.start.month, 11);
+});
+
+test('the page and the README state the numbers the model computes', () => {
+  const html = readText('./index.html');
+  const readme = readText('./README.md').split('## Revision note')[0]; // the revision note quotes the old claims
+  let cross = 0;
+  for (let L = 0; L < 360; L += 0.25) {
+    const p = S.eotParts(S.PRESETS.earth, L);
+    cross = Math.max(cross, Math.abs(p.tilt + p.orbit - p.total) * 4);
+  }
+  assert.ok(!/Their sum is the/.test(html), 'the page must not call the equation of time the exact sum');
+  assert.ok(html.includes(`to within ${cross.toFixed(1)} min`), `the page should give the cross term as ${cross.toFixed(1)} min`);
+  assert.ok(!/fortnight/.test(readme) && readme.includes('nine days in London'));
+  assert.ok(!/nutation is the missing term/.test(readme) && !/barely depends on it/.test(readme + readText('./sun.js')));
+  assert.ok(readme.includes(`Jupiter ${S.PRESETS.jupiter.peri.toFixed(1)}°`) && readme.includes(`Saturn ${S.PRESETS.saturn.peri.toFixed(1)}°`));
 });
 
 // ---------- the sky ----------
@@ -397,6 +539,46 @@ test('Mars: equation of time matches Allison & McEwen (2000) to 0.01° and the f
   assert.ok(Math.min(...xs) < -50 && Math.max(...xs) > 39);
 });
 
+test("Jupiter's and Saturn's perihelion seasons are computed from their IAU poles and J2000 orbits (the same method gives Mars's published 251°)", () => {
+  // IAU WGCCRE pole at J2000 (RA, Dec) and Standish J2000 mean elements (i, Ω, ϖ).
+  const mars = perihelionSeason(317.68143, 52.8865, 1.84969142, 49.55953891, -23.94362959);
+  const jupiter = perihelionSeason(268.056595, 64.495303, 1.30439695, 100.47390909, 14.72847983);
+  const saturn = perihelionSeason(40.589, 83.537, 2.48599187, 113.66242448, 92.59887831);
+  log('Ls at perihelion: Mars', mars.Ls.toFixed(2), '°, Jupiter', jupiter.Ls.toFixed(2), '°, Saturn', saturn.Ls.toFixed(2), '°; obliquities', mars.obl.toFixed(2), jupiter.obl.toFixed(2), saturn.obl.toFixed(2));
+  assert.ok(Math.abs(mars.Ls - S.PRESETS.mars.peri) < 0.1 && Math.abs(mars.obl - S.PRESETS.mars.obl) < 0.01, 'the method reproduces Allison & McEwen');
+  assert.ok(Math.abs(jupiter.Ls - S.PRESETS.jupiter.peri) < 0.5, `Jupiter preset ${S.PRESETS.jupiter.peri}° vs ${jupiter.Ls.toFixed(1)}°`);
+  assert.ok(Math.abs(saturn.Ls - S.PRESETS.saturn.peri) < 0.5, `Saturn preset ${S.PRESETS.saturn.peri}° vs ${saturn.Ls.toFixed(1)}°`);
+  assert.ok(Math.abs(jupiter.obl - S.PRESETS.jupiter.obl) < 0.02 && Math.abs(saturn.obl - S.PRESETS.saturn.obl) < 0.02);
+});
+
+test("at Jupiter's eccentricity and tilt the figure's shape depends strongly on the perihelion season", () => {
+  // Principal axes of the figure in degrees (x = EoT/4, y = declination): lean of the long axis and short/long ratio.
+  const axes = (peri) => {
+    const pts = S.shape({ e: 0.0489, obl: 3.13, peri }, 1440).map((p) => [p.x / 4, p.y]);
+    const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+    const my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    let sxx = 0;
+    let syy = 0;
+    let sxy = 0;
+    for (const [x, y] of pts) {
+      sxx += (x - mx) ** 2;
+      syy += (y - my) ** 2;
+      sxy += (x - mx) * (y - my);
+    }
+    const tr = sxx + syy;
+    const disc = Math.sqrt((tr * tr) / 4 - (sxx * syy - sxy * sxy));
+    return { lean: 0.5 * Math.atan2(2 * sxy, sxx - syy) * DEG, ratio: Math.sqrt((tr / 2 - disc) / (tr / 2 + disc)) };
+  };
+  const line = axes(0);
+  const open = axes(90);
+  const real = axes(S.PRESETS.jupiter.peri);
+  const old = axes(280);
+  log('Jupiter figure, short/long axis ratio and lean: ϖ=0°', line.ratio.toFixed(2), line.lean.toFixed(1) + '°; ϖ=90°', open.ratio.toFixed(2), open.lean.toFixed(1) + '°;', `ϖ=${S.PRESETS.jupiter.peri}° (preset)`, real.ratio.toFixed(2), real.lean.toFixed(1) + '°; ϖ=280°', old.ratio.toFixed(2), old.lean.toFixed(1) + '°');
+  assert.ok(line.ratio < 0.05, 'perihelion at an equinox: the loop collapses to a line');
+  assert.ok(open.ratio > 0.5, 'perihelion at a solstice: an open ellipse');
+  assert.ok(Math.abs(real.lean - old.lean) > 10 && Math.abs(real.ratio - old.ratio) > 0.08, 'the old 280° placeholder drew a visibly different figure');
+});
+
 test('Earth is a figure-8 (one crossing), a circular orbit still is, no tilt is a flat line, Saturn crosses, Jupiter (3° tilt) does not', () => {
   assert.equal(S.selfCrossings(S.shape(S.PRESETS.earth, 720)), 1);
   assert.equal(S.selfCrossings(S.shape(S.PRESETS.circular, 720)), 1);
@@ -405,15 +587,24 @@ test('Earth is a figure-8 (one crossing), a circular orbit still is, no tilt is 
   assert.equal(S.selfCrossings(S.shape(S.PRESETS.saturn, 720)), 1);
   // With ε = 3.13° the tilt term is worth 0.17 min against 22 min from e = 0.049: an eccentricity-dominated loop.
   assert.equal(S.selfCrossings(S.shape(S.PRESETS.jupiter, 720)), 0);
-  // The crossing disappears exactly when the tilt term can no longer beat the orbit term: sweep e at Earth's tilt.
-  let firstLoop = null;
-  for (let e = 0; e <= 0.2; e += 0.002) {
-    const n = S.selfCrossings(S.shape({ e, obl: 23.4392911, peri: 282.9 }, 720));
-    if (n === 0 && firstLoop === null) firstLoop = e;
-    if (n > 1) assert.fail(`more than one crossing at e = ${e}`);
-  }
-  log('at Earth tilt and perihelion, the figure-8 becomes a single loop from e ≈', firstLoop.toFixed(3));
-  assert.ok(firstLoop > 0.03 && firstLoop < 0.1);
+  // The crossing disappears when the tilt term can no longer beat the orbit term: sweep e at Earth's tilt.
+  // Where that happens depends on the perihelion season as well as on e.
+  const threshold = (peri) => {
+    for (let k = 0; k <= 300; k++) {
+      const e = k / 1000;
+      const n = S.selfCrossings(S.shape({ e, obl: 23.4392911, peri }, 720));
+      if (n > 1) assert.fail(`more than one crossing at e = ${e}, perihelion ${peri}°`);
+      if (n === 0) return e;
+    }
+    return null;
+  };
+  const atEarth = threshold(282.9);
+  const atSolstice = threshold(270);
+  const atEquinox = threshold(0);
+  log('at Earth tilt the figure-8 becomes a single loop from e ≈', atEarth, "(Earth's perihelion season);", atSolstice, '(perihelion at a solstice);', atEquinox === null ? 'not below 0.3' : atEquinox, '(perihelion at an equinox)');
+  assert.ok(Math.abs(atEarth - 0.045) <= 0.001);
+  assert.ok(Math.abs(atSolstice - 0.044) <= 0.001);
+  assert.equal(atEquinox, null);
 });
 
 test('the perihelion date of the Earth preset is early January', () => {

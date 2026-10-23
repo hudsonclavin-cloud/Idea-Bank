@@ -737,27 +737,14 @@
     mark(ex.earliestSunrise, 'rise', `earliest sunrise ${d(ex.earliestSunrise)}`, true, col('--c-rise'));
   }
 
-  /** First and last day of a polar stretch ('day' or 'night'), allowing the stretch to wrap New Year. */
-  function polarRun(t, type) {
-    const n = t.length;
-    const is = (i) => t[((i % n) + n) % n].polar === type;
-    if (!t.some((r) => r.polar === type)) return null;
-    if (t.every((r) => r.polar === type)) return { start: t[0], end: t[n - 1], days: n };
-    let start = 0;
-    while (!(is(start) && !is(start - 1))) start++;
-    let len = 0;
-    while (is(start + len)) len++;
-    return { start: t[start], end: t[(start + len - 1) % n], days: t.filter((r) => r.polar === type).length };
-  }
-
   function updateVerdict() {
     const t = cache.rise;
     const ex = S.riseSetExtremes(t);
     const lat = state.lat;
     const d = (r) => `${r.day} ${MONTHS[r.month - 1]}`;
     const hm = (r, k) => fmtClock(r[k]);
-    const up = polarRun(t, 'day');
-    const down = polarRun(t, 'night');
+    const up = S.polarRun(t, 'day');
+    const down = S.polarRun(t, 'night');
     const parts = [];
     $('riseLat').textContent = fmtLat(lat);
     if (!ex.earliestSunset) {
@@ -775,7 +762,14 @@
     const rel = (n) => (n === 0 ? 'the same day' : `${Math.abs(n)} day${Math.abs(n) === 1 ? '' : 's'} ${n < 0 ? 'earlier' : 'later'}`);
     if (up || down) {
       const stretch = (run) => (run ? `<strong>${run.days}</strong> days (${d(run.start)} to ${d(run.end)})` : 'no days');
-      parts.push(`<p>At ${fmtLat(lat)} the Sun stays up for ${stretch(up)} and stays down for ${stretch(down)}, so the solstices are not sunrise or sunset days at all. On the other days, by the clock: the earliest sunset is <strong>${d(ex.earliestSunset)}</strong> at ${hm(ex.earliestSunset, 'set')} and the latest sunrise <strong>${d(ex.latestSunrise)}</strong> at ${hm(ex.latestSunrise, 'rise')}${down ? ', the last and first on either side of the polar night' : ''}; the earliest sunrise is ${d(ex.earliestSunrise)} at ${hm(ex.earliestSunrise, 'rise')} and the latest sunset ${d(ex.latestSunset)} at ${hm(ex.latestSunset, 'set')}${up ? ', on either side of the midnight sun' : ''}.</p>`);
+      const solstice = up && down ? 'neither solstice has a sunrise or a sunset' : up ? 'the summer solstice has no sunset' : 'the winter solstice has no sunrise';
+      // Say where the two extremes sit relative to the stretch: they need not straddle it.
+      const sides = (a, b, run, what) => {
+        const sa = S.sideOfRun(a, run, t.length);
+        const sb = S.sideOfRun(b, run, t.length);
+        return sa === sb ? `, both ${sa} the ${what}` : `, on either side of the ${what}`;
+      };
+      parts.push(`<p>At ${fmtLat(lat)} the Sun stays up for ${stretch(up)} and stays down for ${stretch(down)}, so ${solstice}. On the other days, by the clock: the earliest sunset is <strong>${d(ex.earliestSunset)}</strong> at ${hm(ex.earliestSunset, 'set')} and the latest sunrise <strong>${d(ex.latestSunrise)}</strong> at ${hm(ex.latestSunrise, 'rise')}${down ? sides(ex.earliestSunset, ex.latestSunrise, down, 'polar night') : ''}; the earliest sunrise is ${d(ex.earliestSunrise)} at ${hm(ex.earliestSunrise, 'rise')} and the latest sunset ${d(ex.latestSunset)} at ${hm(ex.latestSunset, 'set')}${up ? sides(ex.earliestSunrise, ex.latestSunset, up, 'midnight sun') : ''}.</p>`);
       $('verdict').innerHTML = parts.join('');
       return;
     }

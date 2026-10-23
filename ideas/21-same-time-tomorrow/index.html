@@ -64,9 +64,9 @@
   <p>The figure is <em>tall</em> because of the tilt. Over a year the Sun's declination swings between +ε and −ε, so at a fixed clock time it climbs and sinks. The figure is <em>wide</em> because the Sun runs fast and slow against the clock. Clocks keep <em>mean</em> solar time, a fiction in which the Sun moves at a perfectly even rate. The real Sun does not, for two separate reasons:</p>
   <ol class="reasons">
     <li><strong class="c-orbit">The orbit is an ellipse.</strong> Earth moves fastest near perihelion (early January) and slowest near aphelion (early July), so the Sun drifts along the ecliptic unevenly. On its own this would put a sundial up to <span id="orbitAmp">7.7</span> minutes ahead or behind the clock, once each per year.</li>
-    <li><strong class="c-tilt">The axis is tilted.</strong> Even perfectly even motion along the ecliptic is not even when projected onto the celestial equator, which is what a clock measures. Near the equinoxes the ecliptic runs diagonally across the equator, so a day's travel counts for less; near the solstices it runs parallel, so it counts for more. This part is worth up to <span id="tiltAmp">9.9</span> minutes, twice each per year.</li>
+    <li><strong class="c-tilt">The axis is tilted.</strong> Even perfectly even motion along the ecliptic is not even when projected onto the celestial equator, which is what a clock measures. Near the equinoxes the ecliptic crosses the equator at a slant, so only part of a day's travel is eastward and it counts for less. Near the solstices it runs parallel to the equator but 23° north or south of it, where the hour circles (the sky's lines of longitude) crowd together, so a day's travel crosses more of them and counts for more. This part is worth up to <span id="tiltAmp">9.9</span> minutes, twice each per year.</li>
   </ol>
-  <p>Their sum is the <em>equation of time</em>: how far a sundial reads ahead (+) or behind (−) a clock set to its time zone's meridian. Plot it against declination and you get the figure's own shape, the same at every latitude and clock time. Then change the planet.</p>
+  <p>Together they make the <em>equation of time</em>: how far a sundial reads ahead (+) or behind (−) a clock set to its time zone's meridian. It is very nearly the sum of the two; for Earth the dashed curves add up to the solid one to within 0.6 min. Plot it against declination and you get the figure's own shape, the same at every latitude and clock time. Then change the planet.</p>
 
   <figure class="panel">
     <div class="grid2">
@@ -104,7 +104,7 @@
         <input id="peri" type="range" min="0" max="364" step="1" value="2">
       </div>
     </div>
-    <figcaption>Mars, Jupiter and Saturn use their own eccentricity and tilt (and, for Mars, its own perihelion season), drawn on Earth's day and calendar: the shapes are right, the dates are borrowed. The sliders also redraw the sky in section 1 and the sunsets in section 3, so you can see any of these figures from your own latitude.</figcaption>
+    <figcaption>Mars, Jupiter and Saturn use their own eccentricity, tilt and perihelion season (where in the planet's year perihelion falls, which sets how far the loop opens and which way it leans), drawn on Earth's day and calendar: the shapes are right, the dates are borrowed. The sliders also redraw the sky in section 1 and the sunsets in section 3, so you can see any of these figures from your own latitude.</figcaption>
   </figure>
 </section>
 
@@ -136,7 +136,7 @@
 
 <footer class="notes">
   <h2>Notes on the model</h2>
-  <p>A planet on a fixed Kepler ellipse, spin axis tilted by ε, Kepler's equation solved by Newton's method; mean longitude, mean anomaly, eccentricity and obliquity from the J2000 values with their linear drifts (Meeus, <em>Astronomical Algorithms</em>, chapters 22 and 25); aberration of −20.5″ applied, nutation (up to ±17″, about one second of time) not. Mean solar time is taken as UTC. Every number on this page comes from <code>sun.js</code>, which is checked by <code>sun.test.mjs</code> against an independent NOAA/Meeus implementation, closed forms, Allison &amp; McEwen's Mars series, and published USNO and almanac values. Details and an honest assessment are in the README.</p>
+  <p>A planet on a fixed Kepler ellipse, spin axis tilted by ε, Kepler's equation solved by Newton's method; mean longitude, mean anomaly, eccentricity and obliquity from the J2000 values with their linear drifts (Meeus, <em>Astronomical Algorithms</em>, chapters 22 and 25); aberration of −20.5″ applied; nutation, the planets' and the Moon's tugs on Earth's orbit, and ΔT not. Mean solar time is taken as UTC. Against a full ephemeris (PyEphem's VSOP87 Sun, 2000–2050) that leaves the equation of time within about 2 seconds and the declination within 0.005°, but the instants of the equinoxes and solstices off by up to about a quarter of an hour. Every number on this page comes from <code>sun.js</code>, which is checked by <code>sun.test.mjs</code> against an independent NOAA/Meeus implementation, that PyEphem reference, closed forms, Allison &amp; McEwen's Mars series, and published USNO and almanac values. Details and an honest assessment are in the README.</p>
 </footer>
 
 </main>
