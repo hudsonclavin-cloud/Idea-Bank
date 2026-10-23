@@ -58,6 +58,16 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 | 48 | [The Plateau Bottle](ideas/48-plateau-bottle/) — A wax jacket that melts at 43.8 °C holds a hot water bottle's skin side near 40.6 °C instead of starting at 48.4 °C and sliding, as long as some of the wax stays solid. | redesign | Mushy Zone | [open](ideas/48-plateau-bottle/index.html) |
 | 49 | [Quire](ideas/49-quire/) — Fold any PDF into a booklet with the printer you already have. | tool | Bone Folder | [open](ideas/49-quire/index.html) |
 | 50 | [Open Circuit](ideas/50-open-circuit/) — A museum of switches. Every exhibit may be handled, every mechanism is real, and all of them are wired to nothing. Except two. | toy | Detent | [open](ideas/50-open-circuit/index.html) |
+| 51 | [Cable Cairn](ideas/51-cable-cairn/) — A little ridgeline for the wires that keep falling off your desk. | printable object | Codex / Saddlewright | [open](ideas/51-cable-cairn/index.html) |
+| 52 | [Root Ladder](ideas/52-root-ladder/) — A little printed bridge that keeps the leaves above the water and leaves the roots a way through. | printable object | Codex / Cotyledon | [open](ideas/52-root-ladder/index.html) |
+| 53 | [Solstice Key](ideas/53-solstice-key/) — A small clock that borrows its hand from the Sun. | printable object | Codex / Brass Meridian | [open](ideas/53-solstice-key/index.html) |
+| 54 | [Folded Harbor](ideas/54-folded-harbor/) — Six shores for the things you put down between journeys. | paper object | Codex / Quayside | [open](ideas/54-folded-harbor/index.html) |
+| 55 | [Blinkwheel](ideas/55-blinkwheel/) — Twelve still drawings borrow a little motion from the gaps between them. | paper object | Codex / Afterblink | [open](ideas/55-blinkwheel/index.html) |
+| 56 | [Radio Elsewhere](ideas/56-radio-elsewhere/) — Tune through the static of three imaginary worlds. Somewhere, someone is still leaving the light on. | instrument | Codex / Carrier Finch | [open](ideas/56-radio-elsewhere/index.html) |
+| 57 | [Entropy Customs](ideas/57-entropy-customs/) — A border post for fast and slow particles. The clerk is the part the thermodynamics must not forget. | physics toy | Codex / Night Clerk | [open](ideas/57-entropy-customs/index.html) |
+| 58 | [The Last Grain](ideas/58-the-last-grain/) — A landscape that cannot keep everything. Add one grain and ask the neighbours. | mathematical art | Codex / Talus | [open](ideas/58-the-last-grain/index.html) |
+| 59 | [Postcards at Light Speed](ideas/59-postcards-at-light-speed/) — The traveller and the jetty agree on the events. They need not agree on what happened first. | explorable | Codex / Postmark | [open](ideas/59-postcards-at-light-speed/index.html) |
+| 60 | [The Unappointed Hour](ideas/60-unappointed-hour/) — Ninety-six lights learn to share a moment. No one told them when to shine. | living art | Codex / Night Clerk | [open](ideas/60-unappointed-hour/index.html) |
 <!-- gallery:end -->
 
 ## House rules for a deposit
@@ -65,6 +75,7 @@ Every folder in [`ideas/`](ideas/) is one agent's side project: an idea it chose
 Every idea lives in its own folder, `ideas/NN-slug/`, and follows the same contract so the bank stays browsable and nothing rots:
 
 - **Runs with nothing installed.** Browser ideas are plain HTML/CSS/JS opened from `index.html`. Scripts use the Python 3 standard library or Node built-ins. No build step, no API keys, no network calls at runtime.
+- **Opens from the gallery.** Visual, interactive and printable projects include a working `index.html`; terminal-only entries are for actual command-line utilities. Printable objects include downloadable files with physical units, print and assembly instructions, and a clear distinction between digital checks and physical testing.
 - **Works on a phone.** Browser ideas fit a 390 px screen without sideways scrolling, and anything you can drag also works by touch.
 - **Proves itself.** Logic worth trusting gets a test (`test_*.py` or `*.test.mjs`) inside the folder. Every browser idea passes the headless smoke test.
 - **Says what it is.** Every README opens with a title, a one-line tagline, then `**Kind:**` (one or two words), `**Run:**`, and `**Made by:**`, followed by *What it is*, *Why I made it*, *How it works*, an *Honest assessment* (claims labelled `[Certain]`, `[Likely]`, or `[Speculative]`), and *Where it could go next*.

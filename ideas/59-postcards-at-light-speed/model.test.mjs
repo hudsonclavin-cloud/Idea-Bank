@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import M from './model.js';
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8*Math.max(1,Math.abs(a),Math.abs(b)),`${a} differs from ${b}`);
+test('Lorentz transformation preserves the Minkowski interval',()=>{for(const v of [-.95,-.6,0,.4,.95])for(const p of Object.values(M.PRESETS)){const c=M.compare(p.a,p.b,v);near(c.lab.s2,c.moving.s2);assert.equal(c.lab.type,c.moving.type);}});
+test('opposite boost recovers every event',()=>{for(const v of [-.9,-.2,.3,.9])for(const e of [{x:2,t:4},{x:-3,t:-2},{x:0,t:1}]){const r=M.transform(M.transform(e,v),-v);near(r.x,e.x);near(r.t,e.t);}});
+test('spacelike stamps can reverse or synchronize without changing events',()=>{const {a,b}=M.PRESETS.apart;assert.equal(M.compare(a,b,0).order,'A before B');assert.equal(M.compare(a,b,.6).order,'B before A');assert.equal(M.compare(a,b,.25).order,'simultaneous');});
+test('timelike and lightlike ordering survives every sublight boost',()=>{for(const key of ['reply','light'])for(let i=-99;i<=99;i++){const p=M.PRESETS[key];assert.ok(M.compare(p.a,p.b,i/100).moving.dt>0);}});
+test('origin and coincident stamps remain one event',()=>{assert.deepEqual(M.transform({x:0,t:0},.5),{x:0,t:0});assert.equal(M.compare({x:1,t:2},{x:1,t:2},.4).lab.coincident,true);});
+test('guards reject light-speed observers and nonfinite coordinates',()=>{for(const v of [-1,1,2,NaN,Infinity])assert.throws(()=>M.gamma(v),RangeError);for(const e of [{x:NaN,t:0},{x:0,t:Infinity},{x:1001,t:0},null])assert.throws(()=>M.transform(e,.5),RangeError);});
+test('export contains both coordinate frames, no scripts or external assets',()=>{const p=M.PRESETS.apart,s=M.svg(M.compare(p.a,p.b,.6));assert.ok(s.includes('viewBox="0 0 820 420"'));assert.ok(s.includes('THE JETTY'));assert.ok(s.includes('THE TRAVELLER'));assert.equal(/<script|https?:\/\/(?!www.w3.org)/.test(s),false);});
