@@ -565,13 +565,15 @@ test('Draw it: an extra turn fails even when it is short, and a small wiggle tha
     return n;
   };
   let tried = 0;
+  // half-widths of the bumps, as a share of the period (so the bumps are 10% to 24% wide)
+  const halfWidths = [0.05, 0.08, 0.12];
   for (const it of SKETCHES.concat(GEN_SKETCHES)) {
     const { range } = panelOf(it);
     const w = it.time.to - it.time.from;
     const tr = turns(it);
     const ex = scan(it, 1200);
     const size = ex.max[1] - ex.min[1];
-    for (const hw of [0.05, 0.08, 0.12]) {
+    for (const hw of halfWidths) {
       for (const hh of [0.3, 0.5]) {
         for (let f = 0.1; f <= 0.9 + 1e-9; f += 0.1) {
           const tb = it.time.from + f * w;
@@ -588,6 +590,8 @@ test('Draw it: an extra turn fails even when it is short, and a small wiggle tha
     }
   }
   assert.ok(tried > 500, `only ${tried} bumped sketches tried`);
+  const bumpWidths = `a triangular bump ${Math.round(200 * Math.min(...halfWidths))}% to ${Math.round(200 * Math.max(...halfWidths))}% of the period wide added to the true curve of 30 sketches`;
+  assert.ok(README.includes(bumpWidths), `README does not say: ${bumpWidths}`);
   // a small wiggle on the right shape passes, but is circled and named, not passed in silence
   for (const it of SKETCHES) {
     const { range } = panelOf(it);
@@ -649,6 +653,212 @@ test('Draw it: an extra turn fails even when it is short, and a small wiggle tha
     const g = Tub.gradeSketch(it, drawn(it, (t) => level(it, t)), panelOf(it).range);
     assert.equal(g.minor.length, 0, `${it.id}: the true curve has minor turns`);
   }
+});
+
+test('Draw it: the light smoothing cuts an extra wiggle by about half between turns, and the README gives the sizes that pass', () => {
+  // The light copy, as the README describes it: the line at 121 times, then a moving
+  // average over 1.5% of the period either side.
+  const lightCopy = (it, path) => {
+    const p = path.slice().sort((a, b) => a[0] - b[0]);
+    const ys = drawn(it, (t) => lin(p, t)).map((q) => q[1]);
+    const h = Math.round(0.015 * 120);
+    return ys.map((_, i) => {
+      let s = 0;
+      let n = 0;
+      for (let j = Math.max(0, i - h); j <= Math.min(ys.length - 1, i + h); j++) {
+        s += ys[j];
+        n++;
+      }
+      return s / n;
+    });
+  };
+  // and the heavy copy, 4% of the period either side, where extra turns were looked for
+  // before the second check
+  const heavy = (ys) => ys.map((_, i) => {
+    let s = 0;
+    let n = 0;
+    for (let j = Math.max(0, i - 5); j <= Math.min(ys.length - 1, i + 5); j++) {
+      s += ys[j];
+      n++;
+    }
+    return s / n;
+  });
+  // turns by plain hysteresis at an absolute threshold, and the size of the smallest swing
+  // that makes more than `n` turns (how far the extra wiggle comes back)
+  const turnCount = (ys, th) => {
+    let k = 0;
+    let mode = 0;
+    let hi = ys[0];
+    let lo = ys[0];
+    let ext = ys[0];
+    for (const y of ys) {
+      if (mode === 0) {
+        hi = Math.max(hi, y);
+        lo = Math.min(lo, y);
+        if (hi - lo >= th) {
+          mode = y === hi ? 1 : -1;
+          ext = y;
+        }
+      } else if (mode === 1) {
+        if (y > ext) ext = y;
+        else if (ext - y >= th) {
+          k++;
+          mode = -1;
+          ext = y;
+        }
+      } else if (y < ext) ext = y;
+      else if (y - ext >= th) {
+        k++;
+        mode = 1;
+        ext = y;
+      }
+    }
+    return k;
+  };
+  const extraSwing = (ys, n) => {
+    let lo = 0;
+    let hi = Math.max(...ys) - Math.min(...ys);
+    if (turnCount(ys, 1e-9 * hi) <= n) return 0;
+    for (let k = 0; k < 40; k++) {
+      const m = (lo + hi) / 2;
+      if (turnCount(ys, m) > n) lo = m;
+      else hi = m;
+    }
+    return lo;
+  };
+  // 1. on a level stretch, a sharp V 8% of the period wide keeps about three quarters of
+  // how far it comes back, wherever it falls between the 121 times
+  const flat = { time: { from: 0, to: 1 } };
+  for (let off = 0; off < 1; off += 0.125) {
+    const a = 0.4 + off / 120;
+    const kept = -Math.min(...lightCopy(flat, [[0, 0], [a, 0], [a + 0.04, -1], [a + 0.08, 0], [1, 0]]));
+    assert.ok(kept >= 0.7 && kept <= 0.78, `level stretch: a V keeps ${kept.toFixed(3)}`);
+  }
+  // 2. between turns on the hand-made five: a sharp V drawn against the way the level goes
+  // (the true curve to A, straight to B at mid-width, `back` of the height the wrong way,
+  // straight back to the curve), at least 7% of the period from any crossing and inside
+  // the line's own height
+  const kept = [];
+  const heavyKept = [];
+  const tally = {};
+  let graded = 0;
+  let same = 0;
+  for (const it of SKETCHES) {
+    const { range } = panelOf(it);
+    const { from, to } = it.time;
+    const w = to - from;
+    const tr = turns(it);
+    const ex = scan(it, 1200);
+    const lo = ex.min[1];
+    const hi = ex.max[1];
+    const size = hi - lo;
+    for (let f = 0.05; f <= 0.9 + 1e-9; f += 0.025) {
+      for (const width of [0.04, 0.08]) {
+        const a = from + f * w;
+        const c = a + width * w;
+        if (c > to - 0.03 * w || !tr.every((t) => t < a - 0.07 * w || t > c + 0.07 * w)) continue;
+        const yA = level(it, a);
+        const yC = level(it, c);
+        const sg = Math.sign(yC - yA) || 1;
+        for (const back of [0.15, 0.2, 0.25, 1 / 3]) {
+          const yB = yA - sg * back * size;
+          if (yB < lo || yB > hi) continue;
+          const V = drawn(it, (t) => level(it, t))
+            .filter(([t]) => t < a || t > c)
+            .concat([[a, yA], [(a + c) / 2, yB], [c, yC]]);
+          const g = Tub.gradeSketch(it, V, range);
+          const key = `${width}|${back.toFixed(2)}`;
+          tally[key] = tally[key] || { n: 0, ok: 0 };
+          tally[key].n++;
+          if (g.ok) tally[key].ok++;
+          const L = lightCopy(it, V);
+          const swing = extraSwing(L, tr.length);
+          // the copy here is the grader's: it finds an extra turn where this one comes back by a tenth
+          graded++;
+          if (swing >= 0.1 * (Math.max(...L) - Math.min(...L)) === g.extra.length > 0) same++;
+          if (width === 0.08 && back === 0.15) kept.push(swing / (back * size));
+          if (width === 0.08 && back === 0.2) heavyKept.push(extraSwing(heavy(drawn(it, (t) => lin(V.slice().sort((x, y) => x[0] - y[0]), t)).map((q) => q[1])), tr.length) / (back * size));
+        }
+      }
+    }
+  }
+  assert.ok(graded > 500 && same >= 0.95 * graded, `the light copy here and the grader's disagree on ${graded - same} of ${graded}`);
+  kept.sort((x, y) => x - y);
+  const med = kept[kept.length >> 1];
+  assert.ok(kept.length > 50 && med >= 0.4 && med <= 0.6, `between turns an 8% V keeps a median ${med.toFixed(3)} of how far it comes back (${kept.length} places)`);
+  // the heavy copy roughly halves such a V on a level stretch, and between turns takes
+  // off most of it
+  for (const width of [0.08, 0.1]) {
+    const flatV = drawn(flat, (t) => lin([[0, 0], [0.4, 0], [0.4 + width / 2, -1], [0.4 + width, 0], [1, 0]], t)).map((q) => q[1]);
+    const keptFlat = -Math.min(...heavy(flatV));
+    assert.ok(keptFlat >= 0.4 && keptFlat <= 0.6, `heavy smoothing, level stretch: a ${width} V keeps ${keptFlat.toFixed(3)}`);
+  }
+  assert.ok(heavyKept.length > 50 && heavyKept.filter((x) => x < 0.5).length >= 0.9 * heavyKept.length, `heavy smoothing between turns keeps half or more of an 8% V in ${heavyKept.filter((x) => x >= 0.5).length} of ${heavyKept.length} places`);
+  // 3. the sizes that pass: an 8%-wide V passes in some places at a fifth and hardly
+  // anywhere at a quarter; a 4%-wide spike usually passes at a quarter and sometimes at a third
+  const share = (k) => tally[k].ok / tally[k].n;
+  assert.ok(tally['0.08|0.15'].n > 50 && share('0.08|0.15') >= 0.9, `8% V at 15%: ${share('0.08|0.15')}`);
+  assert.ok(tally['0.08|0.20'].ok >= 5 && share('0.08|0.20') <= 0.6, `8% V at a fifth: ${tally['0.08|0.20'].ok} of ${tally['0.08|0.20'].n}`);
+  assert.ok(tally['0.08|0.25'].n > 50 && share('0.08|0.25') <= 0.05, `8% V at a quarter: ${tally['0.08|0.25'].ok} of ${tally['0.08|0.25'].n} pass`);
+  // Places a fortieth of the period apart miss the few where an 8% V passes at a quarter
+  // (the sixth check found them). On places a thousandth of the period apart, a very few
+  // pass, all on the theme park, and none at 26%, drawn against the level or past it.
+  const scans = new Map();
+  const fineV = (it, a, back, mode) => {
+    const { from, to } = it.time;
+    const w = to - from;
+    if (!scans.has(it.id)) scans.set(it.id, { ex: scan(it, 1200), curve: drawn(it, (t) => level(it, t)) });
+    const { ex, curve } = scans.get(it.id);
+    const size = ex.max[1] - ex.min[1];
+    const c = a + 0.08 * w;
+    const yA = level(it, a);
+    const yC = level(it, c);
+    const sg = Math.sign(yC - yA) || 1;
+    const yB = mode === 'with' ? yC + sg * back * size : yA - sg * back * size;
+    if (yB < ex.min[1] || yB > ex.max[1]) return null;
+    const V = curve.filter(([t]) => t < a || t > c).concat([[a, yA], [(a + c) / 2, yB], [c, yC]]);
+    return Tub.gradeSketch(it, V, panelOf(it).range).ok;
+  };
+  const park = Bank.byId['theme-park'];
+  assert.equal(fineV(park, 10.0705, 0.25, 'against'), true, 'the theme-park V from 10:04 to 11:03, back by a quarter, passes');
+  assert.equal(fineV(park, 10.0705, 0.26, 'against'), false, 'the theme-park V back by 26% fails');
+  const fine = { n: 0, ok: 0, where: new Set(), over: 0 };
+  for (const it of SKETCHES) {
+    const { from, to } = it.time;
+    const w = to - from;
+    const tr = turns(it);
+    for (let k = 50; k <= 900; k++) {
+      const a = from + (k / 1000) * w;
+      const c = a + 0.08 * w;
+      if (c > to - 0.03 * w || !tr.every((t) => t < a - 0.07 * w || t > c + 0.07 * w)) continue;
+      const r = fineV(it, a, 0.25, 'against');
+      if (r !== null) {
+        fine.n++;
+        if (r) {
+          fine.ok++;
+          fine.where.add(it.id);
+        }
+      }
+      for (const mode of ['against', 'with']) if (fineV(it, a, 0.26, mode)) fine.over++;
+    }
+  }
+  assert.ok(fine.n > 1500 && fine.ok >= 1 && fine.ok <= 0.01 * fine.n, `8% V at a quarter, fine places: ${fine.ok} of ${fine.n} pass`);
+  assert.deepEqual([...fine.where], ['theme-park'], 'only on the theme park does an 8% V pass at a quarter');
+  assert.equal(fine.over, 0, `an 8% V passes at 26% in ${fine.over} fine places`);
+  assert.ok(tally['0.04|0.25'].n > 50 && share('0.04|0.25') >= 0.75, `4% spike at a quarter: ${share('0.04|0.25')}`);
+  assert.ok(tally['0.04|0.33'].ok >= 5 && share('0.04|0.33') <= 0.6, `4% spike at a third: ${tally['0.04|0.33'].ok} of ${tally['0.04|0.33'].n}`);
+  // 4. the README says so, in the Draw-it bullet and the honest assessment, and no longer
+  // gives the level-stretch figure alone
+  for (const s of [
+    'a sharp V 8% of the period wide keeps about three quarters of how far it comes back on a level stretch, but only about half between turns',
+    'takes off about a quarter of a sharp wiggle 8% of the period wide on a level stretch, but about half between turns',
+    'a symmetric V 8% of the period wide passes in some places at a fifth of the height, and a spike 4% wide usually passes at a quarter',
+    'Those are the largest found, not limits.',
+    'which roughly halves a wiggle 8–10% of the period wide on a level stretch, and takes off most of one between turns',
+  ])
+    assert.ok(README.includes(s), `README does not say: ${s}`);
+  for (const s of ['somewhat larger than a tenth', 'keeps about three quarters of its depth through that light smoothing', 'about a quarter of a sharp wiggle 8% of the period wide, and more', 'though nowhere at a quarter', 'none passes beyond about 25% of the height'])
+    assert.ok(!README.includes(s), `README still says: ${s}`);
 });
 
 test('the numbers stated in the stories match the curves', () => {
