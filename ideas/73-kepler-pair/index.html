@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Kepler Pair</title>
+<meta name="description" content="Two printable gears whose shapes are Kepler's second law: turn one steadily, as time goes, and the other carries a planet round its orbit at Kepler's pace.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#machine">Skip to the machine</a>
+<header class="masthead">
+  <p class="kicker">Idea Bank · 73 · printable mechanism</p>
+  <h1>The Kepler Pair</h1>
+  <p class="tagline">Two printable gears whose shapes are Kepler's second law. Turn one steadily, as time goes, and the other carries Mercury round its orbit, 1.55 times its average speed at perihelion and 0.67 at aphelion. Kepler's equation has no closed-form answer; the wheels give it by their shape.</p>
+</header>
+
+<main>
+<section class="bench" aria-label="The machine">
+  <figure class="stage">
+    <svg id="machine" tabindex="0" role="slider" aria-label="The machine. Drag either wheel, or use the arrow keys to turn it" aria-valuemin="0" aria-valuemax="88" aria-valuenow="0" aria-valuetext="perihelion" viewBox="-175 -60 190 120" preserveAspectRatio="xMidYMid meet"></svg>
+    <figcaption class="stage-cap"><span class="legend"><span class="key"><span class="sw-dot sw-time"></span>time wheel, with the knob</span> <span class="key"><span class="sw-dot sw-kepler"></span>Kepler wheel, on the Sun's peg</span></span><span id="cut-status" aria-live="polite">Cutting teeth…</span><span class="keys">Drag a wheel. Keys: ← → a tenth of a dot, PgUp PgDn a dot, Home perihelion, End aphelion.</span></figcaption>
+  </figure>
+
+  <div class="side">
+    <div class="buttons" role="group" aria-label="Turn the knob">
+      <button type="button" id="back" aria-label="Back one dot">◀ one dot</button>
+      <button type="button" id="fwd" aria-label="On one dot">one dot ▶</button>
+      <button type="button" id="run" aria-pressed="false">Turn steadily</button>
+      <button type="button" id="today">Set to today</button>
+    </div>
+    <dl class="read" id="read" aria-live="polite">
+      <div><dt>Time since perihelion</dt><dd id="r-time">—</dd></div>
+      <div><dt>Round from perihelion</dt><dd id="r-angle">—</dd></div>
+      <div><dt>Moving at</dt><dd id="r-speed">—</dd></div>
+      <div><dt>Wheels touching at</dt><dd id="r-contact">—</dd></div>
+    </dl>
+    <p class="today" id="today-note" aria-live="polite"></p>
+    <fieldset class="ghosts">
+      <legend>Also show</legend>
+      <label><input type="checkbox" id="g-uniform" checked> <span class="sw sw-uniform"></span> where a planet moving evenly round a circle would be</label>
+      <label><input type="checkbox" id="g-ellipse" checked> <span class="sw sw-ellipse"></span> where two identical elliptical gears (the old shortcut) would put it</label>
+      <label><input type="checkbox" id="g-pitch"> the pitch curves the teeth are cut on</label>
+      <label><input type="checkbox" id="g-sweep" checked> <span class="sw sw-sweep"></span> the area swept in the last dot</label>
+    </fieldset>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="h-how">
+  <h2 id="h-how">What the gears are doing</h2>
+  <p>A planet sweeps out equal areas in equal times, so it speeds up near the Sun. Its angle round from perihelion, <i>θ</i>, is tied to time only through Kepler's equation, <i>M</i> = <i>E</i> − <i>e</i> sin <i>E</i>, which has no closed-form solution for <i>θ</i>. A pair of gears can turn one into the other anyway. Where the two wheels touch, the ratio of their radii is the ratio of their speeds. Cut the wheels so that, at every point of the turn, that ratio is the planet's speed relative to its average, (1 + <i>e</i> cos <i>θ</i>)² / (1 − <i>e</i>²)<sup>3/2</sup>, and keep the two radii adding up to the distance between the pegs. Then, while the time wheel turns evenly, the other wheel's angle is Kepler's: exactly, for the ideal curves, and to within the play of the printed teeth and pegs for the real ones. No series, no iteration: the solution is the shape.</p>
+  <p>The dots on the plate are equal steps of time. Round the knob they are evenly spaced; round the Sun they lie on the orbit, bunched at aphelion and spread at perihelion, and each neighbouring pair encloses the same area with the Sun. Turn the knob until a time dot shows in its window; the planet's window then shows the matching orbit dot.</p>
+  <p class="note">The trick is old. Since 1732, cometaria have shown a planet's uneven speed with two elliptical wheels joined by a cord, which does not follow Kepler's law exactly; Carl Zeiss patented non-circular wheels for Kepler's motion in planetarium projectors in 1965. What this page adds is a pair you can print, with its clearances taken from a fit table and its reading error estimated in code.</p>
+  <figure class="chart">
+    <svg id="chart" viewBox="0 0 640 300" role="img" aria-labelledby="chart-cap"></svg>
+    <figcaption id="chart-cap">How far each machine is from Kepler over one orbit, in degrees round the Sun: the even circle (dashed), the elliptical gears (purple) and, shaded, the largest error found at each dot for the printed pair at these settings, with each wheel anywhere its bore allows and the dots read centred in their windows. The upright line marks now.</figcaption>
+  </figure>
+  <p class="note" id="chart-note"></p>
+</section>
+
+<section class="card" aria-labelledby="h-sky">
+  <h2 id="h-sky">Against the sky</h2>
+  <p>The law the wheels are cut to is the two-body ellipse, with each orbit's eccentricity and period. JPL's DE441 ephemeris, which includes every planet's pull, gives where each body really was at the times of the dots, seen from the Sun. The two agree to within:</p>
+  <div class="tablewrap"><table id="sky-table"><thead><tr><th>Body</th><th>Compared over</th><th>Largest difference at a dot</th></tr></thead><tbody></tbody></table></div>
+  <p class="note">So the law is good to arcminutes. The printed pair is good to a few degrees, which is what the chart above shows. Nearly all of its error is the play between the wheels and their pegs.</p>
+</section>
+
+<section class="card make" aria-labelledby="h-make" id="make">
+  <h2 id="h-make">Print one</h2>
+  <form class="settings" id="settings" autocomplete="off">
+    <fieldset class="bodies">
+      <legend>Orbit</legend>
+      <label><input type="radio" name="body" value="mercury" checked> Mercury</label>
+      <label><input type="radio" name="body" value="mars"> Mars</label>
+      <label><input type="radio" name="body" value="earth"> Earth</label>
+      <label><input type="radio" name="body" value="pluto"> Pluto</label>
+    </fieldset>
+    <label class="field" for="size">Distance between the pegs <output id="size-out" for="size">70 mm</output>
+      <input type="range" id="size" name="size" min="62" max="74" step="2" value="70"></label>
+    <fieldset class="bores">
+      <legend>Bore clearance (per side; use the smallest ring on your coupon that spins freely)</legend>
+      <label><input type="radio" name="bore" value="0.5" checked> 0.5 mm</label>
+      <label><input type="radio" name="bore" value="0.6"> 0.6 mm</label>
+      <label><input type="radio" name="bore" value="0.7"> 0.7 mm</label>
+    </fieldset>
+  </form>
+  <div class="downloads" role="group" aria-label="Download STL files">
+    <button type="button" data-part="coupon">1 · Calibration coupon</button>
+    <button type="button" data-part="base">2 · Base plate</button>
+    <button type="button" data-part="time">3 · Time wheel</button>
+    <button type="button" data-part="kepler">4 · Kepler wheel</button>
+  </div>
+  <p class="note" id="dl-note">Binary STL in millimetres, made in this page from the settings above. Nothing is sent anywhere.</p>
+  <dl class="stats" id="stats"></dl>
+  <h3>Printing and putting it together</h3>
+  <ol class="steps">
+    <li>Print the coupon first (PLA, 0.2 mm layers, no supports). Drop each ring on the peg: one notch is 0.5 mm, two 0.6, three 0.7. Choose the smallest that spins freely with a flick, and set the bore above to match.</li>
+    <li>Print the base plate and both wheels flat, as they lie in the files: 0.2 mm layers, 3 perimeters, no supports, no brim, and no skirt: on a 180 mm bed a slicer's usual skirt, 6 mm out, runs off the edge with the larger plates, the default's among them. Use 15–20% infill for the plate and the time wheel, and print the Kepler wheel at 100% infill: its counterweight only balances it if it is solid. For dark dots, change filament at the layer that starts at 2.4 mm: the dot floors stay the first colour.</li>
+    <li>Turn the Kepler wheel (the one with the collar) so its spoke points at the doubled orbit dot, and drop it on the Sun's peg. Turn the time wheel so its spoke points at the doubled time dot and lower it onto the other peg, nudging the knob until the teeth slip in. If the spokes are not both on their doubled dots, lift the time wheel and seat it again: one tooth out, the pair jams or jumps a tooth within a turn.</li>
+    <li>Turn the knob clockwise. Each dot under the knob's window is a step of time; the planet's window shows where the planet is.</li>
+  </ol>
+  <p class="note">This design has not been printed yet. The tests prove the geometry; only a printer can prove the fit.</p>
+</section>
+
+<section class="card coda" aria-labelledby="h-felt">
+  <h2 id="h-felt">The part you have to turn</h2>
+  <p>For Mercury, the arithmetic says the planet wheel runs 1.55 times as fast as the knob at perihelion. Turning the knob at an even pace, I expect what you notice to be something else: the other wheel suddenly hurrying away round perihelion while your hand keeps its pace, then dawdling round the far side. You will see it more than feel it, since the planet wheel is light and pushes back on the knob hardly at all. Kepler found that law by years of arithmetic on Tycho Brahe's observations of Mars. If the wheels work as drawn, they show it in a few seconds; no one has turned a printed pair yet.</p>
+</section>
+</main>
+
+<footer class="foot">
+  <p>The model, the tests and the sources are in <a href="README.md">README.md</a>. Positions from JPL Horizons (DE441); orbits from Standish &amp; Williams (1992).</p>
+</footer>
+
+<script src="mesh.js"></script>
+<script src="kepler.js"></script>
+<script src="sky.js"></script>
+<script src="budget.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
