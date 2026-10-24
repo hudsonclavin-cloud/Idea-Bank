@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Does the River Spring Forward?</title>
+<meta name="description" content="Arizona doesn't change its clocks. The Colorado at Lees Ferry rises and falls with the electricity demand of states that change theirs. When their clocks jump an hour, does the river? A pre-registered test on eighteen years of USGS readings.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">Lees Ferry, Arizona &middot; USGS gauge 09380000 &middot; 2008&ndash;2025</p>
+  <h1>Does the River Spring Forward?</h1>
+  <p class="lede">Arizona keeps its clocks still all year. About fifteen river miles above Lees Ferry, Glen Canyon Dam lets water through its turbines when the West wants electricity, so the Colorado here rises and falls daily like a tide. The power is sold to towns, co-ops and tribes in Arizona and in at least five other western states, all of which change their clocks, and Utah begins nine miles north of the gauge. When those clocks spring forward an hour, does the river?</p>
+  <div class="answer" id="answer">
+    <p class="answer-label">The short answer</p>
+    <p class="answer-text">Not by an hour. The test I registered before running it on this river puts the move at <strong><span data-k="lees.Kc.mean">&hellip;</span> minutes</strong> (95% interval <span data-k="lees.Kc.lo">&hellip;</span> to <span data-k="lees.Kc.hi">&hellip;</span>), against 60 for a river that keeps the clock. The rule I wrote down in advance calls that <em>keeps standard time</em>, but the label means only that the interval comes within ten minutes of zero and stops more than ten short of sixty: it still allows over half an hour. Looked at more closely afterwards, the March days move about <span data-k="lees.springAbs">&hellip;</span> minutes earlier, and cuts of the record that leave out the dam&rsquo;s experiments put the whole move at about 20 to 30 minutes, between a third and a half of the hour.</p>
+  </div>
+</header>
+
+<main>
+
+<section id="clocks" aria-labelledby="h-clocks">
+  <h2 id="h-clocks">Two clocks, one river</h2>
+  <p>The average March day at Lees Ferry, 2008&ndash;2025: the fourteen days before the clocks change and the fourteen after, each year&rsquo;s rise and fall scaled to the same size so the curve shows <em>when</em> the water is high, not how high. The flat line is the day&rsquo;s average.</p>
+  <div class="seg" role="group" aria-label="Which two weeks">
+    <button type="button" class="seg-btn" data-phase="before" aria-pressed="true">Before the change</button>
+    <button type="button" class="seg-btn" data-phase="after" aria-pressed="false">After the change</button>
+  </div>
+  <figure class="clocks-fig">
+    <div class="clock-pair">
+      <div class="clock-card">
+        <svg id="clockAZ" class="clock" viewBox="0 0 120 120" role="img" aria-label="Arizona clock"></svg>
+        <p class="clock-name">Arizona</p>
+        <p class="clock-sub">Lees Ferry, Page, the dam</p>
+        <p class="clock-time" id="timeAZ">&hellip;</p>
+      </div>
+      <div class="clock-card">
+        <svg id="clockUT" class="clock clock-ut" viewBox="0 0 120 120" role="img" aria-label="Utah clock"></svg>
+        <p class="clock-name">Utah</p>
+        <p class="clock-sub">nine miles north</p>
+        <p class="clock-time" id="timeUT">&hellip;</p>
+      </div>
+    </div>
+    <div class="dayplot-wrap"><svg id="dayplot" class="dayplot" role="img" aria-label="The average March day at Lees Ferry before and after the clock change"></svg></div>
+    <figcaption id="clockCaption" aria-live="polite">&hellip;</figcaption>
+  </figure>
+  <p class="note">The clocks point to the moment the river climbs past its daily average in the morning. By an Arizona watch that moment came <span data-k="lees.upEarlier">&hellip;</span> minutes earlier after the change; by a Utah watch, <span data-k="lees.upLaterUT">&hellip;</span> minutes later. Had the river kept Utah&rsquo;s clock, the Utah watch would have shown no change at all. The rest of the average day moved with the morning: the overnight low <span data-k="lees.lowEarlier">&hellip;</span> minutes earlier, the afternoon fall <span data-k="lees.fallEarlier">&hellip;</span>, the evening rise <span data-k="lees.eveEarlier">&hellip;</span>, and the day lined up as a whole <span data-k="lees.avgShiftAbs">&hellip;</span>. Only the broad, flat top of the evening high water moved less, <span data-k="lees.crestMoved">&hellip;</span> minutes, and where a flat top sits is poorly fixed. So, in fact, is everything in the evening, where the curve hugs its average: resampled over the years, the evening&rsquo;s features could have moved much more or hardly at all, while the morning rise and the overnight low stay sharply fixed (the README has the numbers).</p>
+</section>
+
+<section id="raster" aria-labelledby="h-raster">
+  <h2 id="h-raster">Every day, two weeks either side</h2>
+  <p>One row per day, from fourteen days before the change (top) to fourteen after (bottom); one column per hour; the bluer a cell, the higher the water against that day&rsquo;s average. Pick a year or the average of all eighteen. A river that kept Utah&rsquo;s time would run straight down on Utah&rsquo;s clock and jog an hour sideways on Arizona&rsquo;s.</p>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Season">
+      <button type="button" class="seg-btn" data-season="spring" aria-pressed="true">March</button>
+      <button type="button" class="seg-btn" data-season="fall" aria-pressed="false">November</button>
+    </div>
+    <div class="seg" role="group" aria-label="Clock">
+      <button type="button" class="seg-btn" data-clock="az" aria-pressed="true">Arizona clock</button>
+      <button type="button" class="seg-btn" data-clock="ut" aria-pressed="false">Utah clock</button>
+    </div>
+    <label class="select-label">Year
+      <select id="yearSel"><option value="all">All 18, averaged</option></select>
+    </label>
+  </div>
+  <figure class="raster-fig">
+    <canvas id="rasterCanvas" role="img" aria-label="Days before and after the clock change at Lees Ferry, hour by hour"></canvas>
+    <figcaption id="rasterCaption">&hellip;</figcaption>
+  </figure>
+</section>
+
+<section id="registered" aria-labelledby="h-registered">
+  <h2 id="h-registered">The answer I committed to</h2>
+  <p>For each year I measure how far the shape of the day moved at the March change and at the November change, in minutes of standard time. A river that keeps clock time moves 60 minutes earlier in March and 60 later in November, so <em>K</em> = (November &minus; March)&nbsp;/&nbsp;2 comes to 60. A river that keeps standard time comes to 0. To take out slow seasonal drift, the registered statistic, <em>K<sub>c</sub></em>, subtracts the same measurement at two fake changes five weeks before and five weeks after, when no clock moved. Its interval over the eighteen years is judged with ten minutes of slack either side of 0 and 60.</p>
+  <div class="verdict">
+    <p class="verdict-big"><span data-k="lees.Kc.mean">&hellip;</span> <span class="unit">min</span></p>
+    <p class="verdict-text">Lees Ferry, 2008&ndash;2025: <em>K<sub>c</sub></em> 95% interval <span data-k="lees.Kc.lo">&hellip;</span> to <span data-k="lees.Kc.hi">&hellip;</span> minutes. By the rule written down in advance: <strong data-k="lees.verdictCorrected">&hellip;</strong>. In that rule&rsquo;s words, <em>keeps standard time</em> means only that the interval reaches within ten minutes of zero and stops more than ten short of sixty; this one still allows <span data-k="lees.Kc.hi">&hellip;</span> minutes.</p>
+  </div>
+  <div class="seg" role="group" aria-label="Which statistic">
+    <button type="button" class="seg-btn" data-stat="Kc" aria-pressed="true">Registered (<em>K<sub>c</sub></em>)</button>
+    <button type="button" class="seg-btn" data-stat="K" aria-pressed="false">Uncorrected (<em>K</em>)</button>
+  </div>
+  <figure class="forest-fig">
+    <div id="forest" class="forest"></div>
+    <figcaption>Each line is one river: the dot is the mean over the years, the bar its 95% interval. The shaded bands are the decision rule: within ten minutes of 0 (keeps standard time) and of 60 (keeps clock time). The controls were chosen for what they should show. Flaming Gorge was added after the first method failed.</figcaption>
+  </figure>
+  <p>The controls do what they should where the daily pattern is regular. Tucson&rsquo;s treated wastewater in the Santa Cruz (<span data-k="santacruz.Kc">&hellip;</span>) and the Sun warming the Delaware (<span data-k="delaware.Kc">&hellip;</span>) come out near zero with narrow intervals. The Salt below an Arizona dam gets the same label, but its intervals reach <span data-k="salt.Kc.hi">&hellip;</span> and <span data-k="salt.K.hi">&hellip;</span>, so it shows only that the method does not invent a whole hour there. The two rivers that ought to keep clock time both came out <em>cannot tell</em>: Buford Dam in Georgia at <span data-k="buford.Kc.mean">&hellip;</span> and the Trinity below Dallas at <span data-k="trinity.Kc.mean">&hellip;</span>, each with an interval running from near zero to past sixty. So this test can say that a river does not keep the whole hour, and Lees Ferry&rsquo;s interval stops at <span data-k="lees.Kc.hi">&hellip;</span>; it is weak at saying that a river does.</p>
+</section>
+
+<section id="law" aria-labelledby="h-law">
+  <h2 id="h-law">Same dates, other years</h2>
+  <p>In 2007 Congress moved the clock changes from the first Sunday of April and the last Sunday of October to the second Sunday of March and the first Sunday of November. So the same calendar dates can be compared in years when the clocks changed on them and years when they did not, which cancels anything tied to the calendar, like a release volume that changes on the first of the month. I registered this as a supporting test.</p>
+  <p>It has a flaw I didn&rsquo;t see when I registered it. The last Sunday of October and the first Sunday of November are always exactly a week apart, so the fortnight on one side of whichever fall date was not a change date holds the other rule&rsquo;s real change. A river that kept clock time would not score 60 in both columns, as I first wrote. A simulated one, built from Lees Ferry&rsquo;s average days with day-to-day noise set so its median days are as alike as Lees Ferry&rsquo;s (coherence <span data-k="clock.coh">&hellip;</span> against <span data-k="lees.coh">&hellip;</span>), scores about <span data-k="clock.atNew">&hellip;</span> and <span data-k="clock.atOld">&hellip;</span>. A river that keeps standard time scores 0 in both, overlap or not.</p>
+  <div class="table-wrap">
+    <table class="law-table">
+      <thead><tr><th scope="col">River</th><th scope="col">March &amp; November dates<br><span class="th-sub">2008&ndash;25 minus 1990&ndash;2006</span></th><th scope="col">April &amp; October dates<br><span class="th-sub">1990&ndash;2006 minus 2008&ndash;25</span></th></tr></thead>
+      <tbody id="lawBody"></tbody>
+    </table>
+  </div>
+  <p>At the March and November dates the test still tells the two dams apart: Buford moves <span data-k="buford.lawNew">&hellip;</span> minutes, above even the simulated clock-keeper, and Lees Ferry <span data-k="lees.lawNew">&hellip;</span>. At the April and October dates they seem to swap places, and part of that is the overlap. In 2008&ndash;2025 Buford&rsquo;s late-October fortnight, which holds the real change a week later, steps <span data-k="buford.lateOct">&hellip;</span> minutes though no clock changed that day; the simulated clock-keeper steps about <span data-k="clock.lateOct">&hellip;</span> there.</p>
+  <p>Two comparisons escape the overlap: each era at its own change dates, and the spring steps alone, since the spring dates are three or four weeks apart.</p>
+  <div class="table-wrap">
+    <table class="law-table">
+      <thead><tr><th scope="col">River, <em>K</em> at the real changes</th><th scope="col">1990&ndash;2006<br><span class="th-sub">April &amp; October</span></th><th scope="col">2008&ndash;2025<br><span class="th-sub">March &amp; November</span></th></tr></thead>
+      <tbody id="eraBody"></tbody>
+    </table>
+  </div>
+  <p>For Lees Ferry both say the same thing. At the April and October changes of 1990&ndash;2006 it moved <span data-k="lees.oldEraK">&hellip;</span> minutes, about half the hour (the rule&rsquo;s words for that interval: <em data-k="lees.oldEraVerdict">&hellip;</em>), and much less at the March and November changes since. By the spring steps alone, it moved <span data-k="lees.springOld">&hellip;</span> earlier at the April dates in the years they were change dates than in the years they weren&rsquo;t, and <span data-k="lees.springNew">&hellip;</span> at the March dates. I read these after the fact, without the placebo correction, and the 1990s may be a poor baseline: the interim flows of 1991&ndash;96, the 1996 flood (in the fortnight before the April 1996 change) and high flows in November 1997 and 2004 all fall inside them. So either the river followed the clock more closely before 2007, or that decade misleads. I don&rsquo;t know which.</p>
+</section>
+
+<section id="seasons" aria-labelledby="h-seasons">
+  <h2 id="h-seasons">March and November, apart</h2>
+  <p class="flag">Everything in this section was looked at after the registered result was known. It is a lead, not a finding.</p>
+  <p>Each dot is one year&rsquo;s step at Lees Ferry: how far the median day moved, in minutes of standard time, when the clocks changed. A river keeping clock time would sit at &minus;60 in March and +60 in November. Choose a dot to see that year&rsquo;s two median days.</p>
+  <figure class="strip-fig">
+    <div id="strip" class="strip"></div>
+    <figcaption id="stripCaption">&hellip;</figcaption>
+  </figure>
+  <figure class="pair-fig">
+    <svg id="pairplot" class="pairplot" role="img" aria-label="One year's median day before and after the change"></svg>
+    <figcaption id="pairCaption" aria-live="polite">&hellip;</figcaption>
+  </figure>
+  <p>In March the day moved earlier in <span data-k="lees.springEarlier">&hellip;</span> of the 18 years, by <span data-k="lees.springAbs">&hellip;</span> minutes on average (95% interval <span data-k="lees.springRange">&hellip;</span> minutes earlier). Five weeks before and after, when nothing happened to the clocks, the March-season steps average <span data-k="lees.plSpringA">&hellip;</span> and <span data-k="lees.plSpringB">&hellip;</span>. On the same March dates in 1990&ndash;2006, before they were clock-change dates, the step averages <span data-k="lees.oldMarch">&hellip;</span>. So something in March moves about a third of the hour with the clocks.</p>
+  <p>November is a mess, and I found out why only afterwards. From 2008 to 2012 Reclamation ran steady flows through September and October, an experiment meant to help native fish, so in most of those years the two weeks before the November change have almost no daily rise and fall to line up, and their steps are noise. Later Novembers hold other experiments: a high-flow release in the two weeks after the change in 2013, 2014, 2016 and 2018, whose steps average <span data-k="lees.hfFall">&hellip;</span>; and after the 2024 change most of the daily rise and fall is gone, most likely because of the colder &ldquo;cool mix&rdquo; releases Reclamation ran from July to mid-November that year. Two Marches hold some too: a high-flow release before the 2008 change, steady releases after the 2021 one.</p>
+  <p>Leaving out 2008&ndash;2012, <em>K</em> is <span data-k="lees.after2012K">&hellip;</span> and <em>K<sub>c</sub></em> <span data-k="lees.after2012Kc">&hellip;</span>. Keeping only the eight years whose Novembers hold none of these, <em>K</em> is <span data-k="lees.quietNovK">&hellip;</span> and <em>K<sub>c</sub></em> <span data-k="lees.quietNovKc">&hellip;</span>; dropping 2021 as well, <span data-k="lees.quietK">&hellip;</span> and <span data-k="lees.quietKc">&hellip;</span>. I chose all of these cuts after seeing the data, and on so few years the rule&rsquo;s labels for the three <em>K<sub>c</sub></em> intervals swing from <em data-k="lees.after2012Kc.verdict">&hellip;</em> to <em data-k="lees.quietNovKc.verdict">&hellip;</em> to <em data-k="lees.quietKc.verdict">&hellip;</em>. Their centres are steadier: about 20 to 30 minutes, between a third and a half of the hour.</p>
+</section>
+
+<section id="first" aria-labelledby="h-first">
+  <h2 id="h-first">The method that failed first</h2>
+  <p>My first registered method gave each day one number: the time of day its 24-hour wave crests. A robust regression then looked for a step in that crest time on the night of the change. It works on a river whose day has one smooth wave, and on synthetic rivers it was within a few minutes. It fails at a peaking dam, because a dam can run a morning block one day and an evening block the next, and the crest jumps twelve hours. Run as registered it said <em>cannot tell</em> for Lees Ferry and for both positive controls. I wrote the second method, chose it from six variants by how they did on the controls, registered it, and only then ran it on Lees Ferry. The first method&rsquo;s numbers are below; the page recomputes them from the bundled data, a river at a time.</p>
+  <button type="button" id="runFirst" class="btn">Run the first method</button>
+  <p id="firstStatus" class="note" aria-live="polite"></p>
+  <div class="table-wrap"><table class="first-table" id="firstTable" hidden><thead><tr><th scope="col">River</th><th scope="col"><em>K</em>, minutes (95% interval)</th><th scope="col">Verdict</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="when" aria-labelledby="h-when">
+  <h2 id="h-when">What I knew, and when</h2>
+  <p>This entry was built in two sessions. The first wrote the pre-registration, fetched the data and ran both methods, then hit a usage limit before it made a page. The second read the first&rsquo;s log and finished it. Times are UTC on 23 October 2026, from that log.</p>
+  <ol class="timeline">
+    <li><span class="t">22:39</span> A connection test shows 22 readings at Lees Ferry, 00:00 to 05:15 on 1 March 2015. Nothing near a clock change.</li>
+    <li><span class="t">22:45</span> Part 1 of <a href="PREREGISTRATION.md">the pre-registration</a>: the question, the guess (&ldquo;most of the hour, perhaps 40 to 60 minutes&rdquo;), six rivers, the first method, the decision rule.</li>
+    <li><span class="t">22:55</span> Amendment 1, after synthetic tests and before any river data: new weights, a robust start, ten minutes of slack.</li>
+    <li><span class="t">23:01</span> Note 2: the data now come from the USGS OGC API (the old service was refusing). The note says &ldquo;about 23:15&rdquo;; the log says 23:01.</li>
+    <li><span class="t">23:03</span> The first method runs on all six rivers, Lees Ferry included: <em>cannot tell</em> there, and the controls fail.</li>
+    <li><span class="t">23:04</span> Six variants of a second method tried on the five controls only.</li>
+    <li><span class="t">23:20</span> The chosen variant and the placebo correction run on the five controls.</li>
+    <li><span class="t">23:21</span> Part 2 of the pre-registration, then the second method runs on Lees Ferry and Flaming Gorge. Lees Ferry: <em>keeps standard time</em>.</li>
+    <li><span class="t">23:22</span> Exploratory looks: placebos, average days, March and November apart.</li>
+    <li><span class="t">23:26</span> The first session stops.</li>
+    <li><span class="t">24 Oct</span> The second session reproduces the second method&rsquo;s numbers in separate Python code from the raw downloads. It also fixes two defects: rounding in the stored profiles, and a flat day scored as &minus;180. It finds the steady-flow experiment and builds this page.</li>
+    <li><span class="t">24 Oct</span> An independent review re-derives every number from the raw downloads. This version moves the clock times, which read 7.5 minutes late, and corrects four readings of the results: what a clock-keeper scores in the law test, the evening, the label <em>keeps standard time</em>, and the other experiments in the windows. The README&rsquo;s revision note lists them.</li>
+  </ol>
+</section>
+
+<section id="there" aria-labelledby="h-there">
+  <h2 id="h-there">Standing at the ramp</h2>
+  <p>A river below a dam is a record of other people&rsquo;s days. Most mornings at Lees Ferry the water climbs, most nights it is high, and none of it is weather. When the clocks change a few miles away, I expected the river to follow the people. It mostly didn&rsquo;t. In March its whole day came about twenty minutes sooner, a third of the way to the clock. Following only partly, it ended up nearer the Sun&rsquo;s hours than the clock&rsquo;s.</p>
+  <p>I can&rsquo;t prove what the dispatchers do. The schedule published for the dam&rsquo;s 2023 flood release gave its times in Mountain Standard Time, so the dam&rsquo;s hours may be written in standard time and only partly re-planned around other people&rsquo;s clocks. Or only part of the demand it follows moves with them, since Arizona&rsquo;s doesn&rsquo;t. Those are guesses about why. What the water did is measured, and it did not spring forward an hour.</p>
+</section>
+
+<section id="sources" aria-labelledby="h-sources">
+  <h2 id="h-sources">Data and sources</h2>
+  <ul class="sources">
+    <li><strong>River data:</strong> U.S. Geological Survey, instantaneous values (discharge 00060; water temperature 00010) from the USGS Water Data OGC API, collection <code>continuous</code>, retrieved <span data-k="retrieved">&hellip;</span>. Provisional values were used as published. Gauges: 09380000 Colorado River at Lees Ferry AZ; 09234500 Green River near Greendale UT; 09502000 Salt River below Stewart Mountain Dam AZ; 02334430 Chattahoochee River at Buford Dam GA; 08057410 Trinity River below Dallas TX; 09486500 Santa Cruz River at Cortaro AZ; 01463500 Delaware River at Trenton NJ. The page carries a reduced copy (each window&rsquo;s median day, and the days around each Lees Ferry change); <code>data/manifest.txt</code> lists every request with a checksum.</li>
+    <li><strong>Arizona time:</strong> National Park Service, Glen Canyon National Recreation Area, &ldquo;Frequently Asked Questions&rdquo;. Arizona stays on Mountain Standard Time all year; Utah and the Navajo Reservation change their clocks.</li>
+    <li><strong>Clock-change dates:</strong> Energy Policy Act of 2005, section 110, which set the March and November dates from 2007.</li>
+    <li><strong>Dam schedules in MST:</strong> National Park Service, Grand Canyon, &ldquo;April 2023 High-Flow Experiment&rdquo;: &ldquo;all times Mountain Standard Time&rdquo;.</li>
+    <li><strong>The fall steady flows, 2008&ndash;2012:</strong> Bureau of Reclamation, Glen Canyon Dam Adaptive Management Program documents on the Fall Steady Experimental Flows prescribed by the 2008 biological opinion.</li>
+    <li><strong>Power customers:</strong> Western Area Power Administration, Colorado River Storage Project customer list (customers in Arizona, Colorado, New Mexico, Utah, Nevada and Wyoming). The list I consulted may not be complete.</li>
+    <li><strong>Colder releases in 2024:</strong> Bureau of Reclamation news release on releasing colder water from Glen Canyon Dam against smallmouth bass, beginning 9 July 2024, and its news release of 19 November 2024 announcing that they had been discontinued.</li>
+    <li><strong>Distance:</strong> the Lees Ferry gauge is about 15.5 river miles below the dam (Topping, Schmidt and Vierra, 2003, USGS Professional Paper 1677). Utah&rsquo;s border, the 37th parallel, is about nine miles north of the gauge&rsquo;s latitude, 36.864&deg;.</li>
+  </ul>
+  <p class="note">Method, deviations and every number: <a href="README.md">README.md</a> and <a href="PREREGISTRATION.md">PREREGISTRATION.md</a>. Made by Tailwater.</p>
+</section>
+
+</main>
+
+<script src="data/rivers.js"></script>
+<script src="rivertime.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

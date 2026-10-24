@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First Light, Last Light</title>
+<meta name="description" content="A printable box with two slits, cut for your latitude. At sunrise a blade of light crosses it and lands on the date; at sunset it crosses back. On a day you choose, the light goes straight out the other side.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">A printable instrument &middot; cut for one place on Earth</p>
+  <h1>First Light, Last&nbsp;Light</h1>
+  <p class="lede">Two slits face each other across a printed box, one to the east and one to the west. At sunrise a blade of sunlight comes in through the east slit and lands on the inside of the west wall; at sunset it crosses back. Where it lands is the date. The grooves it lands on are cut for your latitude and your horizon, and on a day you choose, the light leaves through a slot of its own.</p>
+</header>
+
+<main>
+<section class="stage-section" aria-labelledby="h-stage">
+  <h2 id="h-stage" class="visually-hidden">The box through the year</h2>
+  <div class="stage">
+    <figure class="plan-fig">
+      <canvas id="plan" role="img" aria-label="The box seen from above, north at the top: a pointed oval wall with a slit at its east and west ends, grooves on the inside of each wall, and the morning and evening beams of light for the chosen day."></canvas>
+      <figcaption>From above, north up. <span class="sw sw-rise"></span>morning light, <span class="sw sw-set"></span>evening light.</figcaption>
+    </figure>
+    <div class="stage-side">
+      <div class="when">
+        <label for="day" class="when-label"><span id="dayLabel">21 June</span> <span class="muted" id="yearLabel">2026</span></label>
+        <input id="day" type="range" min="1" max="365" step="1" value="172" aria-describedby="readout">
+        <div class="buttons">
+          <button id="today" type="button" class="btn">Today</button>
+          <button id="play" type="button" class="btn btn-primary" aria-pressed="false">Play the year</button>
+          <button id="yourBtn" type="button" class="btn" hidden>Your day</button>
+        </div>
+      </div>
+      <p class="readout" id="readout" aria-live="polite"></p>
+      <p class="times" id="times"></p>
+      <figure class="walls-fig">
+        <canvas id="walls" role="img" aria-label="The inside faces of the two walls, unrolled flat, with their grooves and the stripe of light on each for the chosen day."></canvas>
+        <figcaption>The two inner walls as you would see them from inside the box, unrolled. Grooves run down from the top: long at the solstices and equinoxes, middle-length at the four days halfway between, short for the rest. A stripe with a dashed edge is sunlight let in by your slot.<span id="floodNote"></span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-place">
+  <h2 id="h-place">Your place</h2>
+  <form id="place" class="place" autocomplete="off" onsubmit="return false">
+    <div class="field field-wide">
+      <label for="preset">Start from a city</label>
+      <select id="preset"></select>
+    </div>
+    <div class="field">
+      <label for="lat">Latitude <span class="unit">&deg; (north +)</span></label>
+      <input id="lat" type="number" min="-58" max="58" step="0.1" value="45" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="lon">Longitude <span class="unit">&deg; (east +)</span></label>
+      <input id="lon" type="number" min="-180" max="180" step="0.1" value="0" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="horizonE">Eastern horizon <span class="unit">&deg; up</span></label>
+      <input id="horizonE" type="number" min="-1" max="5" step="0.1" value="0" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="horizonW">Western horizon <span class="unit">&deg; up</span></label>
+      <input id="horizonW" type="number" min="-1" max="5" step="0.1" value="0" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="yourMonth">Your day</label>
+      <div class="pair">
+        <select id="yourMonth" aria-label="Month of your day"></select>
+        <select id="yourDate" aria-label="Day of the month"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="size">Size <span class="unit">mm, slit to slit</span></label>
+      <input id="size" type="number" min="70" max="102" step="1" value="100" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label for="slit">Slit width <span class="unit">mm</span></label>
+      <input id="slit" type="number" min="0.8" max="1.6" step="0.1" value="1.2" inputmode="decimal">
+    </div>
+    <p class="hint field-wide" id="placeNote">Horizon: how high the skyline is, in degrees, where the Sun rises (east) and sets (west). Open sea or flat land is 0; a line of trees a few hundred metres off is about 1 to 3. Above 0, the Sun is already up when the box is read, so the top of the far wall is in direct sun and only the lower part shows the stripe. Below 0 is a sea horizon seen from a height: it dips about 0.03&deg; &times; &radic;(your height in metres), so 0.13&deg; from a 20&nbsp;m roof, and a full degree only from about 1.2&nbsp;km up. There the standard refraction formula is least sure. Longitude only moves the dates and times, not the grooves. The slit width is the one your test coupon printed cleanest.</p>
+  </form>
+</section>
+
+<section aria-labelledby="h-object">
+  <h2 id="h-object">The object</h2>
+  <div class="object">
+    <figure class="model-fig">
+      <canvas id="model" tabindex="0" role="img" aria-label="A shaded 3D view of the box to print. Drag, or use the arrow keys, to turn it."></canvas>
+      <figcaption>Drag or use the arrow keys to turn it. <button id="resetView" type="button" class="btn btn-small">Reset view</button></figcaption>
+    </figure>
+    <div class="object-side">
+      <dl class="stats" id="stats"></dl>
+      <div class="buttons">
+        <button id="dlBox" type="button" class="btn btn-primary">Download the box (STL)</button>
+        <button id="dlCoupon" type="button" class="btn">Download the test coupon (STL)</button>
+      </div>
+      <p class="hint">Print the coupon first: five slits from 0.8 to 1.6&nbsp;mm (the number in front of each is its width in tenths of a millimetre), a groove and a slot, cut exactly as the box cuts them. Hold it up to a window and pick the narrowest slit that shows an even line of light all the way down; set the slit width above to that, unless the note below says your steepest light gets through only a sliver of it, and then pick a wider one. The coupon is seen head-on, but the box&rsquo;s light comes through at a slant.</p>
+      <p class="hint" id="slitNote"></p>
+      <p class="hint">Why this shape: each wall is an arc of a circle centred on the slit opposite, the figure Euclid draws to build an equilateral triangle on a line. So the light meets the far wall very nearly head-on, and every degree of the Sun&rsquo;s swing along the horizon is very nearly the same length of wall.</p>
+      <p class="hint" id="dropNote"></p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-key">
+  <h2 id="h-key">The key</h2>
+  <p>Each groove is two dates: the Sun comes back to the same point on the horizon on the other side of the solstice. The dates are the mornings and evenings in <span class="js-year">2026</span> whose stripe falls nearest the groove at your place. In every year from 2027 to 2060 they stay within a day of these (checked at six latitudes from 58&deg;&nbsp;S to 58&deg;&nbsp;N). The grooves are spaced 15&deg; of the Sun&rsquo;s path apart, the same steps as the 24 solar terms of the traditional Chinese calendar; their English names are the Hong Kong Observatory&rsquo;s, and their seasons are the northern ones.</p>
+  <div class="table-wrap">
+    <table class="key" id="key">
+      <thead><tr><th scope="col">Groove</th><th scope="col">Morning light nearest it</th><th scope="col">Evening light nearest it</th><th scope="col">Solar terms</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="facts" id="facts" aria-live="polite"></div>
+</section>
+
+<section aria-labelledby="h-proof">
+  <h2 id="h-proof">How far to trust it</h2>
+  <div id="budget"></div>
+  <p class="muted small">Proven in code (<code>firstlight.test.mjs</code>): the page&rsquo;s sunrise and sunset directions agree with NASA JPL&rsquo;s Horizons ephemeris (DE441) to within 0.011&deg; at all 148 sunrises and sunsets tested in ten cities, and its unrefracted Sun to within 0.008&deg;. Both use the same standard refraction at the horizon, so that agreement does not test the air on your morning; the table above does. Sunlight is traced ray by ray through the triangles of the printed solid, and lands within 0.02&nbsp;mm of the middle of each groove it is cut for; the second stripe your slot lets in, the band of direct sun under a raised skyline and the narrower beam a slanting slit passes are traced the same way. Not proven: that it prints this way, or that the stripe is easy to read at a real dawn. Nobody has printed it yet.</p>
+</section>
+
+<section aria-labelledby="h-use">
+  <h2 id="h-use">Setting it up</h2>
+  <ol class="steps">
+    <li><strong>Print.</strong> Coupon first. Then the box: PLA, floor down, no supports, 0.2&nbsp;mm layers, 3 perimeters, 20% infill (about 57&nbsp;g and five hours at the default size). On a 180&nbsp;mm bed, turn the box 45&deg;: lying straight, a box over about 96&nbsp;mm puts the slicer&rsquo;s skirt off the edge of the bed. PLA softens in a hot sun; for a box that lives outdoors all summer, PETG or ASA is safer. Use an opaque, light-coloured filament: the stripe shows best on a pale wall, and thin white PLA glows if light gets through it.</li>
+    <li><strong>Place.</strong> Somewhere that sees the sunrise or the sunset direction, or both: a wall top, a post, a windowsill. Level it by eye; the box reads the Sun&rsquo;s direction, and a small tilt moves the stripe much less than a small turn.</li>
+    <li><strong>Turn it.</strong> The slits must face due east and due west, with the arrow on the floor pointing north. Each degree of error moves every reading by about <span id="turnDays">2</span> days&rsquo; travel near the equinoxes at your place (from about 1.3 days at 58&deg; to 2.6 at the equator). Three ways, best first: on a clear morning, turn it until the light lands where this page says it will that day, then fix it down. Or hang a weight on a thread at solar noon (<span id="noon">12:00</span>): its shadow points due north&ndash;south, and the two tips of the box go on that line. Or use a compass corrected for your magnetic declination, the roughest. Near an equinox, the light going straight through both slits is the check.</li>
+    <li><strong>Read it.</strong> Look into the box, not at the Sun. The stripe appears as the top edge of the Sun clears your horizon and brightens as the rest comes up. The grooves are cut for the moment half the Sun is up, which this page times above for any day; read where the stripe is then. A few minutes later it has slid well away. With a raised skyline, read the lower part of the far wall: the top is in direct sun. If you cut a slot for your day, keep a strip of opaque tape over the outside of both slots except around your day and its twin; an open slot lets in light from the other end of the day as a second stripe.</li>
+  </ol>
+</section>
+
+<section aria-labelledby="h-sources">
+  <h2 id="h-sources">Sources</h2>
+  <ul class="sources small">
+    <li>J. D. Giorgini et al., &ldquo;JPL&rsquo;s On-Line Solar System Data Service&rdquo;, <em>Bulletin of the American Astronomical Society</em> 28:1158, 1996: the Horizons system, used as the reference. Its manual gives the refraction it applies (citing Saemundsson) and its &plusmn;0.3&deg; caveat near the horizon. The fetched samples are in <code>horizons.json</code>.</li>
+    <li>R. S. Park, W. M. Folkner, J. G. Williams and D. H. Boggs, &ldquo;The JPL Planetary and Lunar Ephemerides DE440 and DE441&rdquo;, <em>Astronomical Journal</em> 161:105, 2021.</li>
+    <li>J. Meeus, <em>Astronomical Algorithms</em>, 2nd ed., Willmann-Bell, 1998: the Sun (ch. 25), sidereal time (ch. 12), the calendar (ch. 7).</li>
+    <li>G. G. Bennett, &ldquo;The calculation of astronomical refraction in marine navigation&rdquo;, <em>Journal of Navigation</em> 35:255&ndash;259, 1982. T. Saemundsson, <em>Sky and Telescope</em> 72:70, 1986.</li>
+    <li>B. E. Schaefer and W. Liller, &ldquo;Refraction near the horizon&rdquo;, <em>Publications of the Astronomical Society of the Pacific</em> 102:796&ndash;805, 1990, read through papers that quote it, not in the original.</li>
+    <li>I. Ghezzi and C. Ruggles, &ldquo;Chankillo: a 2300-year-old solar observatory in coastal Peru&rdquo;, <em>Science</em> 315:1239&ndash;1243, 2007.</li>
+    <li>Euclid, <em>Elements</em>, Book I, Proposition 1.</li>
+    <li>Hong Kong Observatory, &ldquo;The 24 Solar Terms&rdquo; (English names).</li>
+  </ul>
+</section>
+</main>
+
+<footer class="foot small">Made by Kerbstone for the Idea Bank. Nothing here is sent anywhere; the STL is built in your browser.</footer>
+
+<script src="firstlight.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

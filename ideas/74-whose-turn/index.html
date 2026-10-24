@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whose Turn</title>
+<meta name="description" content="A fair rota for turns and rounds when not everyone comes every time. Tap who is here; it names whose turn it is, says why, and keeps everyone within a bound it can prove.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#today">Skip to today</a>
+<header class="top">
+  <div class="wrap">
+    <h1>Whose turn?</h1>
+    <p class="sub">A fair rota for when not everyone comes every time. Nothing leaves this device.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="circles" aria-label="Your circles">
+    <div id="circle-tabs" class="tabs" role="list"></div>
+    <button type="button" id="new-circle" class="ghost small">+ New circle</button>
+  </nav>
+
+  <div id="notices"></div>
+
+  <section id="create" class="card create" hidden aria-labelledby="create-h">
+    <h2 id="create-h">Start a circle</h2>
+    <form id="create-form" novalidate>
+      <label class="field">
+        <span>What is it?</span>
+        <input id="create-name" name="name" maxlength="60" autocomplete="off" placeholder="School run, Coffee, Friday drinks…" required>
+      </label>
+      <fieldset class="field kinds">
+        <legend>How is it shared?</legend>
+        <label class="kind-opt">
+          <input type="radio" name="kind" value="turns" checked>
+          <span><b>Turns.</b> One person does it for everyone there: drive, host, cook, take the bins out.</span>
+        </label>
+        <label class="kind-opt">
+          <input type="radio" name="kind" value="rounds">
+          <span><b>Rounds.</b> One person gets one each for everyone there: coffee, a round of drinks.</span>
+        </label>
+      </fieldset>
+      <label class="field">
+        <span>Who is in it? One name per line, or separated by commas.</span>
+        <textarea id="create-people" name="people" rows="4" autocomplete="off" placeholder="Ana&#10;Ben&#10;Cleo"></textarea>
+      </label>
+      <p class="form-error" id="create-error" role="alert"></p>
+      <div class="row-buttons">
+        <button type="submit" class="primary">Start it</button>
+        <button type="button" id="create-cancel" class="ghost">Cancel</button>
+      </div>
+    </form>
+    <div class="bring">
+      <h3 id="bring-h">Or bring one in</h3>
+      <p class="hint">Already kept on another phone? Paste its ledger code, or restore a backup file.</p>
+      <label class="field"><span>Ledger code</span><textarea id="bring-code" rows="2" spellcheck="false" placeholder="WHOSETURN1:…"></textarea></label>
+      <div class="row-buttons">
+        <button type="button" id="bring-merge" class="ghost">Add it</button>
+        <label class="ghost button-like">Restore from a backup<input type="file" id="bring-restore" accept=".json,application/json" class="visually-hidden"></label>
+      </div>
+      <p id="bring-msg" class="small-note" role="status"></p>
+    </div>
+  </section>
+
+  <main id="main">
+    <section id="today" class="card today" aria-labelledby="circle-name" tabindex="-1">
+      <div class="card-head">
+        <h2 id="circle-name">…</h2>
+        <span id="circle-kind" class="pill"></span>
+      </div>
+      <p class="label" id="who-label">Who's in this time? Tap to change.</p>
+      <div id="people" class="people" role="group" aria-labelledby="who-label"></div>
+      <div id="verdict" class="verdict" aria-live="polite"></div>
+      <div class="actions">
+        <button type="button" id="log-pick" class="primary big"></button>
+        <button type="button" id="log-other" class="ghost" aria-expanded="false" aria-controls="other">Someone else did it</button>
+      </div>
+      <div id="other" class="other" hidden>
+        <p class="hint" id="other-hint"></p>
+        <div id="other-list" class="other-list"></div>
+      </div>
+    </section>
+
+    <section class="card stand" aria-labelledby="stand-h">
+      <h2 id="stand-h">Where everyone stands</h2>
+      <p id="promise" class="promise"></p>
+      <div class="scale-labels" aria-hidden="true"><span></span><span class="lbls"><span id="lab-left"></span><span>even</span><span id="lab-right"></span></span></div>
+      <ul id="rows" class="rows"></ul>
+      <p id="replay" class="small-note"></p>
+      <details class="sub-details">
+        <summary>Over time</summary>
+        <div id="chart" class="chart"></div>
+        <p class="small-note">Each line is one person's balance after each entry. The shaded band is today's fence, from above; after a turn that did not go to the pick, earlier balances can lie outside it.</p>
+      </details>
+      <details class="sub-details">
+        <summary>Show the arithmetic</summary>
+        <div class="table-wrap"><table id="arith" class="arith"></table></div>
+        <p class="small-note" id="arith-note"></p>
+      </details>
+    </section>
+
+    <section id="history-card" class="card history" aria-labelledby="hist-h" tabindex="-1">
+      <h2 id="hist-h">History</h2>
+      <ol id="history" class="history-list"></ol>
+      <button type="button" id="history-more" class="ghost small" hidden>Show all</button>
+    </section>
+
+    <section class="card tools" aria-label="Edit, share and back up">
+      <details id="edit">
+        <summary>Edit this circle</summary>
+        <div class="edit-body">
+          <label class="field">
+            <span>Name</span>
+            <input id="edit-name" maxlength="60" autocomplete="off">
+          </label>
+          <p class="label">People</p>
+          <ul id="edit-people" class="edit-people"></ul>
+          <form id="add-person" class="add-person">
+            <label class="field grow"><span class="visually-hidden">New person's name</span><input id="add-name" maxlength="40" autocomplete="off" placeholder="Add someone"></label>
+            <button type="submit" class="ghost">Add</button>
+          </form>
+          <p class="small-note" id="edit-note"></p>
+          <button type="button" id="delete-circle" class="danger small">Delete this circle</button>
+        </div>
+      </details>
+      <details id="share">
+        <summary>Share or back up</summary>
+        <div class="share-body">
+          <p>Nothing here goes online. To keep two phones in step, copy this circle's ledger code and paste it on the other phone (a chat message is fine). Merging never loses an entry; an entry removed on either phone stays removed.</p>
+          <div class="row-buttons">
+            <button type="button" id="copy-code" class="ghost">Copy ledger code</button>
+            <button type="button" id="copy-link" class="ghost" hidden>Copy link</button>
+          </div>
+          <label class="field"><span>This circle's code</span><textarea id="code-out" rows="3" readonly spellcheck="false"></textarea></label>
+          <label class="field"><span>Paste a code from someone else</span><textarea id="code-in" rows="3" spellcheck="false" placeholder="WHOSETURN1:…"></textarea></label>
+          <div class="row-buttons">
+            <button type="button" id="merge-code" class="ghost">Merge it in</button>
+          </div>
+          <p id="share-msg" class="small-note" role="status"></p>
+          <hr>
+          <div class="row-buttons">
+            <button type="button" id="download" class="ghost">Download a backup</button>
+            <label class="ghost button-like">Restore from a backup<input type="file" id="restore" accept=".json,application/json" class="visually-hidden"></label>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card explain" aria-labelledby="ex-h">
+      <h2 id="ex-h">How it decides, and what it can promise</h2>
+      <h3>The rule</h3>
+      <p>Everyone has a balance. Each time, the people there split that turn between them: if four of you are in the car, a quarter of the run is each person's fair share, and whoever drives has done one whole run. Your balance is your fair shares added up, minus the turns you did. <b>The pick is whoever owes the most.</b> If two people owe exactly the same, it goes to whoever did it less recently.</p>
+      <p>A rounds circle counts portions instead: when one person buys for four, each of the four had one, and the buyer bought four. A turn and a round are not the same thing: buying for eight is a bigger job than buying for two, and a rounds circle knows it.</p>
+      <p>This is the greedy rule from Ronald Fagin and John Williams's 1983 paper on fair carpools, as later papers describe it; the tie-break is this page's. The fractions are kept exactly, so the balances always add up to exactly zero and nothing drifts from rounding.</p>
+
+      <h3>What it promises</h3>
+      <p><b>If the pick is always followed, nobody can ever owe, or be owed, more than (<i>n</i>&nbsp;−&nbsp;1)/2 turns</b>, where <i>n</i> is the number of people who have ever been in the circle, however attendance varies. For rounds it is <i>n</i>&nbsp;−&nbsp;1 portions, which is what buying one round for everyone does anyway; no rule can do better than that.</p>
+      <p>Why: take any group of people in the circle, of size <i>j</i>. The rule keeps their balances, added up, at most ½&nbsp;·&nbsp;<i>j</i>&nbsp;·&nbsp;(<i>n</i>&nbsp;−&nbsp;<i>j</i>) (or <i>j</i>&nbsp;·&nbsp;(<i>n</i>&nbsp;−&nbsp;<i>j</i>) for rounds). That holds at the start, when everyone is at zero, and a short identity shows each turn keeps it true, because the person who does the turn owes at least as much as anyone else there. A group of one gives the promise. The whole proof is in the README and the tests check the identity.</p>
+      <p>For small circles the worst that can actually happen is less:</p>
+      <div class="table-wrap"><table class="bounds">
+        <thead><tr><th scope="col">People</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th><th scope="col">5</th><th scope="col">6 or more</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Worst reached (turns)</th><td>½</td><td>⅚</td><td>1⅙</td><td>1⅗</td><td>at most (<i>n</i>&nbsp;−&nbsp;1)/2</td></tr>
+          <tr><th scope="row">Promised (turns)</th><td>½</td><td>1</td><td>1½</td><td>2</td><td>(<i>n</i>&nbsp;−&nbsp;1)/2</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small-note">The first row was found by visiting every state the rule can reach from an even start, for every possible pattern of who comes and every way of breaking ties. For 2, 3 and 4 people, the same kind of search shows that no other rule that decides from the record so far, without tossing coins, can promise anything lower.</p>
+      <p>If someone else does a turn instead, the promise can widen, and the page says by how much before you log it. From then on, following the pick never widens it again.</p>
+
+      <h3>Why not just go round in order?</h3>
+      <p id="why-rota">A plain rota (skip whoever is away) ignores who was there, so the people who come least tend to end up doing more than their share. In a made-up school year of 190 runs for four parents, one of whom came on only 102 of them, a plain rota left someone 5.1 turns out at its worst. Giving it to whoever has done it fewest times was worse: the parent who came least drove 48 times against a fair share of about 29.6. This rule never let anyone get further than ⅚ of a turn from even. A rota can also drift without limit: if two people come every time and a third comes every third time, a rota can hand the third person every third turn, two-thirds of a turn more than their share each time round.</p>
+
+      <h3>Keeping score among friends</h3>
+      <p>Margaret Clark and Judson Mills (1979) found that when people wanted a close, communal relationship with someone, a favour given back as repayment for one they had done made them like the other person less, not more. A rota is a kind of score, so this page keeps the numbers out of the way: it names whose turn it is and why, and leaves the arithmetic folded up. The idea is that nobody has to keep count in their head, not that anyone should read the ledger out loud.</p>
+      <p class="small-note">Sources: R. Fagin and J. H. Williams, "A fair carpool scheduling algorithm", <i>IBM Journal of Research and Development</i> 27(2), 1983. M. Ajtai, J. Aspnes, M. Naor, Y. Rabani, L. J. Schulman and O. Waarts, "Fairness in scheduling", <i>Journal of Algorithms</i> 29(2), 1998. M. S. Clark and J. Mills, "Interpersonal attraction in exchange and communal relationships", <i>Journal of Personality and Social Psychology</i> 37(1), 1979.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <footer class="foot">
+    <p>Whose Turn, by Fairlead. Works offline, straight from the file. Your circles are kept in this browser's storage on this device.</p>
+  </footer>
+</div>
+<script src="turns.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

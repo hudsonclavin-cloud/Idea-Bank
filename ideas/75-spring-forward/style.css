@@ -1,0 +1,171 @@
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6d68;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.12);
+  --river: #2a78d6;          /* series 1: the river after the change, Lees Ferry */
+  --river-wash: rgba(42, 120, 214, 0.10);
+  --utah: #eb6834;           /* series 2: Utah's clock */
+  --before: #898781;         /* the river before the change */
+  --band: rgba(11, 11, 11, 0.06);
+  --water-lo: #f3f1ea;       /* raster: lowest water of the day */
+  --water-hi: #104281;       /* raster: highest */
+  --focus: #2a78d6;
+  --on-bg: #1c5cab;
+  --chip: #efeee9;
+  --flag: #fff4dc;
+  --flag-ink: #5c4300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #a3a29b;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.12);
+    --river: #3987e5;
+    --river-wash: rgba(57, 135, 229, 0.16);
+    --utah: #d95926;
+    --before: #a3a29b;
+    --band: rgba(255, 255, 255, 0.07);
+    --water-lo: #1a1a19;
+    --water-hi: #9ec5f4;
+    --focus: #3987e5;
+    --on-bg: #184f95;
+    --chip: #252523;
+    --flag: #2e2610;
+    --flag-ink: #f2d38c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #a3a29b;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.12);
+  --river: #3987e5;
+  --river-wash: rgba(57, 135, 229, 0.16);
+  --utah: #d95926;
+  --before: #a3a29b;
+  --band: rgba(255, 255, 255, 0.07);
+  --water-lo: #1a1a19;
+  --water-hi: #9ec5f4;
+  --focus: #3987e5;
+  --on-bg: #184f95;
+  --chip: #252523;
+  --flag: #2e2610;
+  --flag-ink: #f2d38c;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 17px/1.6 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+.masthead, main { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.masthead { padding-top: 40px; }
+.kicker {
+  font: 600 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+}
+h1 { font-size: clamp(30px, 7vw, 46px); line-height: 1.1; margin: 0 0 16px; font-weight: 600; }
+h2 { font-size: 24px; line-height: 1.25; margin: 0 0 12px; font-weight: 600; }
+.lede { font-size: 19px; color: var(--ink-2); margin: 0 0 20px; }
+p { margin: 0 0 14px; }
+a { color: var(--river); }
+code { font-size: 0.9em; overflow-wrap: anywhere; }
+section { padding: 32px 0 8px; border-top: 1px solid var(--border); margin-top: 24px; }
+.ui, .seg-btn, .btn, select, .select-label, figcaption, .note, .clock-name, .clock-sub, .clock-time,
+.answer-label, .verdict-text, .flag, .timeline .t, table, .th-sub {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.note, figcaption { font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+figure { margin: 16px 0; }
+
+.answer {
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--river);
+  border-radius: 6px; padding: 14px 16px; margin: 0 0 8px;
+}
+.answer-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
+.answer-text { margin: 0; }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 4px 8px 8px 0; background: var(--surface); }
+.seg-btn {
+  appearance: none; border: 0; border-right: 1px solid var(--border); background: transparent; color: var(--ink);
+  font-size: 15px; padding: 9px 14px; min-height: 40px; cursor: pointer;
+}
+.seg-btn:last-child { border-right: 0; }
+.seg-btn[aria-pressed="true"] { background: var(--on-bg); color: #fff; }
+.seg-btn:focus-visible, .btn:focus-visible, select:focus-visible, .dot-hit:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.btn {
+  appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  font-size: 15px; padding: 9px 16px; min-height: 40px; border-radius: 8px; cursor: pointer;
+}
+.btn:hover, .seg-btn:hover { filter: brightness(0.97); }
+.btn[disabled] { opacity: 0.6; cursor: default; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; }
+.select-label { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+select { font-size: 15px; padding: 7px 8px; min-height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
+
+.clock-pair { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.clock-card { flex: 1 1 140px; max-width: 220px; text-align: center; }
+.clock { width: 100%; max-width: 150px; height: auto; display: block; margin: 0 auto 4px; }
+.clock-name { font-weight: 600; margin: 0; font-size: 16px; }
+.clock-sub { margin: 0; font-size: 13px; color: var(--muted); }
+.clock-time { margin: 2px 0 0; font-size: 22px; font-variant-numeric: tabular-nums; }
+.dayplot-wrap { margin-top: 12px; }
+.dayplot, .pairplot { width: 100%; display: block; }
+.clocks-fig figcaption { margin-top: 8px; font-size: 15px; color: var(--ink); }
+
+.raster-fig canvas { width: 100%; display: block; border-radius: 4px; }
+
+.verdict { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 0 0 12px; }
+.verdict-big { font-size: 44px; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; }
+.verdict-big .unit { font-size: 18px; color: var(--muted); }
+.verdict-text { margin: 0; flex: 1 1 260px; font-size: 15px; }
+.forest svg, .strip svg { width: 100%; display: block; overflow: visible; }
+
+.table-wrap { overflow-x: auto; margin: 0 0 14px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-weight: 600; }
+.th-sub { font-weight: 400; color: var(--muted); font-size: 12px; }
+.ref-row th, .ref-row td { font-style: italic; color: var(--ink-2); border-top: 1px dashed var(--grid); }
+
+.flag { background: var(--flag); color: var(--flag-ink); border-radius: 6px; padding: 8px 12px; font-size: 14px; }
+.timeline { padding-left: 0; list-style: none; margin: 0 0 14px; }
+.timeline li { padding: 6px 0 6px 76px; position: relative; border-bottom: 1px dashed var(--border); font-size: 16px; }
+.timeline .t { position: absolute; left: 0; top: 8px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sources { padding-left: 18px; font-size: 15px; }
+.sources li { margin-bottom: 8px; }
+main { padding-bottom: 48px; }
+
+svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink-2); }
+svg .axis-line { stroke: var(--axis); stroke-width: 1; }
+svg .grid-line { stroke: var(--grid); stroke-width: 1; }
+svg .band { fill: var(--band); }
+svg .dot-hit { cursor: pointer; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 480px) {
+  body { font-size: 16px; }
+  .lede { font-size: 17px; }
+  .timeline li { padding-left: 64px; font-size: 15px; }
+  .verdict-big { font-size: 36px; }
+}
