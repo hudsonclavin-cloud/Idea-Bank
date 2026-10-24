@@ -8,7 +8,8 @@
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ------------------------------------------------------------------ storage
-  let store = { v: 1, circles: [], current: null, present: {}, exampleGone: false, lastCopy: 0, snooze: 0 };
+  // lastCopy: when a backup was last downloaded; copied[id]: when that circle was last copied (its code, its link, or in a backup).
+  let store = { v: 1, circles: [], current: null, present: {}, exampleGone: false, lastCopy: 0, copied: {}, snooze: 0 };
   const DAY = 86400000;
   let storageOK = true;
 
@@ -38,6 +39,7 @@
         present: s.present && typeof s.present === 'object' ? s.present : {},
         exampleGone: !!s.exampleGone,
         lastCopy: Number.isFinite(s.lastCopy) ? s.lastCopy : 0,
+        copied: s.copied && typeof s.copied === 'object' ? s.copied : {},
         snooze: Number.isFinite(s.snooze) ? s.snooze : 0,
       };
     } catch (e) {
@@ -85,6 +87,34 @@
     for (const k of kids) if (k !== null && k !== undefined) e.append(k.nodeType ? k : document.createTextNode(String(k)));
     return e;
   }
+  // Keyboard focus survives a re-render: elements that are rebuilt carry a data-fk key, and
+  // after rendering, focus returns to the element with the same key (or to a fallback).
+  function focusKey() {
+    const a = document.activeElement;
+    if (!a || a === document.body) return null;
+    return a.getAttribute('data-fk') || (a.id ? `#${a.id}` : null);
+  }
+  function byFocusKey(k) {
+    if (!k) return null;
+    if (k.startsWith('#')) return document.getElementById(k.slice(1));
+    for (const e of document.querySelectorAll('[data-fk]')) if (e.getAttribute('data-fk') === k) return e;
+    return null;
+  }
+  const shown = (e) => e.isConnected && e.getClientRects().length > 0;
+  function refocus(...keys) {
+    const a = document.activeElement;
+    if (a && a !== document.body && shown(a)) return;
+    for (const k of keys) {
+      const e = byFocusKey(k);
+      if (e && shown(e)) {
+        e.focus({ preventScroll: true });
+        return;
+      }
+    }
+  }
+  const isOff = (b) => b.getAttribute('aria-disabled') === 'true';
+  // Resting buttons use aria-disabled, not disabled, so a focused button keeps keyboard focus.
+  const setOff = (b, off) => b.setAttribute('aria-disabled', off ? 'true' : 'false');
   function dot(c, id, cls) {
     return el('span', { class: cls || 'dot-s', style: `--dot:${colorOf(c, id)}`, 'aria-hidden': 'true' });
   }
@@ -102,21 +132,8 @@
   }
 
   // Words. Turns circles count turns; rounds circles count portions ("one each").
-  function amount(c, q) {
-    const f = W.fmt(q);
-    if (c.kind === 'rounds') return f.text;
-    const mag = W.cmp(q, W.ZERO) < 0 ? W.neg(q) : q;
-    if (W.cmp(mag, W.Q(1)) < 0) return `${f.text} of a turn`;
-    if (W.eq(mag, W.Q(1))) return '1 turn';
-    return `${f.text} turns`;
-  }
-  function fenceText(c, F) {
-    if (c.kind === 'rounds') {
-      const f = W.fmt(F).text;
-      return `±${f} ${f === '1' ? 'portion' : 'portions'}`;
-    }
-    return `±${amount(c, F)}`;
-  }
+  const amount = (c, q) => W.amountText(c.kind, q);
+  const fenceText = (c, F) => W.fenceText(c.kind, F);
   function standing(c, q) {
     const s = W.cmp(q, W.ZERO);
     if (s === 0) return 'even';
@@ -173,22 +190,19 @@
           el('button', { type: 'button', class: 'primary small', onclick: () => acceptIncoming() }, known ? 'Merge it in' : 'Add it'),
           el('button', { type: 'button', class: 'ghost small', onclick: () => { incoming = null; clearHash(); renderNotices(); } }, 'Ignore'))));
     }
-    if (c && !c.example && storageOK && W.liveEvents(c).length >= 10) {
-      const now = Date.now();
-      const since = Math.max(store.lastCopy || 0, c.created || 0);
-      if (now - since > 21 * DAY && now > (store.snooze || 0)) {
-        box.append(el('div', { class: 'notice' },
-          el('p', { text: "Browsers can clear what a page keeps, especially one that hasn't been opened for a while. Keep a copy of this ledger somewhere: pasting the code into your group chat is enough." }),
-          el('div', { class: 'row-buttons' },
-            el('button', { type: 'button', class: 'primary small', onclick: () => { copyText(W.encode(c), 'Copied. Paste it somewhere safe.'); toast('Ledger code copied.'); renderNotices(); } }, 'Copy the ledger code'),
-            el('button', { type: 'button', class: 'ghost small', onclick: () => { store.snooze = Date.now() + 14 * DAY; save(); renderNotices(); } }, 'Not now'))));
-      }
+    if (c && backupDue(c, Date.now())) {
+      box.append(el('div', { class: 'notice' },
+        el('p', { text: "Browsers can clear what a page keeps: Safari can, after seven days of use without a visit to the page. Keep a copy of this ledger somewhere: pasting the code into your group chat is enough." }),
+        el('div', { class: 'row-buttons' },
+          el('button', { type: 'button', class: 'primary small', onclick: () => { copyText(W.encode(c), 'Copied. Paste it somewhere safe.', c.id); toast('Ledger code copied.'); renderNotices(); } }, 'Copy the ledger code'),
+          el('button', { type: 'button', class: 'ghost small', onclick: () => { store.snooze = Date.now() + 7 * DAY; save(); renderNotices(); } }, 'Not now'))));
     }
     if (!store.circles.length && $('create').hidden) {
       box.append(el('div', { class: 'notice calm' },
-        el('p', { text: 'No circles yet.' }),
+        el('p', { text: 'No circles yet. Start one, or bring one in from another phone with its ledger code or a backup file.' }),
         el('div', { class: 'row-buttons' },
           el('button', { type: 'button', class: 'primary small', onclick: () => openCreate() }, 'Start a circle'),
+          el('button', { type: 'button', class: 'ghost small', onclick: () => { openCreate(); $('bring-code').focus(); } }, 'Paste a code or restore'),
           el('button', { type: 'button', class: 'ghost small', onclick: () => {
             const ex = makeExample(Date.now());
             store.circles.push(ex);
@@ -204,6 +218,22 @@
           el('button', { type: 'button', class: 'primary small', onclick: () => openCreate() }, 'Start your own'),
           el('button', { type: 'button', class: 'ghost small', onclick: () => removeExample() }, 'Remove the example'))));
     }
+  }
+  // The reminder to keep a copy: after the second entry if this circle has no copy yet, then
+  // whenever something is new and the last copy is more than a week old. A copy is its code or link
+  // copied, a backup that holds it, or its arrival from a code or backup. A backup marks only the
+  // circles in it, so one downloaded before a circle was made does not count for that circle. The
+  // reminder can only show when the page is opened, so it cannot by itself protect a circle the
+  // browser has cleared.
+  function copiedAt(c) {
+    return (store.copied && store.copied[c.id]) || 0;
+  }
+  function backupDue(c, now) {
+    if (!c || c.example || !storageOK || now <= (store.snooze || 0)) return false;
+    const since = copiedAt(c);
+    const fresh = W.liveEvents(c).filter((e) => e.t >= since).length;
+    if (!since) return fresh >= 2;
+    return fresh >= 1 && now - since > 7 * DAY;
   }
   function removeExample() {
     const c = current();
@@ -236,6 +266,7 @@
       store.circles.push(c);
       store.current = c.id;
       store.exampleGone = true;
+      store.copied[c.id] = Date.now(); // it came from a copy, so those entries are kept elsewhere
       save();
       return `Added "${c.name}".`;
     }
@@ -254,18 +285,22 @@
   }
 
   // ------------------------------------------------------------------ rendering
-  function render() {
+  /** Redraw everything. If the focused element is rebuilt, focus returns to its new copy, else to the first fallback that exists. */
+  function render(...fallbacks) {
+    const fk = focusKey();
     const c = current();
     renderTabs();
     renderNotices();
     $('main').hidden = !c;
-    if (!c) return;
-    const rows = W.ledger(c);
-    renderToday(c, rows);
-    renderStand(c, rows);
-    renderHistory(c);
-    renderEdit(c);
-    renderShare(c);
+    if (c) {
+      const rows = W.ledger(c);
+      renderToday(c, rows);
+      renderStand(c, rows);
+      renderHistory(c);
+      renderEdit(c);
+      renderShare(c);
+    }
+    if (fk) refocus(fk, ...fallbacks);
   }
 
   function renderTabs() {
@@ -273,7 +308,7 @@
     box.replaceChildren();
     for (const c of store.circles) {
       box.append(el('button', {
-        type: 'button', class: 'tab', role: 'listitem', 'aria-current': c.id === store.current ? 'true' : 'false',
+        type: 'button', class: 'tab', role: 'listitem', 'data-fk': `tab:${c.id}`, 'aria-current': c.id === store.current ? 'true' : 'false',
         onclick: () => { store.current = c.id; closeCreate(); save(); render(); },
       }, c.name));
     }
@@ -286,56 +321,72 @@
     return saved.filter((id) => active.includes(id));
   }
 
+  // The pick's name slides in only when the name itself changes, at most once every 400 ms, and
+  // never with reduced motion. The verdict is rebuilt only when its words change, so the live
+  // region does not re-announce, and nothing animates, on a tap that leaves the pick as it was.
   let lastName = null;
   let lastArrive = 0;
+  let pickOk = false;
+  function setLogButtons() {
+    setOff($('log-pick'), !pickOk || cooling);
+    setOff($('log-other'), !pickOk || cooling);
+  }
   function renderToday(c, rows) {
     $('circle-name').textContent = c.name;
     $('circle-kind').textContent = c.kind === 'rounds' ? 'rounds: one each for everyone' : 'turns: one person does it';
     const present = presentFor(c);
     const people = $('people');
-    people.replaceChildren();
-    for (const m of c.members) {
-      if (m.gone) continue;
-      const on = present.includes(m.id);
-      people.append(el('button', {
-        type: 'button', class: 'person', 'aria-pressed': on ? 'true' : 'false', style: `--dot:${colorOf(c, m.id)}`,
-        onclick: () => togglePresent(c, m.id),
-      }, el('span', { class: 'dot', 'aria-hidden': 'true' }), el('span', { class: 'nm', text: m.name })));
+    // The chips are rebuilt only when the people themselves change; a tap just updates
+    // aria-pressed, so the button keeps keyboard focus.
+    const activeM = c.members.filter((m) => !m.gone);
+    const chipsKey = `${c.id}|${c.members.map((m) => `${m.id}:${m.gone ? 1 : 0}:${m.name}`).join('|')}`;
+    if (people.getAttribute('data-key') !== chipsKey) {
+      people.replaceChildren();
+      for (const m of activeM) {
+        people.append(el('button', {
+          type: 'button', class: 'person', 'aria-pressed': 'false', 'data-id': m.id, 'data-fk': `person:${m.id}`, style: `--dot:${colorOf(c, m.id)}`,
+          onclick: () => {
+            const cc = current();
+            if (cc) togglePresent(cc, m.id);
+          },
+        }, el('span', { class: 'dot', 'aria-hidden': 'true' }), el('span', { class: 'nm', text: m.name })));
+      }
+      if (!activeM.length) people.append(el('p', { class: 'hint', text: 'Nobody in this circle yet. Add people under "Edit this circle".' }));
+      people.setAttribute('data-key', chipsKey);
     }
-    if (!c.members.some((m) => !m.gone)) people.append(el('p', { class: 'hint', text: 'Nobody in this circle yet. Add people under "Edit this circle".' }));
+    for (const b of people.querySelectorAll('.person')) b.setAttribute('aria-pressed', present.includes(b.getAttribute('data-id')) ? 'true' : 'false');
 
     const v = $('verdict');
-    v.replaceChildren();
     const pk = W.pick(c, present, rows);
     const logBtn = $('log-pick');
-    const otherBtn = $('log-other');
+    pickOk = pk.ok;
+    setLogButtons();
     if (!pk.ok) {
-      v.append(el('p', { class: 'whose quiet', text: pk.reason === 'alone' ? 'Just one person: nothing to share this time.' : 'Tap who is in this time.' }));
+      const msg = pk.reason === 'alone' ? 'Just one person: nothing to share this time.' : 'Tap who is in this time.';
+      if (v.getAttribute('data-key') !== `none|${msg}`) {
+        v.replaceChildren(el('p', { class: 'whose quiet', text: msg }));
+        v.setAttribute('data-key', `none|${msg}`);
+      }
       logBtn.textContent = 'Pick someone first';
-      logBtn.disabled = true;
-      otherBtn.disabled = true;
       closeOther();
       lastName = null;
       return;
     }
-    logBtn.disabled = cooling;
-    otherBtn.disabled = cooling;
     const top = pk.top;
     const nm = nameOf(c, top.id);
-    const whose = el('p', { class: 'whose' }, el('span', { class: 'dot', style: `--dot:${colorOf(c, top.id)}`, 'aria-hidden': 'true' }),
-      el('span', { class: 'nm', text: nm }), c.kind === 'rounds' ? '’s round' : '’s turn');
-    v.append(whose, el('p', { class: 'why', text: reasonText(c, pk) }));
+    const why = reasonText(c, pk);
     const rest = pk.ranked.slice(1, 4).map((r) => nameOf(c, r.id));
-    if (rest.length) {
-      const more = pk.ranked.length > 4 ? ', …' : '';
-      v.append(el('p', { class: 'then', text: `If ${nm} can't: ${rest.join(', then ')}${more}.` }));
-    }
-    const now = performance.now();
-    if (nm !== lastName && lastName !== null && !reduceMotion && now - lastArrive > 400) {
-      v.classList.remove('fresh');
-      void v.offsetWidth;
-      v.classList.add('fresh');
-      lastArrive = now;
+    const then = rest.length ? `If ${nm} can't: ${rest.join(', then ')}${pk.ranked.length > 4 ? ', …' : ''}.` : '';
+    const vKey = [c.id, c.kind, top.id, nm, colorOf(c, top.id), why, then].join('|');
+    if (v.getAttribute('data-key') !== vKey) {
+      const now = performance.now();
+      const arrive = nm !== lastName && lastName !== null && !reduceMotion && now - lastArrive > 400;
+      if (arrive) lastArrive = now;
+      const whose = el('p', { class: arrive ? 'whose arrive' : 'whose' }, el('span', { class: 'dot', style: `--dot:${colorOf(c, top.id)}`, 'aria-hidden': 'true' }),
+        el('span', { class: 'nm', text: nm }), c.kind === 'rounds' ? '’s round' : '’s turn');
+      v.replaceChildren(whose, el('p', { class: 'why', text: why }));
+      if (then) v.append(el('p', { class: 'then', text: then }));
+      v.setAttribute('data-key', vKey);
     }
     lastName = nm;
     logBtn.textContent = c.kind === 'rounds' ? `${nm} got this round` : `${nm} did it`;
@@ -383,7 +434,9 @@
     renderToday(c, rows);
   }
 
-  // Logging. A short cool-down after each entry means a held key or a double tap logs once.
+  // Logging. A short rest after each entry means a held key or a double tap logs once. When the
+  // rest ends only the two buttons change; nothing else is redrawn.
+  const REST = 1100;
   let cooling = false;
   function logTurn(by) {
     const c = current();
@@ -395,18 +448,22 @@
     c.events.push(e);
     save();
     cooling = true;
+    const inOther = $('other').contains(document.activeElement);
     closeOther();
     render();
+    if (inOther) refocus('#log-other'); // the "someone else" list has just closed: back to its toggle
+    const cid = c.id;
     toast(`${nameOf(c, by)} ${c.kind === 'rounds' ? 'got the round' : 'did it'}. Logged.`, () => {
-      c.removed = [...new Set([...(c.removed || []), e.id])];
+      const cc = store.circles.find((x) => x.id === cid);
+      if (!cc) return;
+      cc.removed = [...new Set([...(cc.removed || []), e.id])];
       save();
       render();
     });
     setTimeout(() => {
       cooling = false;
-      const cc = current();
-      if (cc) renderToday(cc, W.ledger(cc));
-    }, 1100);
+      setLogButtons();
+    }, REST);
   }
 
   function openOther() {
@@ -437,8 +494,8 @@
       if (r.id === pk.top.id) continue;
       const after = W.promiseIf(c, present, r.id, rows).bound;
       const widen = W.cmp(after, now) > 0;
-      const eff = widen ? `fence widens to ±${W.fmt(after).text}` : W.cmp(after, now) < 0 ? `fence narrows to ±${W.fmt(after).text}` : 'fence stays the same';
-      list.append(el('button', { type: 'button', class: 'other-item', onclick: () => logTurn(r.id) },
+      const eff = widen ? `fence widens to ${W.pm(after)}` : W.cmp(after, now) < 0 ? `fence narrows to ${W.pm(after)}` : 'fence stays the same';
+      list.append(el('button', { type: 'button', class: 'other-item', 'data-fk': `other:${r.id}`, onclick: () => logTurn(r.id) },
         el('span', { class: 'nm' }, dot(c, r.id), el('span', { text: nameOf(c, r.id) })),
         el('span', { class: `eff${widen ? ' widen' : ''}`, text: eff })));
     }
@@ -459,7 +516,7 @@
         `, whoever comes and however often (${pr.n} ${pr.n === 1 ? 'person' : 'people'} in this circle).`);
       if (exact) promise.append(` For ${pr.n} people the worst the rule ever actually reaches is ${W.fmt(exact).text}.`);
     } else {
-      promise.append('Some turns went to someone other than the pick, so balances are wider than the rule alone would allow. Following the pick from here, nobody can get further than ',
+      promise.append('Some entries did not go to the pick as the ledger now reads: someone else did it, or two phones each logged before swapping codes. So balances can be wider than the rule alone would allow. Following the pick from here, nobody can get further than ',
         el('b', { text: fenceText(c, F) }), '; while you do, this fence can only stay put or shrink.');
     }
     $('lab-left').textContent = c.kind === 'rounds' ? '← bought more' : '← is owed';
@@ -491,7 +548,7 @@
       ? 'Nothing logged yet.'
       : rp.followed === rp.total
         ? `All ${rp.total} ${rp.total === 1 ? 'entry' : 'entries'} so far went to the pick (or to someone tied with it).`
-        : `${rp.followed} of ${rp.total} entries went to the pick; ${rp.total - rp.followed} went to someone else.`;
+        : `${rp.followed} of ${rp.total} entries went to the pick as the ledger now reads; ${rp.total - rp.followed} did not (someone else did it, or ${rp.total - rp.followed === 1 ? 'it was' : 'they were'} logged on another phone before the codes were swapped).`;
     renderChart(c, F);
     renderArith(c, rows);
   }
@@ -509,11 +566,14 @@
     const series = new Map(c.members.map((m) => [m.id, []]));
     let bal = new Map(c.members.map((m) => [m.id, W.ZERO]));
     let maxAbs = W.toNumber(F);
+    let allInside = true;
     evs.forEach((e, i) => {
       for (const [p, d] of W.eventDelta(c.kind, W.presentOf(e), e.by)) bal.set(p, W.add(bal.get(p) || W.ZERO, d));
       if (i >= startIdx - 1) {
         for (const m of c.members) {
-          const x = W.toNumber(bal.get(m.id) || W.ZERO);
+          const q = bal.get(m.id) || W.ZERO;
+          if (W.cmp(q, F) > 0 || W.cmp(q, W.neg(F)) < 0) allInside = false;
+          const x = W.toNumber(q);
           series.get(m.id).push(x);
           maxAbs = Math.max(maxAbs, Math.abs(x));
         }
@@ -529,7 +589,8 @@
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', `Balances over the last ${N} entries, all inside a fence of plus or minus ${W.fmt(F).text}.`);
+    // The band drawn is today's fence; after a missed pick, earlier balances can lie outside it.
+    svg.setAttribute('aria-label', `Balances over the last ${N} entries, against today's fence of plus or minus ${W.fmt(F).text}${allInside ? ', all inside it' : '; some were outside it'}.`);
     const add = (tag, attrs) => {
       const e = document.createElementNS(NS, tag);
       for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
@@ -602,56 +663,98 @@
           el('span', { class: 'when', text: fmtDate.format(new Date(e.t)) }),
           dot(c, e.by), ' ', el('b', { text: nameOf(c, e.by) }), others.length ? ` for ${others.join(', ')}` : '',
           off.has(i) ? el('span', { class: 'off', text: ' (not the pick)' }) : null),
-        el('button', { type: 'button', class: 'x', 'aria-label': `Remove this entry: ${nameOf(c, e.by)}, ${fmtDate.format(new Date(e.t))}`, onclick: () => removeEvent(e.id) }, 'Remove')));
+        el('button', { type: 'button', class: 'x', 'data-fk': `rm:${e.id}`, 'aria-label': `Remove this entry: ${nameOf(c, e.by)}, ${fmtDate.format(new Date(e.t))}`, onclick: () => removeEvent(e.id) }, 'Remove')));
     }
     const more = $('history-more');
     more.hidden = idx.length <= 12;
     more.textContent = showAllHistory ? 'Show fewer' : `Show all ${idx.length}`;
   }
+  // Removing rests like logging does: after a removal the next entry's Remove button moves under
+  // the finger, so for a moment further removals are ignored. Every removal made while the
+  // slip is showing goes back with one Undo.
+  let removing = false;
+  let undoRemovals = [];
   function removeEvent(id) {
     const c = current();
-    if (!c) return;
+    if (!c || removing) return;
+    removing = true;
+    setTimeout(() => (removing = false), REST);
+    const keys = [...document.querySelectorAll('#history .x')].map((b) => b.getAttribute('data-fk'));
+    const i = keys.indexOf(`rm:${id}`);
     c.removed = [...new Set([...(c.removed || []), id])];
     save();
-    render();
-    toast('Entry removed.', () => {
-      c.removed = c.removed.filter((x) => x !== id);
+    if (toastKind !== 'removal') undoRemovals = [];
+    undoRemovals.push({ cid: c.id, id });
+    render(keys[i + 1], keys[i - 1], '#history-card');
+    const n = undoRemovals.length;
+    toast(n === 1 ? 'Entry removed.' : `${n} entries removed.`, () => {
+      for (const u of undoRemovals) {
+        const cc = store.circles.find((x) => x.id === u.cid);
+        if (cc) cc.removed = (cc.removed || []).filter((x) => x !== u.id);
+      }
+      undoRemovals = [];
       save();
       render();
-    });
+    }, 'removal');
   }
 
   // ------------------------------------------------------------------ edit
+  // The rows are rebuilt only when the people change; a rename or "Has left" updates them in
+  // place, so the field or button keeps keyboard focus (and Tab carries on from it).
   function renderEdit(c) {
     const nameIn = $('edit-name');
     if (document.activeElement !== nameIn) nameIn.value = c.name;
     const list = $('edit-people');
-    list.replaceChildren();
-    for (const m of c.members) {
-      const input = el('input', { value: m.name, maxlength: '40', 'aria-label': `Name for ${m.name}` });
-      input.addEventListener('change', () => {
-        const v = input.value.trim().replace(/\s+/g, ' ').slice(0, 40);
-        if (!v) {
-          input.value = m.name;
-          return;
-        }
-        m.name = v;
-        m.nameT = Date.now();
-        save();
-        render();
-      });
-      const btn = el('button', {
-        type: 'button', class: 'ghost gone-toggle', 'aria-pressed': m.gone ? 'true' : 'false',
-        onclick: () => {
-          m.gone = !m.gone;
-          m.goneT = Date.now();
+    const key = `${c.id}|${c.members.map((m) => m.id).join(',')}`;
+    if (list.getAttribute('data-key') !== key) {
+      list.replaceChildren();
+      for (const m of c.members) {
+        const id = m.id;
+        const live = () => {
+          const cc = current();
+          return cc ? memberById(cc, id) : null;
+        };
+        const input = el('input', { maxlength: '40', 'data-fk': `name:${id}` });
+        input.addEventListener('change', () => {
+          const mm = live();
+          if (!mm) return;
+          const v = input.value.trim().replace(/\s+/g, ' ').slice(0, 40);
+          if (!v) {
+            input.value = mm.name;
+            return;
+          }
+          input.value = v;
+          mm.name = v;
+          mm.nameT = Date.now();
           save();
           render();
-        },
-      }, m.gone ? 'Back in' : 'Has left');
-      list.append(el('li', null, dot(c, m.id), input, btn));
+        });
+        const btn = el('button', {
+          type: 'button', class: 'ghost gone-toggle', 'data-fk': `gone:${id}`,
+          onclick: () => {
+            const mm = live();
+            if (!mm) return;
+            mm.gone = !mm.gone;
+            mm.goneT = Date.now();
+            save();
+            render();
+          },
+        });
+        list.append(el('li', { 'data-id': id }, dot(c, id), input, btn));
+      }
+      list.setAttribute('data-key', key);
     }
-    $('edit-note').textContent = `People who have left keep their place in the ledger and still count towards the fence. This circle counts ${c.kind === 'rounds' ? 'rounds (one each for everyone)' : 'turns (one person does it for everyone)'}; that can't be changed once it has a history, so start a new circle if it should count the other way.`;
+    for (const li of list.children) {
+      const m = memberById(c, li.getAttribute('data-id'));
+      if (!m) continue;
+      const input = li.querySelector('input');
+      const btn = li.querySelector('button');
+      if (document.activeElement !== input) input.value = m.name;
+      input.setAttribute('aria-label', `Name for ${m.name}`);
+      btn.setAttribute('aria-pressed', m.gone ? 'true' : 'false');
+      btn.textContent = m.gone ? 'Back in' : 'Has left';
+    }
+    $('edit-note').textContent = `People who have left keep their place in the ledger and still count towards the fence. This circle counts ${c.kind === 'rounds' ? 'rounds (one each for everyone)' : 'turns (one person does it for everyone)'}; that is fixed when a circle is created, so start a new circle if it should count the other way.`;
   }
 
   // ------------------------------------------------------------------ share and back up
@@ -659,8 +762,8 @@
     $('code-out').value = W.encode(c);
     $('copy-link').hidden = !/^https?:$/.test(location.protocol);
   }
-  async function copyText(text, okMsg) {
-    store.lastCopy = Date.now();
+  async function copyText(text, okMsg, cid) {
+    store.copied[cid] = Math.floor(Date.now() / 1000) * 1000;
     save();
     try {
       await navigator.clipboard.writeText(text);
@@ -727,21 +830,30 @@
 
   // ------------------------------------------------------------------ toast
   let toastTimer = null;
-  function toast(msg, undo) {
+  let toastKind = null;
+  function toast(msg, undo, kind) {
     const t = $('toast');
+    const back = focusKey();
     t.replaceChildren(el('span', { text: msg }));
     if (undo) {
       t.append(el('button', {
         type: 'button',
         onclick: () => {
+          const hadFocus = t.contains(document.activeElement);
           t.hidden = true;
+          toastKind = null;
           undo();
+          if (hadFocus) refocus(back, '#today');
         },
       }, 'Undo'));
     }
     t.hidden = false;
+    toastKind = kind || null;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => (t.hidden = true), undo ? 7000 : 4000);
+    toastTimer = setTimeout(() => {
+      t.hidden = true;
+      toastKind = null;
+    }, undo ? 7000 : 4000);
   }
 
   // ------------------------------------------------------------------ wiring
@@ -754,11 +866,14 @@
     $('create-form').addEventListener('submit', submitCreate);
     $('log-pick').addEventListener('click', () => {
       const c = current();
-      if (!c) return;
+      if (!c || isOff($('log-pick'))) return;
       const pk = W.pick(c, presentFor(c));
       if (pk.ok) logTurn(pk.top.id);
     });
-    $('log-other').addEventListener('click', () => ($('other').hidden ? openOther() : closeOther()));
+    $('log-other').addEventListener('click', () => {
+      if (!$('other').hidden) closeOther();
+      else if (!isOff($('log-other'))) openOther();
+    });
     $('history-more').addEventListener('click', () => {
       showAllHistory = !showAllHistory;
       const c = current();
@@ -808,24 +923,29 @@
     });
     $('copy-code').addEventListener('click', () => {
       const c = current();
-      if (c) copyText(W.encode(c), 'Copied. Paste it on the other phone, under "Paste a code".');
+      if (c) copyText(W.encode(c), 'Copied. Paste it on the other phone, under "Paste a code".', c.id);
     });
     $('copy-link').addEventListener('click', () => {
       const c = current();
-      if (c) copyText(`${location.origin}${location.pathname}#${W.encode(c)}`, 'Link copied. Opening it offers to merge this ledger.');
+      if (c) copyText(`${location.origin}${location.pathname}#${W.encode(c)}`, 'Link copied. Opening it offers to merge this ledger.', c.id);
     });
-    $('merge-code').addEventListener('click', () => {
-      const text = $('code-in').value;
+    // Pasting a code and restoring a backup work from the share section and, so that a phone
+    // with no circles can bring one in, from the "Start a circle" card.
+    const mergeCode = (input, msgEl, fromCreate) => {
       try {
-        const c = W.decode(text);
-        const msg = mergeIn(c);
-        $('share-msg').textContent = msg;
-        $('code-in').value = '';
+        const msg = mergeIn(W.decode(input.value));
+        input.value = '';
+        if (fromCreate) {
+          closeCreate();
+          toast(msg);
+        } else msgEl.textContent = msg;
         render();
       } catch (e) {
-        $('share-msg').textContent = e.message;
+        msgEl.textContent = e.message;
       }
-    });
+    };
+    $('merge-code').addEventListener('click', () => mergeCode($('code-in'), $('share-msg'), false));
+    $('bring-merge').addEventListener('click', () => mergeCode($('bring-code'), $('bring-msg'), true));
     $('download').addEventListener('click', () => {
       const data = JSON.stringify({ app: 'whose-turn', v: 1, saved: new Date().toISOString(), codes: store.circles.map((c) => W.encode(c)) }, null, 1);
       const blob = new Blob([data], { type: 'application/json' });
@@ -836,26 +956,37 @@
         URL.revokeObjectURL(a.href);
         a.remove();
       }, 1000);
-      store.lastCopy = Date.now();
+      store.lastCopy = Math.floor(Date.now() / 1000) * 1000;
+      for (const c of store.circles) store.copied[c.id] = store.lastCopy; // exactly the circles in the file
       save();
       $('share-msg').textContent = 'Backup downloaded. Restoring it merges, so it never loses anything newer.';
     });
-    $('restore').addEventListener('change', async (ev) => {
+    const restore = async (ev, msgEl, fromCreate) => {
       const f = ev.target.files && ev.target.files[0];
       if (!f) return;
       try {
         if (f.size > 20_000_000) throw new Error('That file is too big to be a backup.');
         const text = await f.text();
-        const data = JSON.parse(text);
+        let data = null;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = null;
+        }
         if (!data || data.app !== 'whose-turn' || !Array.isArray(data.codes)) throw new Error("That file isn't a Whose Turn backup.");
         const msgs = data.codes.map((code) => mergeIn(W.decode(code)));
-        $('share-msg').textContent = msgs.join(' ');
+        if (fromCreate && msgs.length) {
+          closeCreate();
+          toast(msgs.join(' '));
+        } else msgEl.textContent = msgs.join(' ') || 'That backup has no circles in it.';
         render();
       } catch (e) {
-        $('share-msg').textContent = e.message || 'Could not read that file.';
+        msgEl.textContent = e.message || 'Could not read that file.';
       }
       ev.target.value = '';
-    });
+    };
+    $('restore').addEventListener('change', (ev) => restore(ev, $('share-msg'), false));
+    $('bring-restore').addEventListener('change', (ev) => restore(ev, $('bring-msg'), true));
     // A held Enter or Space would repeat a button press many times a second: ignore repeats.
     document.addEventListener('keydown', (e) => {
       if (e.repeat && (e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest && e.target.closest('button')) e.preventDefault();
@@ -869,7 +1000,12 @@
   }
 
   function readHash() {
-    const h = decodeURIComponent(location.hash || '');
+    let h = location.hash || '';
+    try {
+      h = decodeURIComponent(h);
+    } catch (e) {
+      /* a malformed %-escape: the code itself never contains one, so try the hash as it is */
+    }
     if (!/WHOSETURN1:/.test(h)) return;
     try {
       incoming = W.decode(h);

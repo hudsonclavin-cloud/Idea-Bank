@@ -76,7 +76,7 @@ test('rationals: normalised, exact, and agree with an independent integer comput
   assert.ok(eq(s, Q(num, L)));
 });
 
-test('fmt: mixed fractions for halves to eighths, "about" otherwise', () => {
+test('fmt: fractions for halves, thirds, quarters, fifths, sixths and eighths; "about" otherwise', () => {
   const f = (s) => W.fmt(parseQ(s)).text;
   assert.equal(f('0'), '0');
   assert.equal(f('3'), '3');
@@ -87,6 +87,47 @@ test('fmt: mixed fractions for halves to eighths, "about" otherwise', () => {
   assert.equal(f('7/12'), 'about 0.6');
   assert.equal(W.fmt(parseQ('7/12')).exact, false);
   assert.equal(f('59/60'), 'about 1');
+  assert.equal(f('2/7'), 'about 0.3'); // sevenths have no fraction glyphs: shown as decimals
+  // added after review: a small non-zero amount used to read "about 0"
+  assert.equal(f('1/30'), 'less than 0.1');
+  assert.equal(f('-1/30'), 'less than 0.1');
+  assert.equal(W.fmt(parseQ('1/30')).tiny, true);
+});
+
+test('the words around amounts: never "about 0", "about 1 of a turn" or "±about"', () => {
+  const t = (s) => W.turnsText(parseQ(s));
+  assert.equal(t('1/2'), '½ of a turn');
+  assert.equal(t('1'), '1 turn');
+  assert.equal(t('-7/6'), '1⅙ turns');
+  assert.equal(t('7/12'), 'about 0.6 of a turn');
+  assert.equal(t('59/60'), 'about 1 turn');
+  assert.equal(t('1/30'), 'less than 0.1 of a turn');
+  assert.equal(t('25/12'), 'about 2.1 turns');
+  assert.equal(W.pm(parseQ('2')), '±2');
+  assert.equal(W.pm(parseQ('7/6')), '±1⅙');
+  assert.equal(W.pm(parseQ('25/12')), 'about ±2.1');
+  assert.equal(W.fenceText('turns', parseQ('1/2')), '±½ of a turn');
+  assert.equal(W.fenceText('turns', parseQ('25/12')), 'about ±2.1 turns');
+  assert.equal(W.fenceText('rounds', parseQ('4')), '±4 portions');
+  assert.equal(W.fenceText('rounds', parseQ('1')), '±1 portion');
+  assert.equal(W.amountText('rounds', parseQ('3')), '3');
+  // every fraction with a denominator up to 60 and a size up to 10
+  for (let d = 1; d <= 60; d++) {
+    for (let k = -600; k <= 600; k++) {
+      const q = Q(k, d);
+      const x = Math.abs(toNumber(q));
+      const words = [W.fmt(q).text, W.turnsText(q), W.pm(q), W.fenceText('turns', q)];
+      for (const w of words) {
+        assert.ok(!/about 0(?![.\d])/.test(w), `${qstr(q)}: ${w}`);
+        assert.ok(!/±about|±less/.test(w), `${qstr(q)}: ${w}`);
+      }
+      const tt = W.turnsText(q);
+      // "of a turn" only for less than one turn (as written), "turns" only for more than one
+      if (/of a turn$/.test(tt)) assert.ok(/^(less than 0\.1|about 0\.\d)/.test(tt) ? x < 0.95 : x < 1, `${qstr(q)}: ${tt}`);
+      if (/turns$/.test(tt)) assert.ok(x > 1, `${qstr(q)}: ${tt}`);
+      if (k !== 0) assert.ok(W.fmt(q).text !== '0', `${qstr(q)} is not shown as 0`);
+    }
+  }
 });
 
 // ------------------------------------------------------------------ the ledger
@@ -530,6 +571,31 @@ test('adversarial search finds nothing beyond the proven bound for 6 to 9 people
   }
 });
 
+test('six people: an attendance pattern, the pick followed throughout, that reaches 119/60 turns', () => {
+  // Found by a beam search after the review (the exhaustive search does not finish for six).
+  // Each number is who came, as a bitmask over the six people; the page's own engine picks.
+  const masks = [63, 62, 62, 56, 48, 7, 12, 5, 3, 24, 12, 6, 3, 56, 40, 48, 28, 20, 24, 9, 13, 9, 14, 10, 12, 48, 33, 41, 9, 56, 24, 48, 41, 33, 9, 6, 42, 42, 34, 40, 14, 12, 14, 6, 11, 33, 40, 10, 17, 17, 24, 58, 24, 42, 10, 42, 34, 17, 9, 41, 33, 56, 48, 24];
+  const circle = circleOf('turns', 6);
+  const P = circle.members.map((m) => m.id);
+  let worst = ZERO;
+  masks.forEach((mask, t) => {
+    const who = P.filter((_, i) => (mask >> i) & 1);
+    const pk = W.pick(circle, who);
+    circle.events.push({ id: `e${String(t).padStart(6, '0')}`, t: 1000 * (t + 1), by: pk.top.id, who });
+    for (const v of W.balances(circle).values()) worst = W.qmax(worst, abs(v));
+  });
+  const rp = W.replay(circle);
+  assert.equal(rp.total, masks.length);
+  assert.equal(rp.followed, rp.total);
+  assert.equal(qstr(worst), '119/60');
+  assert.ok(cmp(worst, Q(5, 2)) <= 0); // inside the proven (n - 1)/2
+  assert.ok(cmp(worst, parseQ('49/30')) > 0); // above the README's first figure
+  // the README's table gives this as the largest found
+  const md = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+  const row = /^\| Worst the rule reaches \|(.*)$/m.exec(md)[1];
+  assert.ok(row.includes(`at least ${qstr(worst)} `), row);
+});
+
 // ------------------------------------------------------------------ other rules drift
 test('a plain rota, or counting turns, drifts without limit; the rule does not', () => {
   // Two people come every time; a third comes every third time.
@@ -622,6 +688,27 @@ test('merge: order does not matter, merging twice changes nothing, and deletions
     const m2 = W.balances(direct);
     for (const [id, v] of m1) assert.ok(eq(v, m2.get(id)));
   }
+});
+
+test('two phones that both log before swapping codes: each followed its own pick, the merge shows a miss', () => {
+  // As on the page: a rounds circle of three; phone A logs its pick twice; phone B, which has not
+  // seen those, adds a fourth person and logs its own pick. Each phone followed the rule.
+  const base = circleOf('rounds', 3);
+  const P = base.members.map((m) => m.id);
+  const a = JSON.parse(JSON.stringify(base));
+  for (let i = 0; i < 2; i++) a.events.push({ id: `ea${String(i).padStart(6, '0')}`, t: 1000 * (i + 1), by: W.pick(a, P).top.id, who: P });
+  const b = JSON.parse(JSON.stringify(base));
+  b.members.push({ id: 'p003', name: 'Person 3', nameT: 5, gone: false, goneT: 0, pos: 3 });
+  const P4 = b.members.map((m) => m.id);
+  b.events.push({ id: 'eb000000', t: 3000, by: W.pick(b, P4).top.id, who: P4 });
+  for (const x of [a, b]) assert.equal(W.replay(x).followed, W.replay(x).total);
+  const ab = W.merge(a, b);
+  const rp = W.replay(ab);
+  assert.equal(rp.total, 3);
+  assert.ok(rp.followed < rp.total, 'the merged ledger reports a turn that was not the pick');
+  // so the fence widens, though nobody overrode a pick: the README and page say this can happen
+  assert.ok(cmp(W.promise(ab).D, ZERO) > 0);
+  assert.equal(canon(W.merge(b, a)), canon(ab));
 });
 
 test('merge refuses different circles or a turns/rounds mismatch', () => {

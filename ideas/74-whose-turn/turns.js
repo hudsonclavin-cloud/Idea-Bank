@@ -335,20 +335,61 @@
     '4/5': '⅘', '1/6': '⅙', '5/6': '⅚', '1/8': '⅛', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞',
   };
   /**
-   * A friendly magnitude: whole numbers as digits, halves to eighths (and fifths, sixths) as
-   * mixed fractions, anything else to one decimal place with "about". Returns
-   * { text, exact } where exact says whether the text is the exact value.
+   * A friendly magnitude: whole numbers as digits; halves, thirds, quarters, fifths, sixths and
+   * eighths as mixed fractions (1⅙); anything else to one decimal place with "about", or as
+   * "less than 0.1" when it would round to 0. Returns { text, exact, tiny, approx } where exact
+   * says whether the text is the exact value, tiny that it is non-zero but rounds to 0, and
+   * approx is the one-decimal figure as a string (for "about ±2.1").
    */
   function fmt(q) {
     const a = cmp(q, ZERO) < 0 ? neg(q) : q;
     const whole = a.n / a.d;
     const rem = Q(a.n - whole * a.d, a.d);
-    if (rem.n === 0n) return { text: `${whole}`, exact: true };
+    if (rem.n === 0n) return { text: `${whole}`, exact: true, tiny: false, approx: `${whole}` };
     const key = `${rem.n}/${rem.d}`;
-    if (VULGAR[key]) return { text: `${whole ? whole : ''}${VULGAR[key]}`, exact: true };
     const x = toNumber(a);
     const r = Math.round(x * 10) / 10;
-    return { text: `about ${r === Math.round(r) ? r.toFixed(0) : r.toFixed(1)}`, exact: false };
+    const approx = r === Math.round(r) ? r.toFixed(0) : r.toFixed(1);
+    if (VULGAR[key]) return { text: `${whole ? whole : ''}${VULGAR[key]}`, exact: true, tiny: false, approx };
+    if (r === 0) return { text: 'less than 0.1', exact: false, tiny: true, approx };
+    return { text: `about ${approx}`, exact: false, tiny: false, approx };
+  }
+
+  /** "½ of a turn", "1 turn", "1⅙ turns", "about 0.6 of a turn", "about 1 turn", "less than 0.1 of a turn". */
+  function turnsText(q) {
+    const f = fmt(q);
+    const mag = cmp(q, ZERO) < 0 ? neg(q) : q;
+    if (f.exact) {
+      if (cmp(mag, Q(1)) < 0) return `${f.text} of a turn`;
+      if (eq(mag, Q(1))) return '1 turn';
+      return `${f.text} turns`;
+    }
+    if (f.tiny) return 'less than 0.1 of a turn';
+    const r = Number(f.approx);
+    if (r < 1) return `about ${f.approx} of a turn`;
+    if (r === 1) return 'about 1 turn';
+    return `about ${f.approx} turns`;
+  }
+
+  /** A balance in a circle's own unit: turns, or (for rounds) a plain count of portions. */
+  function amountText(kind, q) {
+    return kind === 'rounds' ? fmt(q).text : turnsText(q);
+  }
+
+  /** A fence as "±2", "±1⅙" or "about ±2.1" (never "±about 2.1"). */
+  function pm(F) {
+    const f = fmt(F);
+    if (f.exact) return `±${f.text}`;
+    return f.tiny ? 'less than ±0.1' : `about ±${f.approx}`;
+  }
+
+  /** A fence with its unit: "±½ of a turn", "about ±2.1 turns", "±4 portions". */
+  function fenceText(kind, F) {
+    const f = fmt(F);
+    if (kind === 'rounds') return `±${f.text} ${f.text === '1' ? 'portion' : 'portions'}`;
+    const t = turnsText(F);
+    for (const lead of ['about ', 'less than ']) if (t.startsWith(lead)) return `${lead}±${t.slice(lead.length)}`;
+    return `±${t}`;
   }
 
   // ---------------------------------------------------------------- merging and sharing
@@ -535,7 +576,7 @@
     Q, ZERO, add, sub, mul, neg, cmp, eq, toNumber, qstr, parseQ, qmax,
     KINDS, liveEvents, presentOf, eventDelta, ledger, balances, rank, pick,
     alphaOf, excess, promise, promiseIf, EXACT_TURNS, replay,
-    simulate, worst, rng, fmt,
+    simulate, worst, rng, fmt, turnsText, amountText, pm, fenceText,
     validate, normalize, merge, encode, decode, toWire, fromWire,
   };
 });

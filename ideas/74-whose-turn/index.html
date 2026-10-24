@@ -53,6 +53,16 @@
         <button type="button" id="create-cancel" class="ghost">Cancel</button>
       </div>
     </form>
+    <div class="bring">
+      <h3 id="bring-h">Or bring one in</h3>
+      <p class="hint">Already kept on another phone? Paste its ledger code, or restore a backup file.</p>
+      <label class="field"><span>Ledger code</span><textarea id="bring-code" rows="2" spellcheck="false" placeholder="WHOSETURN1:…"></textarea></label>
+      <div class="row-buttons">
+        <button type="button" id="bring-merge" class="ghost">Add it</button>
+        <label class="ghost button-like">Restore from a backup<input type="file" id="bring-restore" accept=".json,application/json" class="visually-hidden"></label>
+      </div>
+      <p id="bring-msg" class="small-note" role="status"></p>
+    </div>
   </section>
 
   <main id="main">
@@ -83,7 +93,7 @@
       <details class="sub-details">
         <summary>Over time</summary>
         <div id="chart" class="chart"></div>
-        <p class="small-note">Each line is one person's balance after each entry. The shaded band is the fence above.</p>
+        <p class="small-note">Each line is one person's balance after each entry. The shaded band is today's fence, from above; after a turn that did not go to the pick, earlier balances can lie outside it.</p>
       </details>
       <details class="sub-details">
         <summary>Show the arithmetic</summary>
@@ -92,7 +102,7 @@
       </details>
     </section>
 
-    <section class="card history" aria-labelledby="hist-h">
+    <section id="history-card" class="card history" aria-labelledby="hist-h" tabindex="-1">
       <h2 id="hist-h">History</h2>
       <ol id="history" class="history-list"></ol>
       <button type="button" id="history-more" class="ghost small" hidden>Show all</button>

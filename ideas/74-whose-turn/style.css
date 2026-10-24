@@ -85,10 +85,10 @@ button:focus-visible, .button-like:focus-within, input:focus-visible, textarea:f
   outline: 3px solid var(--focus); outline-offset: 2px;
 }
 .primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-.primary:disabled { opacity: 0.45; cursor: default; }
+.primary:disabled, .primary[aria-disabled="true"] { opacity: 0.45; cursor: default; }
 .ghost, .button-like { background: transparent; color: var(--ink); border-color: var(--line); display: inline-flex; align-items: center; }
 @media (hover: hover) { .ghost:hover, .button-like:hover, .other-item:hover { background: var(--soft); } }
-.ghost:disabled { opacity: 0.5; cursor: default; }
+.ghost:disabled, .ghost[aria-disabled="true"] { opacity: 0.5; cursor: default; }
 .small { padding: 6px 12px; min-height: 36px; font-size: 0.92rem; }
 .danger { background: transparent; color: var(--warn); border-color: var(--warn); }
 .big { font-size: 1.08rem; padding: 12px 20px; }
@@ -125,7 +125,7 @@ button:focus-visible, .button-like:focus-within, input:focus-visible, textarea:f
 .whose .dot { display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%; background: var(--dot); vertical-align: 0.12em; margin-right: 0.3em; }
 .why { margin: 0 0 4px; }
 .then { color: var(--muted); margin: 0; }
-.verdict.fresh .whose { animation: arrive 260ms ease-out; }
+.whose.arrive { animation: arrive 260ms ease-out; }
 @keyframes arrive { from { transform: translateY(5px); opacity: 0.55; } to { transform: none; opacity: 1; } }
 .verdict .quiet { color: var(--muted); font-family: var(--sans); font-size: 1.05rem; }
 
@@ -195,6 +195,8 @@ fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; }
 .kind-opt input { margin-top: 5px; flex: none; width: 18px; height: 18px; }
 .kind-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .form-error { color: var(--warn); min-height: 1em; }
+.bring { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 4px; }
+.bring h3 { margin-top: 0.8rem; }
 .edit-body, .share-body { padding-top: 6px; }
 .edit-people { list-style: none; padding: 0; margin: 0 0 8px; }
 .edit-people li { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
@@ -225,6 +227,6 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
   .wrap { max-width: 760px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .verdict.fresh .whose { animation: none; }
+  .whose.arrive { animation: none; }
   .track .mark { transition: none; }
 }
