@@ -127,40 +127,83 @@ test('resonance positions: p laps of the Sun for every q of Jupiter\'s', () => {
 });
 
 // ------------------------------------------------------------------ what the data says at the marks
-test('the notch finder, told nothing about Jupiter, finds the four gaps on the default ruler', () => {
+test('the notch finder, told nothing about Jupiter, on the default stretch: six notches, six resonances', () => {
   const all = Belt.population('all').counts;
-  const found = Belt.findNotches(all, 1.8, 3.4, 4);
-  assert.deepEqual(found.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1']);
-  assert.deepEqual(found.map((f) => f.a.toFixed(4)), ['2.8225', '2.5025', '2.9575', '3.2825']);
-  assert.deepEqual(found.map((f) => Math.round(f.sigma)), [67, 66, 44, 21]);
-  assert.deepEqual(found.map((f) => Math.round(100 * f.depth)), [93, 95, 68, 83]);
+  const found = Belt.findNotches(all, 1.8, 3.4, 6);
+  assert.deepEqual(found.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '8:3', '2:1', '9:4']);
+  assert.deepEqual(found.map((f) => f.a.toFixed(4)), ['2.8250', '2.5025', '2.9550', '2.7050', '3.2825', '3.0275']);
+  assert.deepEqual(found.map((f) => Math.round(f.sigma)), [67, 66, 46, 22, 21, 18]);
+  assert.deepEqual(found.map((f) => Math.round(100 * f.depth)), [94, 95, 71, 23, 83, 21]);
   const worst = Math.max(...found.map((f) => Math.abs(f.offset)));
   assert.ok(worst < 0.006 && worst > 0.0058, `largest offset ${worst}`);
-  // The same four from any stretch that holds them, and at twice the resolution.
-  for (const [a0, a1] of [[1.5, 5.5], [2.0, 3.5], [2.1, 3.3]]) {
-    assert.deepEqual(Belt.findNotches(all, a0, a1, 4).map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1'], `${a0}-${a1}`);
-  }
-  const fine = Belt.findNotches(all, 1.8, 3.4, 4, 1);
-  assert.deepEqual(fine.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1']);
+  // The 2:1 notch is a step: 91% below the belt inside it, 17% below the belt outside it.
+  assert.deepEqual(found.map((f) => f.edge), [false, false, false, false, true, false]);
+  const two = found[4];
+  assert.deepEqual([two.depthIn, two.depthOut].map((x) => Math.round(100 * x)), [91, 17]);
+  // The resonance list: every p:q with p <= 9 and order <= 5 inside 1.5-5.5 au, 8 of them in this stretch.
+  assert.equal(Belt.RESONANCES.length, 24);
+  assert.deepEqual(Belt.RESONANCES.filter((r) => r.a > 1.8 && r.a < 3.4).map((r) => r.label), ['4:1', '7:2', '3:1', '8:3', '5:2', '7:3', '9:4', '2:1']);
+  // At 0.0025 au slices: the same six, with the 2:1 and the 8:3 changing places.
+  const fine = Belt.findNotches(all, 1.8, 3.4, 6, 1);
+  assert.deepEqual(fine.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1', '8:3', '9:4']);
   assert.ok(Math.max(...fine.map((f) => Math.abs(f.offset))) < 0.0055);
-  // Control: slide the whole catalogue 0.05 au outward. The finder follows the data, not Jupiter,
-  // so its notches move with it and stop sitting on the resonances.
-  const shifted = new Array(all.length).fill(0);
-  for (let k = 0; k + 20 < all.length; k++) shifted[k + 20] = all[k];
-  const moved = Belt.findNotches(shifted, 1.8, 3.4, 4);
-  assert.ok(moved.every((f) => Math.abs(f.offset) > 0.03), moved.map((f) => f.offset).join());
-  // A belt with no structure has no notches.
-  assert.equal(Belt.findNotches(all.map(() => 1000), 1.8, 3.4, 4).length, 0);
+  // Scored against the lower of the two sides, so that a step cannot pass for a notch: the same
+  // first four; the 2:1 comes back only as a weak dip 0.021 au outside the resonance.
+  const both = Belt.findNotches(all, 1.8, 3.4, 6, 2, 'both');
+  assert.deepEqual(both.slice(0, 4).map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '8:3']);
+  assert.equal(both[4].a.toFixed(4), '3.2975');
+  assert.equal(Math.round(both[4].sigma), 6);
+  // A belt with no structure has no notches (a sanity check: it cannot fail).
+  assert.equal(Belt.findNotches(all.map(() => 1000), 1.8, 3.4, 6).length, 0);
+});
+
+test('the notch finder does not depend on where the stretch starts (the first version did)', () => {
+  // The first version cut the stretch into 0.005 au slices from a0, so a stretch starting at
+  // 1.8025 au instead of 1.8 au found the 8:3 and lost the 2:1. Every 0.0025 au start from 1.5 to
+  // 2.45 au, against six ends from 3.4 to 5.5 au: 2,286 stretches, one list.
+  const all = Belt.population('all').counts;
+  const want = ['5:2', '3:1', '7:3', '8:3', '2:1', '9:4'];
+  let n = 0;
+  for (let k = 0; k <= 380; k++) for (const a1 of [3.4, 3.45, 3.5, 3.6, 4.0, 5.5]) {
+    const a0 = 1.5 + k * 0.0025;
+    assert.deepEqual(Belt.findNotches(all, a0, a1, 6).map((f) => f.nearest.label), want, `${a0}-${a1}`);
+    n++;
+  }
+  assert.equal(n, 2286);
+  assert.deepEqual(Belt.findNotches(all, 1.8025, 3.4, 6), Belt.findNotches(all, 1.8, 3.4, 6));
+  for (const [a0, a1] of [[2.0, 3.5], [2.1, 3.3]]) assert.deepEqual(Belt.findNotches(all, a0, a1, 6).map((f) => f.nearest.label), want, `${a0}-${a1}`);
+});
+
+test('a null that can fail: slide the catalogue and the notches stop landing on resonances', () => {
+  // Slide the whole catalogue by every 0.0025 au step from 0.02 to 0.15 au, each way: 106 shifts.
+  // Unshifted, all six notches lie within 0.006 au of a listed resonance. Shifted, the most that did was one.
+  const all = Belt.population('all').counts;
+  const onList = (f) => f.filter((x) => Math.abs(x.offset) <= 0.006).length;
+  assert.equal(onList(Belt.findNotches(all, 1.8, 3.4, 6)), 6);
+  const hits = [];
+  for (let s = 8; s <= 60; s++) for (const sign of [1, -1]) {
+    const shifted = new Array(all.length).fill(0);
+    for (let k = 0; k < all.length; k++) { const j = k + sign * s; if (j >= 0 && j < all.length) shifted[j] = all[k]; }
+    const f = Belt.findNotches(shifted, 1.8, 3.4, 6);
+    assert.equal(f.length, 6);
+    hits.push(onList(f));
+  }
+  assert.equal(hits.length, 106);
+  assert.equal(Math.max(...hits), 1);
+  assert.equal(hits.filter((h) => h === 1).length, 28);
 });
 
 test('the notch finder in the other populations, and by distance (what the README reports)', () => {
-  const run = (pop, kind) => Belt.findNotches(Belt.fineCounts(Belt.population(pop), kind || 'a'), 1.8, 3.4, 4);
-  assert.deepEqual(run('good').map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1']);
+  const run = (pop, kind) => Belt.findNotches(Belt.fineCounts(Belt.population(pop), kind || 'a'), 1.8, 3.4, 6);
+  const good = run('good');
+  assert.deepEqual(good.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '2:1', '8:3', '9:4']);
+  assert.equal(good[3].edge, true);
   const big = run('big');
-  assert.deepEqual(big.slice(0, 3).map((f) => f.nearest.label), ['5:2', '3:1', '7:3']);
+  assert.deepEqual(big.map((f) => f.nearest.label), ['5:2', '3:1', '7:3', '9:4', '2:1', '8:3']);
   assert.equal(big[3].a.toFixed(4), '3.0275');
-  assert.ok(big[3].sigma > 10 && Math.abs(big[3].offset) > 0.07, 'a real notch, near no listed resonance');
-  assert.ok(Math.abs(big[3].a - Belt.resonanceA(9, 4)) < 0.005, 'beside the 9:4, which the list leaves out');
+  assert.ok(big[3].sigma > 10 && Math.abs(big[3].a - Belt.resonanceA(9, 4)) < 0.002, 'the 9:4, order 5');
+  assert.equal(big[4].edge, true);
+  assert.ok(big.every((f) => f.sigma > 9 && Math.abs(f.offset) < 0.005));
   for (const pop of ['first1000', 'by1866']) assert.ok(run(pop).every((f) => f.sigma < 3), `${pop}: nothing beyond chance`);
   // The first version ranked by fractional depth: the same four on the full catalogue, but in the
   // larger asteroids it filled up with empty slices in the sparse inner edge of the belt.
@@ -173,16 +216,24 @@ test('the notch finder in the other populations, and by distance (what the READM
   assert.ok(run('big', 'r').every((f) => f.sigma < 0.5));
 });
 
-test('emptiness at each mark, as quoted', () => {
+test('emptiness at each mark, on each side, as quoted', () => {
   const e = (pop, l) => Belt.emptiness(Belt.population(pop).counts, Belt.MARKS.find((m) => m.label === l).a);
-  const pct = (x) => (100 * x.ratio).toFixed(0);
-  assert.deepEqual(['3:1', '5:2', '7:3', '2:1'].map((l) => pct(e('all', l))), ['6', '7', '32', '16']);
-  assert.deepEqual(['3:1', '5:2', '7:3', '2:1'].map((l) => pct(e('big', l))), ['1', '0', '25', '6']);
-  assert.equal(pct(e('all', '3:2')), '189');
+  const pct = (x) => (100 * x).toFixed(0);
+  const four = ['3:1', '5:2', '7:3', '2:1'];
+  // Both sides together, as the first version reported it ...
+  assert.deepEqual(four.map((l) => pct(e('all', l).ratio)), ['6', '7', '32', '16']);
+  assert.deepEqual(four.map((l) => pct(e('big', l).ratio)), ['1', '0', '25', '6']);
+  // ... and each side on its own: at the 2:1 the outer side is as sparse as the slice itself.
+  assert.deepEqual(four.map((l) => [pct(e('all', l).ratioIn), pct(e('all', l).ratioOut)]), [['8', '5'], ['5', '11'], ['53', '23'], ['9', '98']]);
+  assert.deepEqual(four.map((l) => e('all', l).edge), [false, false, false, true]);
+  assert.deepEqual([pct(e('big', '2:1').ratioIn), pct(e('big', '2:1').ratioOut)], ['3', '65']);
+  assert.equal(e('big', '2:1').edge, true);
+  assert.equal(pct(e('all', '3:2').ratio), '189');
   assert.equal(e('all', '3:1').count, 254);
   const r = Belt.population('all').rcounts;
-  const ratios = ['3:1', '5:2', '7:3', '2:1'].map((l) => Belt.emptiness(r, Belt.MARKS.find((m) => m.label === l).a).ratio);
-  assert.ok(ratios.every((x) => x > 0.997 && x < 1.006), ratios.join());
+  const byR = four.map((l) => Belt.emptiness(r, Belt.MARKS.find((m) => m.label === l).a));
+  assert.ok(byR.every((x) => x.ratio > 0.997 && x.ratio < 1.006), byR.map((x) => x.ratio).join());
+  assert.ok(byR.every((x) => x.ratioIn > 0.93 && x.ratioIn < 1.08 && x.ratioOut > 0.93 && x.ratioOut < 1.08 && !x.edge));
   // Inner belt (2.1-2.5 au) per outer belt (2.83-3.27 au) asteroid: the full catalogue against the larger ones.
   const ratio = (pop) => {
     const c = Belt.population(pop).counts;
@@ -190,6 +241,93 @@ test('emptiness at each mark, as quoted', () => {
   };
   assert.equal(ratio('all').toFixed(2), '0.83');
   assert.equal(ratio('big').toFixed(2), '0.35');
+});
+
+test('what a fingernail meets on the default object: four notches and an edge, in mm', () => {
+  // The first version said the top edge "drops into four notches". On the ruler as downloaded the
+  // 2:1 falls on the outer edge of the belt instead.
+  const L = Belt.layout(Belt.DEFAULTS);
+  const g = Object.fromEntries(L.marks.map((m) => [m.label, Belt.grooveDepth(L, m.a)]));
+  assert.deepEqual(['3:1', '5:2', '7:3', '2:1'].map((l) => g[l].kind), ['notch', 'notch', 'notch', 'edge']);
+  assert.deepEqual(['3:1', '5:2', '7:3', '2:1'].map((l) => g[l].depth), [8.89, 7.65, 2.56, 0.13]);
+  assert.deepEqual([g['2:1'].floor, g['2:1'].inner, g['2:1'].outer], [0.19, 7.73, 0.32]);
+  // The bars fall from 21.3 mm at 3.16 au to under half a millimetre by 3.26 au and stay there.
+  const bar = (a) => L.bars.find((b) => Math.abs(b.a0 - a) < 1e-9);
+  assert.equal(+(bar(3.16).h - Belt.H.bodyBase).toFixed(2), 21.32);
+  for (let k = 326; k < 340; k++) assert.ok(bar(k / 100).h - Belt.H.bodyBase < 0.5, `${k / 100} au`);
+  // The square-root and log scales lift the sparse orbits beyond: the 2:1 becomes a shallow dip.
+  const at21 = (scale) => { const S = Belt.layout({ ...Belt.DEFAULTS, scale }); return Belt.grooveDepth(S, S.marks.find((m) => m.label === '2:1').a); };
+  assert.deepEqual([at21('sqrt').depth, at21('sqrt').kind], [0.58, 'edge']);
+  assert.deepEqual([at21('log').depth, at21('log').kind], [1.09, 'notch']);
+  // Counted by where they are, there is no dip at any groove: the bars rise or fall through them.
+  const R = Belt.layout({ ...Belt.DEFAULTS, count: 'r' });
+  assert.ok(R.marks.every((m) => Belt.grooveDepth(R, m.a).kind === 'slope'));
+  assert.equal(Belt.grooveDepth(L, 1.7), null);
+  // Every bar of the default ruler, scanned: exactly four notches of 1 mm or more, and the 8:3 has no groove.
+  const all4 = Belt.objectNotches(L);
+  assert.deepEqual(all4.map((n) => n.nearest.label), ['3:1', '5:2', '8:3', '7:3']);
+  assert.deepEqual(all4.map((n) => n.depth), [8.89, 7.65, 3.55, 2.56]);
+  assert.deepEqual(all4.map((n) => n.groove), ['3:1', '5:2', null, '7:3']);
+  assert.deepEqual(all4.map((n) => n.a0.toFixed(2)), ['2.50', '2.82', '2.70', '2.95']);
+  // and the deepest dip that is not a notch is 0.96 mm (any local low point, against its rims)
+  let next = 0;
+  L.bars.forEach((b, i) => {
+    if (all4.some((n) => n.a0 === b.a0)) return;
+    if ((i > 0 && L.bars[i - 1].h < b.h) || (i < L.bars.length - 1 && L.bars[i + 1].h < b.h)) return; // not a low point
+    const c = (b.a0 + b.a1) / 2, rel = (x) => x.h - Belt.H.bodyBase;
+    const lo = L.bars.filter((x) => (x.a0 + x.a1) / 2 < c && (x.a0 + x.a1) / 2 > c - 0.06), hi = L.bars.filter((x) => (x.a0 + x.a1) / 2 > c && (x.a0 + x.a1) / 2 < c + 0.06);
+    if (!lo.length || !hi.length) return;
+    next = Math.max(next, Math.min(Math.max(...lo.map(rel)), Math.max(...hi.map(rel))) - rel(b));
+  });
+  assert.equal(+next.toFixed(2), 0.96);
+  // Counted by where they are: no notch anywhere.
+  assert.equal(Belt.objectNotches(Belt.layout({ ...Belt.DEFAULTS, count: 'r' })).length, 0);
+  assert.equal(Belt.grooveDepth(Belt.layout({ a0: 2.0, a1: 3.28 }), 3.2766).kind, 'end');
+});
+
+test('the twin by distance shares the ruler\'s height scale, so the pair compare bar for bar', () => {
+  const L = Belt.layout(Belt.DEFAULTS);
+  const preset = JSON.parse(html.match(/data-presets='([^']+)'/)[1]).find((p) => /by where they are/.test(p.name)).set;
+  const R = Belt.layout(preset);
+  assert.equal(R.sharedScale, true);
+  assert.equal(R.scaleMax, L.cmax);
+  assert.equal(R.perMm3.toFixed(2), L.perMm3.toFixed(2));
+  const tallest = (X) => Math.max(...X.bars.map((b) => b.h - Belt.H.bodyBase));
+  assert.equal(+tallest(R).toFixed(2), 12.29);
+  assert.equal(Math.round(R.csum), 1383202);
+  // the first version scaled each to its own tallest bar: 22 mm and 43 asteroids per mm^3
+  const own = Belt.layout({ ...preset, match: false });
+  assert.equal(own.sharedScale, false);
+  assert.equal(+tallest(own).toFixed(2), 22);
+  assert.equal(own.perMm3.toFixed(1), '42.9');
+  // Where the count by distance peaks higher, that scale would overshoot: each keeps its own.
+  const out = Belt.layout({ count: 'r', a0: 3.25, a1: 3.6 });
+  assert.ok(out.cmax > out.orbitMax && out.sharedScale === false && Math.abs(tallest(out) - out.params.relief) < 0.006);
+  assert.equal(Belt.normalize({ match: '0' }).match, false);
+  assert.equal(Belt.normalize({}).match, true);
+  assert.match(Belt.fileName(own.params), /_by-distance_own-scale_/);
+});
+
+test('fins: runs of bars that stand free together count, not only single bars', () => {
+  // by1866, the whole belt, 170 mm, 40 mm relief: a 2.12 mm-wide pair stands 10 mm clear of both
+  // flanks. The first version's single-bar rule counted 6 fins here and missed it.
+  const L = Belt.layout({ pop: 'by1866', a0: 1.5, a1: 5.5, length: 170, relief: 40, depth: 8 });
+  assert.equal(L.fins, 7);
+  const pair = L.finRuns.find((f) => f.j > f.i);
+  assert.deepEqual([pair.j - pair.i + 1, pair.width, pair.rise], [2, 2.12, 10]);
+  assert.equal(Math.max(...L.finRuns.map((f) => f.rise)), 25);
+  const single = L.bars.filter((b, i) => {
+    const left = i ? L.bars[i - 1].h : Belt.H.bodyBase, right = i < L.bars.length - 1 ? L.bars[i + 1].h : Belt.H.bodyBase;
+    return b.x1 - b.x0 < 2 && b.h - Math.max(left, right) >= 8;
+  }).length;
+  assert.equal(single, 6);
+  // A run must stand free as a whole: a lower bar inside it, or a tall flank, rules it out.
+  const bars = (hs) => hs.map((h, i) => ({ x0: i * 1.06, x1: (i + 1) * 1.06, h }));
+  assert.equal(Belt.findFins(bars([5, 20, 20, 5])).length, 1);
+  assert.equal(Belt.findFins(bars([5, 20, 10, 20, 5])).length, 2);
+  assert.equal(Belt.findFins(bars([5, 20, 20, 20, 5])).length, 0, 'three bars are 3.18 mm wide: not a fin');
+  assert.equal(Belt.findFins(bars([5, 20, 13, 5])).length, 1, 'the pair stands 8 mm clear');
+  assert.equal(Belt.findFins(bars([5, 20, 12.5, 5])).length, 0, 'neither the pair nor the tall bar stands 8 mm clear');
 });
 
 // ------------------------------------------------------------------ the solid
@@ -279,9 +417,19 @@ test('sampled sweep: 400 random settings across every control are closed solids'
       pop: pick(Belt.POP_IDS), scale: pick(Belt.SCALES), ledge: rnd() < 0.8,
       a0, a1: a0 + rnd() * (5.6 - a0), bin: rnd() * 0.12,
       length: 45 + rnd() * 130, relief: 3 + rnd() * 40, depth: 6 + rnd() * 26,
+      count: pick(Belt.COUNTS), match: rnd() < 0.7,
     };
     checkModel(input, JSON.stringify(input));
   }
+});
+
+test('corner sweep by distance: every population and scale, shared height scale on and off', () => {
+  for (const pop of Belt.POP_IDS) for (const scale of Belt.SCALES) for (const match of [true, false])
+    for (const relief of [4, 40]) for (const [a0, a1] of [[1.5, 1.6], [5.4, 5.5], [1.5, 5.5], [3.2, 3.4]]) {
+      const { L } = checkModel({ pop, scale, match, relief, a0, a1, count: 'r' }, `r ${pop} ${scale} ${match} ${relief} ${a0}-${a1}`);
+      const tallest = Math.max(...L.bars.map((b) => b.h - Belt.H.bodyBase));
+      assert.ok(tallest <= L.params.relief + 0.006, `never taller than the relief (${tallest})`);
+    }
 });
 
 test('corner sweep: every population and scale at the ends of length, relief, depth and range', () => {
@@ -344,13 +492,22 @@ test('the 1866 ruler, as the page describes it', () => {
   assert.equal(L.bars.filter((b) => b.count === 0).length, 43);
   for (const m of L.marks) assert.equal(L.bars.find((b) => b.a0 <= m.a && m.a < b.a1).count, 0, m.label);
   assert.match(html, /43 of its 80 bars are empty/);
-  assert.equal(Belt.layout({ a0: 4.4, a1: 4.9, bin: 0.0025, relief: 40 }).fins, 19, 'the README\'s fin count');
+  const sparse = Belt.layout({ a0: 4.4, a1: 4.9, bin: 0.0025, relief: 40 });
+  assert.equal(sparse.fins, 19, 'the README\'s fin count');
+  assert.equal(sparse.params.bin, 0.005, 'at 160 mm the 1 mm minimum widens 0.0025 au bins to 0.005 au');
+  assert.equal(sparse.binMm.toFixed(1), '1.6');
+  assert.equal(+Math.max(...sparse.finRuns.map((f) => f.rise)).toFixed(1), 33.3);
+  assert.match(readme, /19 of them between 4\.4 and 4\.9 au with 0\.005 au bins/);
   assert.equal(Belt.layout(Belt.DEFAULTS).fins, 0);
   // Kirkwood's "ten beyond three times the Earth's distance": the 91 of 1866, with today's orbits.
   assert.equal(Belt.sumFine(Belt.population('by1866').counts, Belt.fineIndex(3.0), 1600), 14);
   assert.match(readme, /14 of the 91 found by the year's end/);
   assert.equal(Belt.resonanceA(9, 4).toFixed(3), '3.029');
-  assert.match(readme, /the 9:4 at 3\.029 au/);
+  assert.match(readme, /the 9:4 at 3\.029 au/i);
+  assert.equal(Belt.resonanceA(8, 3).toFixed(4), '2.7048');
+  const g94 = Belt.grooveDepth(Belt.layout(Belt.DEFAULTS), Belt.resonanceA(9, 4));
+  assert.deepEqual([g94.depth, g94.kind], [0.93, 'edge']);
+  assert.match(readme, /The 9:4 at 3\.029 au is a 0\.9 mm edge on the default ruler/);
   assert.equal(Belt.resonanceA(8, 3).toFixed(3), '2.705');
 });
 
@@ -362,8 +519,20 @@ test('README and page quote the numbers the code computes', () => {
   assert.match(readme, /\[Certain\][^\n]*not been (physically )?printed/);
   for (const s of ['2.501', '2.824', '2.957', '3.277']) assert.ok(readme.includes(s), s);
   for (const doc of [readme, html]) assert.match(doc, /0\.39 au either side of its orbit size/);
-  assert.match(readme, /2\.8225 au \(67 standard deviations, 93% below its surroundings\), 2\.5025 \(66, 95%\), 2\.9575 \(44, 68%\) and 3\.2825 au \(21, 83%\)/);
-  assert.match(readme, /3:1 holds 6%, 5:2 7%, 7:3 32%, 2:1 16%/);
+  assert.match(readme, /2\.8250 au \(67 standard deviations, 94% below its surroundings\), 2\.5025 \(66, 95%\), 2\.9550 \(46, 71%\), 2\.7050 \(22, 23%\), 3\.2825 \(21, 83%\) and 3\.0275 au \(18, 21%\)/);
+  assert.match(readme, /3:1 holds 8% of the level on its inner side and 5% of the level on its outer side, 5:2 5% and 11%, 7:3 53% and 23%, 2:1 9% and 98%/);
+  // The tagline and the pitch: four notches (one of them the ungrooved 8:3) and an edge at the 2:1.
+  const tagline = readme.split('\n')[1];
+  for (const doc of [tagline, html.match(/<p class="tagline">([^<]+)</)[1]]) {
+    assert.match(doc, /Its top edge drops into four notches, then falls away where the main belt ends\. Kepler's law, given nothing but the length of Jupiter's year, says where all five are\./);
+  }
+  assert.match(readme, /3\.6 mm deep at 2\.70 au, deeper than the 7:3/);
+  assert.match(html, /3\.6 mm deep at 2\.70 au, deeper than the 7:3/);
+  assert.doesNotMatch(readme, /Above each groove, the bars drop into a notch|from any stretch that contains them|same asteroids, same scale|list of 20 resonances/);
+  assert.doesNotMatch(html, /the bar above it is where the asteroids are missing|"The main belt: four gaps"/);
+  assert.match(readme, /notches 8\.9, 7\.7 and 2\.6 mm deep/);
+  assert.match(html, /notches 8\.9, 7\.7 and 2\.6 mm deep/);
+  assert.match(readme, /^## Revision note/m);
   assert.match(readme, /21\.35 g of PLA and 1 h 44 min/);
   assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1">/);
 });

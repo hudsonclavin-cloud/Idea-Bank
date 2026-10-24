@@ -40,13 +40,16 @@
   MARKS.forEach(function (m) { m.a = resonanceA(m.p, m.q); m.label = m.p + ':' + m.q; });
 
   // The longer list the notch finder compares against: every p:q with q <= p <= 9, p and q
-  // coprime, order p - q at most 4, inside the data range.
+  // coprime, order p - q at most 5, inside the data range (24 of them; 8 between 1.8 and 3.4 au).
+  // The first version stopped at order 4; order 5 (6:1, 7:2, 8:3, 9:4) was added after an
+  // independent review showed that the finder's fourth notch on the default stretch is the 8:3.
+  var MAX_ORDER = 5;
   var RESONANCES = (function () {
     var out = [];
     function gcd(x, y) { return y ? gcd(y, x % y) : x; }
     for (var p = 1; p <= 9; p++) {
       for (var q = 1; q <= p; q++) {
-        if (gcd(p, q) !== 1 || p - q > 4) continue;
+        if (gcd(p, q) !== 1 || p - q > MAX_ORDER) continue;
         var a = resonanceA(p, q);
         if (a > DATA.aMin && a < DATA.aMax) out.push({ p: p, q: q, a: a, label: p + ':' + q });
       }
@@ -108,7 +111,9 @@
   };
   var MIN_BIN_MM = 1.0; // narrowest bar, and narrowest notch, the ruler will make
   var MARGIN = 3; // plain base at each end, mm
-  var DEFAULTS = { pop: 'all', count: 'a', a0: 1.8, a1: 3.4, bin: 0.01, length: 160, relief: 22, depth: 14, scale: 'linear', ledge: true };
+  // match: when counting by distance, use the height scale of the count by orbit size over the
+  // same stretch, so that the two rulers can be compared bar for bar (see layout).
+  var DEFAULTS = { pop: 'all', count: 'a', a0: 1.8, a1: 3.4, bin: 0.01, length: 160, relief: 22, depth: 14, scale: 'linear', ledge: true, match: true };
   var SCALES = ['linear', 'sqrt', 'log'];
 
   function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
@@ -121,7 +126,9 @@
     var pop = POP_IDS.indexOf(input.pop) >= 0 ? input.pop : DEFAULTS.pop;
     var scale = SCALES.indexOf(input.scale) >= 0 ? input.scale : DEFAULTS.scale;
     var count = COUNTS.indexOf(input.count) >= 0 ? input.count : DEFAULTS.count;
-    var ledge = input.ledge === undefined ? DEFAULTS.ledge : !!input.ledge && input.ledge !== 'false' && input.ledge !== '0';
+    var flag = function (x, d) { return x === undefined ? d : !!x && x !== 'false' && x !== '0'; };
+    var ledge = flag(input.ledge, DEFAULTS.ledge);
+    var match = flag(input.match, DEFAULTS.match);
     var length = Math.round(clamp(num(input.length, DEFAULTS.length), LIM.length[0], LIM.length[1]));
     var relief = Math.round(10 * clamp(num(input.relief, DEFAULTS.relief), LIM.relief[0], LIM.relief[1])) / 10;
     var depth = Math.round(clamp(num(input.depth, DEFAULTS.depth), LIM.depth[0], LIM.depth[1]));
@@ -148,7 +155,7 @@
     if (nb * step !== span) notes.push('The range ends at ' + fineA(i0 + nb * step).toFixed(4).replace(/0+$/, '').replace(/\.$/, '') + ' au so that it holds a whole number of bins.');
     i1 = i0 + nb * step;
     return {
-      pop: pop, count: count, scale: scale, ledge: ledge, length: length, relief: relief, depth: depth,
+      pop: pop, count: count, scale: scale, ledge: ledge, match: match, length: length, relief: relief, depth: depth,
       i0: i0, step: step, nb: nb,
       a0: fineA(i0), a1: fineA(i1), bin: step / DATA.perAu,
       minBin: minStep / DATA.perAu, notes: notes,
@@ -165,6 +172,9 @@
     bodyBase: 4.6,
   };
   var TICK_W = 1.0, GROOVE_W = 1.2, TICK_MIN_GAP = 3.0, GROOVE_MIN_SPACING = 2.4;
+  // A fin: a run of neighbouring bars under FIN_W mm wide in all that stands FIN_RISE mm or more
+  // above the bars on both sides of it.
+  var FIN_W = 3, FIN_RISE = 8;
 
   function q2(x) { return Math.round(x * 100) / 100; } // everything is on a 0.01 mm grid
 
@@ -205,6 +215,13 @@
     var pop = population(P.pop);
     var counts = rebin(fineCounts(pop, P.count), P.i0, P.step, P.nb);
     var cmax = Math.max.apply(null, counts);
+    // The height scale. Normally the tallest bar is the relief. Counted by distance with `match`
+    // on, the bars use the scale of the count by orbit size over the same bins instead, so that
+    // the two rulers stand for the same number of asteroids per mm (unless this count peaks
+    // higher, when that scale would overshoot the relief and each keeps its own).
+    var aMax = P.count === 'r' ? Math.max.apply(null, rebin(pop.counts, P.i0, P.step, P.nb)) : cmax;
+    var scaleMax = P.count === 'r' && P.match && aMax >= cmax ? aMax : cmax;
+    var sharedScale = P.count === 'r' && scaleMax === aMax && aMax > 0;
     var csum = counts.reduce(function (s, c) { return s + c; }, 0);
     var total = q2(P.length + 2 * MARGIN);
     var mmPerAu = P.length / (P.a1 - P.a0);
@@ -214,7 +231,7 @@
     // The body: one bar per bin.
     var body = [{ x0: 0, x1: MARGIN, h: H.bodyBase }];
     var bars = counts.map(function (c, b) {
-      var h = q2(H.bodyBase + P.relief * heightFraction(c, cmax, P.scale));
+      var h = q2(H.bodyBase + P.relief * heightFraction(c, scaleMax, P.scale));
       return { x0: q2(MARGIN + b * binMm), x1: q2(MARGIN + (b + 1) * binMm), h: h, count: c,
         a0: fineA(P.i0 + b * P.step), a1: fineA(P.i0 + (b + 1) * P.step) };
     });
@@ -254,18 +271,90 @@
       rows = [{ y0: 0, y1: P.depth, segs: body }];
     }
     var top = Math.max.apply(null, body.map(function (s) { return s.h; }));
-    // Free-standing fins: bars under 2 mm wide standing 8 mm or more above both neighbours.
-    var fins = bars.filter(function (b, i) {
-      var left = i ? bars[i - 1].h : H.bodyBase, right = i < bars.length - 1 ? bars[i + 1].h : H.bodyBase;
-      return b.x1 - b.x0 < 2 && b.h - Math.max(left, right) >= 8;
-    }).length;
+    var finRuns = findFins(bars);
     return {
       params: P, population: pop, counts: counts, cmax: cmax, csum: csum, bars: bars,
-      ticks: ticks, marks: marks, skipped: skipped, rows: rows, fins: fins,
+      scaleMax: scaleMax, orbitMax: aMax, sharedScale: sharedScale,
+      ticks: ticks, marks: marks, skipped: skipped, rows: rows, fins: finRuns.length, finRuns: finRuns,
       size: [total, rows[rows.length - 1].y1, top], mmPerAu: mmPerAu, binMm: binMm,
       // In linear mode the relief is proportional to the count: this many asteroids per mm^3.
-      perMm3: P.scale === 'linear' && cmax > 0 ? cmax / (binMm * P.depth * P.relief) : null,
+      perMm3: P.scale === 'linear' && scaleMax > 0 ? scaleMax / (binMm * P.depth * P.relief) : null,
     };
+  }
+
+  // Free-standing fins: runs of neighbouring bars, under FIN_W mm wide in all, every bar of which
+  // stands FIN_RISE mm or more above both bars flanking the run (the plain base at an end). The
+  // first version counted single bars under 2 mm only, and missed pairs that stand free together.
+  // Overlapping or nested runs are one fin. Returns [{ i, j, width, rise }], bars i to j.
+  function findFins(bars) {
+    var n = bars.length, mark = [], rise = [];
+    for (var i = 0; i < n; i++) {
+      var lo = Infinity;
+      for (var j = i; j < n && bars[j].x1 - bars[i].x0 < FIN_W - 1e-9; j++) {
+        lo = Math.min(lo, bars[j].h);
+        var left = i ? bars[i - 1].h : H.bodyBase, right = j < n - 1 ? bars[j + 1].h : H.bodyBase;
+        var r = lo - Math.max(left, right);
+        if (r >= FIN_RISE - 1e-9) for (var k = i; k <= j; k++) { mark[k] = true; rise[k] = Math.max(rise[k] || 0, r); }
+      }
+    }
+    var out = [];
+    for (i = 0; i < n; i++) {
+      if (!mark[i] || mark[i - 1]) continue;
+      var e = i, top = rise[i];
+      while (e + 1 < n && mark[e + 1]) { e++; top = Math.max(top, rise[e]); }
+      out.push({ i: i, j: e, width: q2(bars[e].x1 - bars[i].x0), rise: q2(top) });
+    }
+    return out;
+  }
+
+  // What a fingernail meets at orbit size a on this ruler, in mm of relief above the base: the
+  // lowest bar within 0.005 au of a (the floor), and the tallest bar within 0.06 au on each side
+  // (the rims). depth = the lower rim minus the floor. kind: 'notch' when depth is at least
+  // NOTCH_MM; 'edge' when the floor is the low point but only one side rises that far above it;
+  // 'flat' when neither does; 'slope' when one side never comes up to the floor (the bars rise or
+  // fall through a, no dip); 'end' when one side lies beyond the stretch. NOTCH_MM (five 0.2 mm
+  // layers) is my threshold, not one anyone has tested with a fingernail.
+  var NOTCH_MM = 1.0, RIM_AU = 0.06;
+  function grooveDepth(L, a) {
+    var rel = function (b) { return b.h - H.bodyBase; };
+    var near = L.bars.filter(function (b) { return b.a1 > a - 0.005 && b.a0 < a + 0.005; });
+    if (!near.length) return null;
+    var floor = Math.min.apply(null, near.map(rel));
+    var side = function (test) {
+      var bs = L.bars.filter(function (b) { return near.indexOf(b) < 0 && test(b); });
+      return bs.length ? Math.max.apply(null, bs.map(rel)) : null;
+    };
+    var inner = side(function (b) { return b.a1 <= a && b.a1 > a - RIM_AU; });
+    var outer = side(function (b) { return b.a0 >= a && b.a0 < a + RIM_AU; });
+    var r2 = function (x) { return x === null ? null : Math.round(x * 100) / 100; };
+    var out = { a: a, floor: r2(floor), inner: r2(inner), outer: r2(outer), depth: null, kind: 'end' };
+    if (inner === null || outer === null) return out;
+    var dip = Math.min(inner, outer) - floor, rise = Math.max(inner, outer) - floor;
+    out.depth = r2(Math.max(0, dip));
+    out.kind = dip >= NOTCH_MM - 1e-9 ? 'notch' : (dip < -1e-9 ? 'slope' : (rise >= NOTCH_MM - 1e-9 ? 'edge' : 'flat'));
+    return out;
+  }
+
+  // Every notch on this ruler, groove or no groove: each bar no taller than its neighbours whose
+  // grooveDepth, measured from its own centre, is a notch with that bar as the floor; within
+  // 0.05 au only the deepest counts. Each carries the nearest resonance on the finder's list and
+  // whether a groove of this ruler lies under it. Deepest first.
+  function objectNotches(L) {
+    var bars = L.bars, out = [];
+    bars.forEach(function (b, i) {
+      if ((i > 0 && bars[i - 1].h < b.h) || (i < bars.length - 1 && bars[i + 1].h < b.h)) return;
+      var a = (b.a0 + b.a1) / 2;
+      var g = grooveDepth(L, a);
+      if (!g || g.kind !== 'notch' || Math.abs(g.floor - (b.h - H.bodyBase)) > 1e-6) return;
+      var best = null;
+      RESONANCES.forEach(function (r) { if (!best || Math.abs(r.a - a) < Math.abs(best.a - a)) best = r; });
+      var groove = L.marks.filter(function (m) { return m.a > b.a0 - 0.005 && m.a < b.a1 + 0.005; })[0] || null;
+      out.push({ a: a, a0: b.a0, a1: b.a1, depth: g.depth, nearest: best, offset: a - best.a, groove: groove ? groove.label : null });
+    });
+    out.sort(function (x, y) { return y.depth - x.depth || x.a - y.a; });
+    var keep = [];
+    out.forEach(function (n) { if (keep.every(function (k) { return Math.abs(k.a - n.a) > 0.05; })) keep.push(n); });
+    return keep;
   }
 
   // ---------------------------------------------------------------- the mesher
@@ -513,53 +602,82 @@
   }
 
   function fileName(P) {
-    return 'kirkwood-ruler_' + P.pop + (P.count === 'r' ? '_by-distance' : '') + '_' + P.a0.toFixed(2) + '-' + P.a1.toFixed(2) + 'au_' + P.scale + '.stl';
+    return 'kirkwood-ruler_' + P.pop + (P.count === 'r' ? '_by-distance' + (P.match ? '' : '_own-scale') : '') + '_' + P.a0.toFixed(2) + '-' + P.a1.toFixed(2) + 'au_' + P.scale + '.stl';
   }
 
   // ---------------------------------------------------------------- reading the data
+  // Two belt levels at fine bin e, per `w` fine bins: the mean of the 16 slices of w fine bins whose
+  // starts lie 0.015 to 0.05 au before (inner) and after (outer) the slice [e, e + w).
+  // Each side sees only fine bins inside the data; null when it sees none.
+  function sideLevels(counts, e, w) {
+    var near = Math.round(0.015 * DATA.perAu / w), reach = Math.round(0.05 * DATA.perAu / w);
+    var inData = function (k) { return k >= 0 && k + w <= counts.length; };
+    var sl = 0, nl = 0, sr = 0, nr = 0;
+    for (var d = near; d <= reach; d++) {
+      if (inData(e - d * w)) { sl += sumFine(counts, e - d * w, e - d * w + w); nl++; }
+      if (inData(e + d * w)) { sr += sumFine(counts, e + d * w, e + d * w + w); nr++; }
+    }
+    return { inner: nl ? sl / nl : null, outer: nr ? sr / nr : null, both: nl + nr ? (sl + sr) / (nl + nr) : null };
+  }
+  // A step in the belt rather than a dip in it: the two sides differ by more than EDGE_RATIO.
+  var EDGE_RATIO = 3;
+  function isEdge(lv) {
+    if (lv.inner === null || lv.outer === null) return false;
+    var hi = Math.max(lv.inner, lv.outer), lo = Math.min(lv.inner, lv.outer);
+    return lo > 0 ? hi / lo > EDGE_RATIO : hi > 0;
+  }
+
   // How empty (or full) the belt is at a: the asteroids in the 0.005 au slice centred on a, divided
-  // by what the neighbouring belt (0.01 to 0.05 au away on both sides) puts in a slice that wide.
+  // by what the neighbouring belt (0.01 to 0.05 au away) puts in a slice that wide, on each side
+  // separately (ratioIn, ratioOut) and on both together (ratio). The first version reported only
+  // the two sides together, which at a step in the belt (the 2:1) averages a dense side and a
+  // sparse one; `edge` flags that case.
   function emptiness(counts, a) {
     var e = fineIndex(a);
     var n = sumFine(counts, e - 1, e + 1);
-    var s = sumFine(counts, e - 20, e - 4) + sumFine(counts, e + 4, e + 20);
-    var expected = s / 32 * 2;
-    return { a: a, count: n, expected: expected, ratio: expected > 0 ? n / expected : null };
+    var si = sumFine(counts, e - 20, e - 4), so = sumFine(counts, e + 4, e + 20);
+    var lv = { inner: si / 16 * 2, outer: so / 16 * 2, both: (si + so) / 32 * 2 };
+    var r = function (x) { return x > 0 ? n / x : null; };
+    return { a: a, count: n, expected: lv.both, inner: lv.inner, outer: lv.outer,
+      ratio: r(lv.both), ratioIn: r(lv.inner), ratioOut: r(lv.outer), edge: isEdge(lv) };
   }
 
-  // A notch finder that is not told where any resonance is. It slices [a0, a1] into 0.005 au bins
-  // (fine-bin aligned). For each bin no fuller than its two neighbours it takes the mean count B of
-  // the 16 bins 0.015 to 0.05 au away (centre to centre, eight each side; this background may reach
-  // past the range) and scores the bin by how many Poisson standard deviations it falls below it,
-  // (B - c) / sqrt(B). The highest score wins; nothing within 0.05 au of a winner can win too.
+  // A notch finder that is not told where any resonance is. It looks at every 0.005 au slice in
+  // [a0, a1] that starts on a 0.0025 au bin of the data, so its result does not depend on where
+  // the stretch starts (the first version cut the stretch into slices from a0, and half of all
+  // starting points gave a different list). For each slice no fuller than the slices either side
+  // of it, it takes the mean count B of the 16 slices 0.015 to 0.05 au away (centre to centre,
+  // eight each side; this background may reach past the stretch) and scores the slice by how many
+  // Poisson standard deviations it falls below it, (B - c) / sqrt(B). The highest score wins;
+  // nothing within 0.05 au of a winner can win too. Each notch also carries the two sides'
+  // levels on their own (inner, outer, depthIn, depthOut) and `edge` when they differ more than 3x.
+  // score: 'sigma' (default); 'both', the same against the lower of the two sides, so that a step
+  // cannot pass for a notch; 'depth', the first version's ranking by 1 - c/B, kept for the record.
   function findNotches(counts, a0, a1, top, stepFine, score) {
     top = top || 4;
-    var key = score === 'depth' ? 'depth' : 'sigma'; // 'depth' is the first version's ranking, kept for the record
-    var step = stepFine || 2; // fine bins per slice: 2 = 0.005 au (the page always uses 2)
+    var key = score === 'depth' ? 'depth' : 'sigma';
+    var w = stepFine || 2; // fine bins per slice: 2 = 0.005 au (the page always uses 2)
     var i0 = fineIndex(a0), i1 = fineIndex(a1);
-    var near = Math.round(0.015 * DATA.perAu / step), reach = Math.round(0.05 * DATA.perAu / step);
-    var nb = Math.floor((i1 - i0) / step);
-    var binCount = function (b) { return sumFine(counts, i0 + b * step, i0 + (b + 1) * step); };
-    var inData = function (b) { return i0 + b * step >= 0 && i0 + (b + 1) * step <= counts.length; };
+    var sep = Math.round(0.05 * DATA.perAu);
+    var inData = function (k) { return k >= 0 && k + w <= counts.length; };
+    var cnt = function (k) { return sumFine(counts, k, k + w); };
     var cand = [];
-    for (var b = 0; b < nb; b++) {
-      var c = binCount(b);
-      if ((inData(b - 1) && binCount(b - 1) < c) || (inData(b + 1) && binCount(b + 1) < c)) continue;
-      var s = 0, n = 0;
-      for (var d = near; d <= reach; d++) {
-        if (inData(b - d)) { s += binCount(b - d); n++; }
-        if (inData(b + d)) { s += binCount(b + d); n++; }
-      }
-      var B = n ? s / n : 0;
-      if (B <= 0) continue;
-      cand.push({ b: b, a: fineA(i0 + b * step + step / 2), count: c, background: B, depth: 1 - c / B, sigma: (B - c) / Math.sqrt(B) });
+    for (var k = Math.max(0, i0); k + w <= Math.min(i1, counts.length); k++) {
+      var c = cnt(k);
+      if ((inData(k - w) && cnt(k - w) < c) || (inData(k + w) && cnt(k + w) < c)) continue;
+      var lv = sideLevels(counts, k, w);
+      var B = score === 'both' ? Math.min.apply(null, [lv.inner, lv.outer].filter(function (x) { return x !== null; })) : lv.both;
+      if (!(B > 0)) continue;
+      var dep = function (x) { return x > 0 ? 1 - c / x : null; };
+      cand.push({ k: k, a: fineA(k + w / 2), count: c, background: B, depth: 1 - c / B, sigma: (B - c) / Math.sqrt(B),
+        inner: lv.inner, outer: lv.outer, depthIn: dep(lv.inner), depthOut: dep(lv.outer), edge: isEdge(lv) });
     }
-    cand.sort(function (x, y) { return y[key] - x[key] || x.b - y.b; });
+    cand.sort(function (x, y) { return y[key] - x[key] || x.k - y.k; });
     var pick = [];
-    for (var k = 0; k < cand.length && pick.length < top; k++) {
-      var cnd = cand[k];
+    for (var j = 0; j < cand.length && pick.length < top; j++) {
+      var cnd = cand[j];
       if (cnd[key] <= 0) break;
-      if (pick.every(function (p) { return Math.abs(p.b - cnd.b) > reach; })) pick.push(cnd);
+      if (pick.every(function (p) { return Math.abs(p.k - cnd.k) > sep; })) pick.push(cnd);
     }
     pick.forEach(function (p) {
       var best = null;
@@ -575,6 +693,8 @@
     LIM: LIM, MIN_BIN_MM: MIN_BIN_MM, MARGIN: MARGIN, H: H, CH_Z: CH_Z, CH_XY: CH_XY, ROW_DEPTH: ROW_DEPTH,
     SCALES: SCALES, COUNTS: COUNTS, fineCounts: fineCounts, JUPITER_A: JUPITER_A, JUPITER_LDOT: JUPITER_LDOT, JUPITER_YEARS: JUPITER_YEARS, GAUSS_K: GAUSS_K,
     TICK_W: TICK_W, GROOVE_W: GROOVE_W, TICK_MIN_GAP: TICK_MIN_GAP, GROOVE_MIN_SPACING: GROOVE_MIN_SPACING,
+    FIN_W: FIN_W, FIN_RISE: FIN_RISE, NOTCH_MM: NOTCH_MM, RIM_AU: RIM_AU, EDGE_RATIO: EDGE_RATIO, MAX_ORDER: MAX_ORDER,
+    findFins: findFins, grooveDepth: grooveDepth, objectNotches: objectNotches,
     resonanceA: resonanceA, periodYears: periodYears, population: population, rebin: rebin, sumFine: sumFine,
     fineIndex: fineIndex, fineA: fineA, normalize: normalize, heightFraction: heightFraction,
     layout: layout, buildMesh: buildMesh, meshFacts: meshFacts, expectedVolume: expectedVolume,

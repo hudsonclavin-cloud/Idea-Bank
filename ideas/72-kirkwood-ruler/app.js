@@ -5,6 +5,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (n, d) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
   var trimAu = function (a) { return a.toFixed(4).replace(/0+$/, '').replace(/\.$/, ''); };
+  // Depths sit on a 0.01 mm grid, often at a half (7.65): round those up, as the README does.
+  var mm1 = function (x) { return (Math.round(x * 10 + 1e-6) / 10).toFixed(1); };
 
   var state = Object.assign({}, B.DEFAULTS);
   var cur = null;          // { layout, mesh, facts }
@@ -23,6 +25,7 @@
     ['pop', 'count', 'scale'].forEach(function (k) { if (q.has(k)) state[k] = q.get(k); });
     ['a0', 'a1', 'bin', 'length', 'relief', 'depth'].forEach(function (k) { if (q.has(k)) state[k] = Number(q.get(k)); });
     if (q.has('ledge')) state.ledge = q.get('ledge') !== '0' && q.get('ledge') !== 'false';
+    if (q.has('match')) state.match = q.get('match') !== '0' && q.get('match') !== 'false';
   })();
 
   // ------------------------------------------------------------ colours from the stylesheet
@@ -227,7 +230,17 @@
     $('readout').textContent = line;
     var notes = P.notes.slice();
     L.skipped.forEach(function (s) { notes.push('No groove for ' + s.label + ': it would crowd the ' + s.because + ' groove at this length.'); });
-    if (L.fins) notes.push(L.fins + ' bar' + (L.fins === 1 ? ' stands' : 's stand') + ' 8 mm or more above both neighbours while under 2 mm wide. Such fins can wobble or snap; wider bins, the square-root scale or a lower relief make them sturdier.');
+    if (P.count === 'r') {
+      var aTall = (P.relief * B.heightFraction(L.orbitMax, L.scaleMax, P.scale)).toFixed(1);
+      var tallest = Math.max.apply(null, L.bars.map(function (b) { return b.h - B.H.bodyBase; })).toFixed(1);
+      if (L.sharedScale) notes.push('On the same height scale as the ruler counted by orbit size over this stretch, whose tallest bar is ' + aTall + ' mm: the tallest bar here is ' + tallest + ' mm, so the two can be compared bar for bar.');
+      else if (P.match && L.cmax > 0) notes.push('Counted by where they are, this stretch peaks higher than counted by orbit size, so that scale would overshoot the tallest bar you set. This ruler is scaled to its own tallest bar, and it and the ruler by orbit size do not share a height scale.');
+      else if (L.cmax > 0) notes.push('Scaled to its own tallest bar: it does not share a height scale with the ruler counted by orbit size.');
+    }
+    if (L.fins) {
+      var freest = Math.max.apply(null, L.finRuns.map(function (r) { return r.rise; }));
+      notes.push(L.fins + ' fin' + (L.fins === 1 ? '' : 's') + ': a bar, or a few side by side under ' + B.FIN_W + ' mm wide in all, standing ' + B.FIN_RISE + ' mm or more above the bars either side (the freest stands ' + freest.toFixed(1) + ' mm clear). Such fins can wobble or snap while printing or later; wider bins, the square-root scale or a lower relief make them sturdier.');
+    }
     if (L.cmax === 0) notes.push('None of ' + pop.short + ' ' + (P.count === 'r' ? 'is ever this far out' : 'has an orbit in this stretch') + ': the ruler comes out flat.');
     if (!f.closedAndOriented) notes.push('This shape did not close up: please report the settings. Download is off.');
     var ul = $('notes');
@@ -241,18 +254,22 @@
     tb.textContent = '';
     var inRange = B.MARKS.filter(function (m) { return m.a >= P.a0 && m.a <= P.a1; });
     var list = inRange.length ? inRange : B.MARKS;
+    var pctOf = function (x) { return x === null ? 'none there' : Math.round(x * 100) + '%'; };
     list.slice().sort(function (x, y) { return x.a - y.a; }).forEach(function (m) {
       var e = B.emptiness(fine, m.a);
       var tr = document.createElement('tr');
       var yr = B.periodYears(m.a);
+      var g = m.a >= P.a0 && m.a <= P.a1 ? B.grooveDepth(L, m.a) : null;
       var cells = [
         m.label + (m.kind === 'group' ? ' <span class="tag">' + m.group + '</span>' : ''),
         m.a.toFixed(3) + ' au',
         yr.toFixed(2) + ' yr: ' + m.p + ' laps per ' + (m.q === 1 ? 'Jupiter year' : m.q + ' of Jupiter’s'),
         P.count === 'r' ? fmt(e.count, 0) + ' on average' : fmt(e.count),
-        e.ratio === null ? 'none nearby either' : (Math.round(e.ratio * 100) + '% of the level around it'),
+        e.ratioIn === null && e.ratioOut === null ? 'none nearby either' :
+          pctOf(e.ratioIn) + ' / ' + pctOf(e.ratioOut) + (e.edge ? ': a step in the belt, not a gap in it' : ''),
+        grooveWords(g),
       ];
-      var heads = ['Groove', 'Orbit size', 'Its year', 'In the 0.005 au there', 'Compared with its neighbours'];
+      var heads = ['Groove', 'Orbit size', 'Its year', 'In the 0.005 au there', 'Against the belt inside / outside it', 'What the bars do there'];
       cells.forEach(function (h, k) {
         var td = document.createElement('td');
         td.setAttribute('data-label', heads[k]);
@@ -265,11 +282,17 @@
     });
     var intro = 'Counting ' + pop.short + (P.count === 'r' ? ' by where they are, averaged over their orbits' : ' by the size of their orbits') + '. ';
     intro += inRange.length ? 'The ledge of this ruler carries ' + L.marks.length + ' groove' + (L.marks.length === 1 ? '' : 's') + '.' : 'None of the marked resonances falls in this stretch; the table shows them all for reference.';
+    var loose = B.objectNotches(L).filter(function (n) { return !n.groove; });
+    if (loose.length) {
+      var shown = loose.slice(0, 6).map(function (n) { return trimAu(n.a0) + ' to ' + trimAu(n.a1) + ' au (' + mm1(n.depth) + ' mm)'; });
+      intro += ' Its bars also drop into ' + (loose.length === 1 ? 'a notch' : loose.length + ' notches') + ' at least ' + B.NOTCH_MM.toFixed(0) + ' mm deep with no groove under ' + (loose.length === 1 ? 'it' : 'them') + ': ' + shown.join(', ') +
+        (loose.length > 6 ? ', and ' + (loose.length - 6) + ' more' : '') + '. The notch finder below says which dips in the counts stand out from chance.';
+    }
     $('finds-intro').textContent = intro;
 
     var ol = $('finder-list');
     ol.textContent = '';
-    var found = B.findNotches(fine, P.a0, P.a1, 4);
+    var found = B.findNotches(fine, P.a0, P.a1, 6);
     if (!found.length) {
       var li = document.createElement('li');
       li.textContent = 'It finds no notch here: no slice in this stretch falls below the belt around it.';
@@ -279,10 +302,30 @@
       var li = document.createElement('li');
       var off = Math.abs(n.offset);
       var sd = n.sigma >= 10 ? Math.round(n.sigma) : n.sigma.toFixed(1);
-      li.textContent = trimAu(n.a) + ' au: ' + Math.round(n.depth * 100) + '% below its surroundings, ' + sd + ' standard deviations' +
-        (n.sigma < 5 ? ' (could be chance)' : '') + '. Nearest resonance: ' + n.nearest.label + ' at ' + n.nearest.a.toFixed(4) + ' au, ' + off.toFixed(4) + ' au away.';
+      var side = function (d, where) {
+        if (d === null) return 'no belt ' + where + ' it in the data';
+        var k = Math.round(Math.abs(d) * 100);
+        return k + '% ' + (d >= 0 ? 'below' : 'above') + ' the belt ' + where + ' it';
+      };
+      li.textContent = trimAu(n.a) + ' au: ' + Math.round(n.depth * 100) + '% below its surroundings (' + side(n.depthIn, 'inside') + ', ' + side(n.depthOut, 'outside') +
+        (n.edge ? ': a step in the belt more than a notch' : '') + '), ' + sd + ' standard deviations' +
+        (n.sigma < 5 ? ' (could be chance)' : '') + '. Nearest resonance on its list: ' + n.nearest.label + ' at ' + n.nearest.a.toFixed(4) + ' au, ' + off.toFixed(4) + ' au away.';
       ol.appendChild(li);
     });
+  }
+
+  // What the bars do at a groove on this object (B.grooveDepth), in words.
+  function grooveWords(g) {
+    if (!g) return 'not on this stretch';
+    var mm = function (x) { return mm1(x) + ' mm'; };
+    if (g.kind === 'notch') return 'a notch ' + mm(g.depth) + ' deep';
+    if (g.kind === 'edge') {
+      var hi = Math.max(g.inner, g.outer) - g.floor, lo = Math.min(g.inner, g.outer) - g.floor;
+      return 'an edge, not a notch: the bars drop ' + mm(hi) + ' to it from the ' + (g.inner > g.outer ? 'inside' : 'outside') + ', and the far side is only ' + mm(lo) + ' higher';
+    }
+    if (g.kind === 'slope') return 'no dip: the bars ' + (g.outer > g.inner ? 'rise' : 'fall') + ' through it';
+    if (g.kind === 'flat') return 'nothing to feel: under ' + B.NOTCH_MM.toFixed(0) + ' mm either way';
+    return 'too near the end of the stretch to tell';
   }
 
   function syncControls() {
@@ -293,6 +336,8 @@
       if (document.activeElement !== el || dragging !== k) el.value = String(P[k]);
     });
     $('ledge').checked = P.ledge;
+    $('match').checked = P.match;
+    $('match').disabled = P.count !== 'r';
     document.querySelectorAll('input[name="scale"]').forEach(function (r) { r.checked = r.value === P.scale; });
     document.querySelectorAll('input[name="count"]').forEach(function (r) { r.checked = r.value === P.count; });
     document.querySelectorAll('.preset-buttons button').forEach(function (b) {
@@ -356,6 +401,7 @@
     // after a drag, adopt the cleaned-up values so the next change starts from them
     document.addEventListener('pointerup', function () { if (dragging) { dragging = null; adopt(); } });
     $('ledge').addEventListener('change', function () { state.ledge = this.checked; scheduleSwitch(); });
+    $('match').addEventListener('change', function () { state.match = this.checked; scheduleSwitch(); });
     document.querySelectorAll('input[name="scale"]').forEach(function (r) {
       r.addEventListener('change', function () { if (r.checked) { state.scale = r.value; scheduleSwitch(); } });
     });

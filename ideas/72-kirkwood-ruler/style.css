@@ -115,6 +115,7 @@ legend { font-weight: 600; padding: 0 6px 0 0; }
 input[type="range"] { display: block; width: 100%; margin: 6px 0 2px; accent-color: var(--accent); min-height: 28px; }
 .radios label, .check { display: flex; gap: 8px; align-items: center; font-size: 0.92rem; margin: 4px 0; }
 .check { margin-top: 12px; }
+.check:has(input:disabled) { opacity: 0.55; }
 input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
 .hint { color: var(--muted); font-size: 0.85rem; margin: 6px 0 0; }
 .download { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 12px; }

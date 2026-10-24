@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kirkwood's Ruler</title>
-<meta name="description" content="A printable ruler of the asteroid belt, made from 1,576,490 real orbits. Its top edge drops into notches where Jupiter's resonances keep the belt empty.">
+<meta name="description" content="A printable ruler of the asteroid belt, made from 1,576,490 real orbits. Its top edge drops into notches, and ends, where Jupiter's resonances keep the belt empty.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
 <header class="masthead">
   <p class="kicker">Idea Bank · 72 · printable object</p>
   <h1>Kirkwood's Ruler</h1>
-  <p class="tagline">A ruler of the asteroid belt, made from the orbits of 1,576,490 asteroids. Its top edge drops into four notches. Kepler's law, given nothing but the length of Jupiter's year, says where they are. No picture of the sky shows them: they are gaps in the sizes of orbits, not in space.</p>
+  <p class="tagline">A ruler of the asteroid belt, made from the orbits of 1,576,490 asteroids. Its top edge drops into four notches, then falls away where the main belt ends. Kepler's law, given nothing but the length of Jupiter's year, says where all five are. No picture of the sky shows them: they are gaps in the sizes of orbits, not in space.</p>
 </header>
 
 <main>
@@ -41,8 +41,8 @@
 
   <form class="controls" id="controls" autocomplete="off">
     <div class="presets" id="presets" data-presets='[
-      {"name":"The main belt: four gaps","set":{"pop":"all","count":"a","a0":1.8,"a1":3.4,"bin":0.01,"scale":"linear","length":160,"relief":22,"depth":14,"ledge":true}},
-      {"name":"The same belt, by where they are","set":{"pop":"all","count":"r","a0":1.8,"a1":3.4,"bin":0.01,"scale":"linear","length":160,"relief":22,"depth":14,"ledge":true}},
+      {"name":"The main belt: four notches and an edge","set":{"pop":"all","count":"a","a0":1.8,"a1":3.4,"bin":0.01,"scale":"linear","length":160,"relief":22,"depth":14,"ledge":true}},
+      {"name":"The same belt, by where they are","set":{"pop":"all","count":"r","a0":1.8,"a1":3.4,"bin":0.01,"scale":"linear","length":160,"relief":22,"depth":14,"ledge":true,"match":true}},
       {"name":"Mars to Jupiter","set":{"pop":"all","count":"a","a0":1.5,"a1":5.5,"bin":0.025,"scale":"log","length":170,"relief":22,"depth":14,"ledge":true}},
       {"name":"Hildas and Trojans","set":{"pop":"all","count":"a","a0":3.3,"a1":5.4,"bin":0.015,"scale":"sqrt","length":160,"relief":22,"depth":14,"ledge":true}},
       {"name":"Close-up: the 3:1 gap","set":{"pop":"all","count":"a","a0":2.4,"a1":2.6,"bin":0.0025,"scale":"linear","length":160,"relief":22,"depth":14,"ledge":true}},
@@ -70,6 +70,7 @@
         <label><input type="radio" name="count" value="a" checked> the size of its orbit</label>
         <label><input type="radio" name="count" value="r"> where it is, averaged over its year</label>
       </div>
+      <label class="check"><input type="checkbox" id="match" name="match" checked> By where they are: on the height scale of the ruler by orbit size, so the pair compare bar for bar</label>
     </fieldset>
 
     <fieldset>
@@ -112,14 +113,14 @@
   <div class="tables">
     <div class="table-wrap">
       <table id="marks-table">
-        <caption>The grooves on the ledge: where Kepler's law puts each resonance</caption>
-        <thead><tr><th scope="col">Groove</th><th scope="col">Orbit size</th><th scope="col">Its year</th><th scope="col">In the 0.005 au there</th><th scope="col">Compared with its neighbours</th></tr></thead>
+        <caption>The grooves on the ledge: where Kepler's law puts each resonance, how many asteroids are there against the belt 0.01 to 0.05 au away on each side, and what the bars of this ruler do above it (a notch is at least 1 mm deep: my threshold, not a tested one)</caption>
+        <thead><tr><th scope="col">Groove</th><th scope="col">Orbit size</th><th scope="col">Its year</th><th scope="col">In the 0.005 au there</th><th scope="col">Against the belt inside / outside it</th><th scope="col">What the bars do there</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
     <div class="finder">
       <h3>A notch finder that has never heard of Jupiter</h3>
-      <p class="hint">It looks only at the counts in this stretch. For every 0.005 au slice it asks how many standard deviations the slice falls below the belt 0.015 to 0.05 au away on each side, if asteroids were scattered at random; it keeps the four strongest, at least 0.05 au apart, and only then is shown the list of resonances with Jupiter to see which is nearest. Below 5 standard deviations, a notch could be chance.</p>
+      <p class="hint">It looks only at the counts in this stretch, in 0.005 au slices, finer than the bars of most rulers. For every slice it asks how many standard deviations the slice falls below the belt 0.015 to 0.05 au away on each side, if asteroids were scattered at random; it keeps the six strongest, at least 0.05 au apart, and only then is shown a list of 24 resonances with Jupiter (every <i>p</i>:<i>q</i> up to 9 laps and order 5) to see which is nearest. Below 5 standard deviations, a notch could be chance. A notch far deeper on one side than the other is a step in the belt, and is marked so.</p>
       <ol id="finder-list"></ol>
     </div>
   </div>
@@ -127,10 +128,10 @@
 
 <section class="prose" aria-labelledby="why-h">
   <h2 id="why-h">Why Jupiter leaves notches</h2>
-  <p>Kepler's third law ties the length of a year to the size of an orbit: square the year in Earth years, and you get the cube of the orbit's semi-major axis in astronomical units (au, the Earth's distance from the Sun). Jupiter goes round in 11.86 years. An asteroid at <b>2.501 au</b> goes round in 3.95, exactly a third as long, so after every three of its laps it and Jupiter are back where they started, and Jupiter's pulls repeat instead of averaging away. The same holds for 5 laps in 2 of Jupiter's years at <b>2.824 au</b>, 7 in 3 at <b>2.957 au</b> and 2 in 1 at <b>3.277 au</b>. Those four numbers come from Jupiter's period alone; the ledge carries a groove at each, and the bar above it is where the asteroids are missing.</p>
+  <p>Kepler's third law ties the length of a year to the size of an orbit: square the year in Earth years, and you get the cube of the orbit's semi-major axis in astronomical units (au, the Earth's distance from the Sun). Jupiter goes round in 11.86 years. An asteroid at <b>2.501 au</b> goes round in 3.95, exactly a third as long, so after every three of its laps it and Jupiter are back where they started, and Jupiter's pulls repeat instead of averaging away. The same holds for 5 laps in 2 of Jupiter's years at <b>2.824 au</b>, 7 in 3 at <b>2.957 au</b> and 2 in 1 at <b>3.277 au</b>. Those four numbers come from Jupiter's period alone, and the ledge carries a groove at each: they are the four gaps that JPL's own histogram of the belt labels. On the default ruler the bars above the first three drop into notches 8.9, 7.7 and 2.6 mm deep. At the fourth there is no notch to find: the bars have already fallen, from 21 mm at 3.16 au to under half a millimetre by 3.26 au, and they stay that low to the end of the ruler at 3.4 au. At this scale the 2:1 is where the main belt ends. The few asteroids beyond it (a few hundred to a bar, against 23,653 at the tallest) stand too low to give it an outer rim; the square-root and log scales lift them, and on the same stretch make the 2:1 a dip 0.6 and 1.1 mm deep. The default ruler has one more notch, 3.6 mm deep at 2.70 au, deeper than the 7:3, and it has no groove: it sits at <b>2.705 au</b>, where an asteroid goes round 8 times in 3 of Jupiter's years, a weaker resonance than the four the ledge marks. The notch finder below finds it too. Every other dip along the top edge is under 1 mm.</p>
   <p>What the repeated pull does depends on the resonance. In the 3:1, Jack Wisdom showed in the early 1980s that orbits are chaotic and that their eccentricity surges, now and then, high enough to carry an asteroid across the orbit of Mars, and in 1985 he argued that this is one way meteorites reach the Earth. Not every resonance empties: at <b>3.969 au</b>, 3 laps for Jupiter's 2, the Hildas crowd in, and at Jupiter's own orbit, <b>5.201 au</b>, the Trojans share its year. Same rhythm, opposite outcome. The ruler shows that both happen; it does not show why.</p>
   <p>Daniel Kirkwood noticed the gaps, and named Jupiter as their cause, in 1866, when fewer than a hundred asteroids were known (the database lists 91 discovered by the end of that year). You can print his belt with the <i>1866</i> preset: 43 of its 80 bars are empty, the four at the resonances among them, so by touch the gaps are lost among the chance ones. The pattern was there to be argued for, not felt.</p>
-  <p><b>Why no picture shows them.</b> The gaps are missing <i>orbit sizes</i>, not empty rings in space. Asteroid orbits are ellipses: during its year, the median main-belt asteroid swings 0.39 au either side of its orbit size, through the gap distances and back. Switch <i>Count each asteroid by</i> to <i>where it is</i> and the same asteroids, counted by their distance from the Sun averaged over their orbits, make a smooth hill: the notches go, and the notch finder finds nothing. Print both and hold one in each hand. The gaps are in the lengths of the asteroids' years, not in where the asteroids are.</p>
+  <p><b>Why no picture shows them.</b> The gaps are missing <i>orbit sizes</i>, not empty rings in space. Asteroid orbits are ellipses: during its year, the median main-belt asteroid swings 0.39 au either side of its orbit size, through the gap distances and back. Switch <i>Count each asteroid by</i> to <i>where it is</i> and the same asteroids, counted by their distance from the Sun averaged over their orbits, make a smooth hill: the notches go, and the notch finder finds nothing. Print both and hold one in each hand: the page puts the second on the first one's height scale, so a cubic millimetre of either stands for the same number of asteroids, and the second is a lower hill (12.3 mm at its top, against 22) that holds a little less, because eccentric orbits spend part of each year outside the stretch. The gaps are in the lengths of the asteroids' years, not in where the asteroids are.</p>
 </section>
 
 <section class="prose" aria-labelledby="print-h">
